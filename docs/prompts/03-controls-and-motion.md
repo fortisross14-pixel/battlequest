@@ -1,10 +1,10 @@
 # Agent prompt: elite controls and animations
 
-Use this **after the Review 1 fixes** (`docs/prompts/02-review-1-fixes.md`) are done and pushed. Copy everything below the line into the agent session.
+Use this **after** the Review 1 fixes (`docs/prompts/02-review-1-fixes.md`) **and** the campaign timeline (`docs/prompts/04-campaign-timeline.md`) are done and pushed. Copy everything below the line into the agent session.
 
 ---
 
-The Review 1 fixes are done. The next goal is to make BattleQuest **feel premium**: expert-grade touch controls and ceremonial animations (battle intro, pack and hero-card reveals, victory), while keeping the minimal historical-battle-map style.
+The Review 1 fixes and the campaign timeline are done. The next goal is to make BattleQuest **feel premium**: expert-grade touch controls and ceremonial animations (battle intro, pack and hero-card reveals, victory), while keeping the minimal historical-battle-map style.
 
 **Read first:**
 - `CLAUDE.md`
@@ -49,13 +49,15 @@ Follow them; don't improvise their rules. If the `frontend-design` plugin skills
    - a pack opening (Common, Rare, Epic and Legendary forced);
    - a hero (general) card reveal;
    - victory;
-   - defeat.
+   - defeat;
+   - the campaign moments: opening the timeline, entering an age, a battle unlocking, an age unlocking.
 
    Run `motion-check`, then **stop and send me the contact sheets plus the GitHub Pages link** so I can try it on my tablet. Wait for my approval or changes before you wire the sequences into the real flow.
 2. After approval, integrate them:
    - the intro plays when a battle loads;
    - the pack and hero reveals replace the current shop and reward reveal;
    - victory and defeat lead into the results screen (stars, coin roll-up, XP bar, rank-up, cards earned);
+   - the timeline and age-map transitions, plus battle and age unlocks, play when you return to the campaign;
    - meaning badges ("NEW", "Upgrade ready") link to the Army screen.
 
 ## Phase D — In-battle effects

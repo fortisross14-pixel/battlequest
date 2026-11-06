@@ -27,7 +27,7 @@ The look is a **living historical battle map**: the same red-and-blue blocks, ar
 ## 3. Core loop
 
 ```
- Campaign map (pick battle)
+ Timeline → age map (pick battle)
         │
         ▼
  Battle briefing ──► Army builder (pick general + fill unit slots)
@@ -295,25 +295,83 @@ The troop dynamic is **unlock and upgrade**.
 
 ## 7. Campaign: the ages
 
-The **Prologue** is the tutorial. After that come 10 ages of 3–5 battles each, and each age unlocks after the previous age's final battle. Every battle is built around one clear historical "problem" (the terrain or scenario challenge).
+The campaign is a journey through history in two levels:
 
-| # | Age | Battles (challenge) |
-|---|---|---|
-| 0 | **Prologue** | **Megiddo, 1457 BC** — the first recorded battle. Tutorial: move, face, charge, flank. Fixed army. |
-| 1 | Bronze & Iron | Kadesh (chariot ambush, river Orontes) · Qarqar (coalition vs Assyria) |
-| 2 | Greece & Persia | Marathon (strengthen the wings, weak center) · Thermopylae (narrow pass: hold N turns) · Leuctra (oblique attack) · Gaugamela (wide plain, scythed chariots, find the gap) · Hydaspes (river crossing plus elephants) |
-| 3 | Rome & Carthage | Lake Trasimene (fog ambush, escape) · Cannae (double envelopment) · Zama (elephant lanes) · Alesia (fortifications on two fronts) · Teutoburg (forest ambush, survive) |
-| 4 | Late Antiquity & Early Middle Ages | Adrianople (cavalry hits the flank) · Catalaunian Plains (hold the ridge) · Tours (shield wall vs cavalry) · Hastings (hill, feigned retreat) |
-| 5 | High Middle Ages & the Steppe | Manzikert (horse archers, don't get lured) · Hattin (heat, water objective) · Legnano (carroccio defense) · Mohi (bridge assault) · Ain Jalut (feigned retreat) |
-| 6 | Late Middle Ages | Stirling Bridge (the bridge trap) · Bannockburn (bog and pits) · Crécy (longbows on the hill) · Agincourt (mud between woods) · Grunwald |
-| 7 | Age of Exploration | Cerignola (arquebus behind a trench) · Pavia (night, walled park) · Otumba (kill the enemy standard-bearer) · Mohács · Sekigahara (fog, defections) |
-| 8 | Pike & Shot | Breitenfeld (mobile vs rigid formations) · Rocroi (the last tercios) · Naseby · Vienna 1683 (winged hussar charge, reinforcements) |
-| 9 | Linear Warfare & Napoleon | Blenheim (village strongpoints) · Leuthen (oblique order behind hills) · Austerlitz (fog, Pratzen Heights) · Borodino (redoubts) · **Waterloo** (Hougoumont, La Haye Sainte, Prussians arrive on turn 8) |
-| 10 | Age of Rifles | Solferino · Gettysburg (Little Round Top, Pickett's Charge) · Isandlwana (rifles vs numbers, ammo supply) · Königgrätz (converging armies) |
+1. a **timeline** of ages;
+2. inside each age, a **map** of its battles at their real locations.
 
-Each battle definition includes: map, deployment zones, the enemy army and its general, AI posture, objectives, turn limit, weather, reinforcements, unit slots, bonus star condition, and briefing text (3–4 sentences of history plus the tactical problem).
+Every battle is built around one clear historical "problem" (the terrain or scenario challenge).
 
-**MVP content:** the Prologue plus Age 2 (5 battles). Every later age is added as content only, with no engine changes beyond new tags and terrain.
+### 7.1 Timeline screen
+
+- One horizontal, scrollable **timeline** across a parchment strip, oldest on the left. An ink line runs through it with date ticks (1500 BC … 1900 AD).
+- Each age is a large node on the line showing:
+  - its name and date range;
+  - a small emblem (laurel, crown, musket…);
+  - **progress**: battles won out of total ("0/10 battles") and stars out of total ("0/30 ★").
+- **Locked** ages are greyed out with a wax seal and their requirement ("Win every battle of Antiquity"). Ages whose content isn't built yet say "In preparation".
+- On first launch, only **Age 0** is open. The timeline opens scrolled to the newest unlocked age.
+- Unlocking an age is a moment: the seal cracks and the ink line extends to the new age (see the `motion` skill).
+
+### 7.2 Age map screen
+
+- A minimal parchment **map of the age's region**: flat land, sea and coastline in ink lines; a few labelled rivers and cities; no clutter. It is generated from public-domain Natural Earth data, simplified, and committed as static SVG.
+- Each battle is a **node at its real location**, with:
+  - its name and year;
+  - its stars (☆☆☆ / ★★☆ …);
+  - a lock showing the stars it needs ("🔒 4 ★").
+- A dotted route line links battles in historical order.
+- The header shows the age name and its progress: "Antiquity · 3/10 battles · 7/30 ★".
+- Tapping an open node opens the briefing and army builder. Tapping a locked node says how many more stars are needed.
+
+### 7.3 Unlock rules
+
+- **Battles unlock by stars earned in that age.** The first two battles are always open. The rest need the age's star total to reach a threshold:
+
+  | Battle # in age | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | Stars needed | 0 | 0 | 1 | 2 | 4 | 6 | 8 | 10 | 14 | 18 | 22 | 26 |
+
+  The thresholds are data per age, so they can be tuned.
+- **The next age unlocks** when every battle in the current age has been **won** (at least ★). Three stars everywhere is not required.
+- **Stars** (§4.8): ★ win; ★★ win losing under 30%; ★★★ also meet the battle's bonus condition. A battle keeps its best result. Replays can raise stars, and the extra stars count immediately toward unlocks.
+
+### 7.4 Age 0: Dawn of War (tutorial)
+
+Two guided battles, each with tutorial steps that advance when the player does the thing asked.
+
+| # | Battle | Teaches | Army |
+|---|---|---|---|
+| 0.1 | **Megiddo, 1457 BC** (very easy) | Select, move, facing; why attacking a **flank** beats attacking the front; **support** (two units on one enemy); how armies break | Fixed: the player's 2 starting troop types plus Thutmose III for this battle |
+| 0.2 | **Kadesh, 1274 BC** (easy) | **Choosing troops** in the army builder (slots; several copies of one type allowed); **ranged attacks** with archers; **using a general skill**; picking a general | Player's choice. The player gets archers and Thutmose for winning Megiddo. |
+
+Winning both battles unlocks **Age 1: Antiquity** and grants its starter troops.
+
+### 7.5 The ages
+
+There are 10 ages, each with 10–12 battles. The battle list is a starting point; `add-battle` research may swap some.
+
+| # | Age | Years | Battles |
+|---|---|---|---|
+| 0 | Dawn of War (tutorial) | 1500–1250 BC | Megiddo · Kadesh |
+| 1 | **Antiquity** (Bronze Age to Alexander) | 860–320 BC | Qarqar (coalition vs Assyria) · Marathon (strong wings, weak centre) · Thermopylae (hold the pass) · Plataea · Leuctra (oblique attack) · Chaeronea · Granicus (river crossing) · Issus (coastal plain) · Gaugamela (wide plain, scythed chariots, find the gap) · Hydaspes (river crossing plus elephants) |
+| 2 | Classical Empires (Rome and Carthage) | 280 BC–AD 378 | Heraclea · Trebia · Lake Trasimene (fog ambush, escape) · Cannae (double envelopment) · Zama (elephant lanes) · Cynoscephalae · Pydna · Carrhae · Alesia (two fronts) · Pharsalus · Teutoburg (forest ambush, survive) · Adrianople |
+| 3 | Early Middle Ages | 451–1176 | Catalaunian Plains (hold the ridge) · Taginae · Yarmouk · Tours (shield wall vs cavalry) · Lechfeld · Stamford Bridge · Hastings (hill, feigned retreat) · Manzikert (don't get lured) · Dorylaeum · Legnano |
+| 4 | High and Late Middle Ages | 1187–1410 | Hattin (heat, water) · Arsuf · Bouvines · Mohi (bridge assault) · Ain Jalut (feigned retreat) · Stirling Bridge (the bridge trap) · Bannockburn (bog and pits) · Crécy (longbows on the hill) · Poitiers · Agincourt (mud between woods) · Grunwald |
+| 5 | Age of Exploration | 1476–1600 | Morat · Fornovo · Cerignola (arquebus behind a trench) · Ravenna · Marignano · Pavia · Otumba (strike the standard) · Mohács · Panipat · Nagashino · Sekigahara (fog, defections) |
+| 6 | Pike and Shot | 1605–1683 | Kircholm · Klushino · White Mountain · Breitenfeld · Lützen · Nördlingen · Rocroi (the last tercios) · Marston Moor · Naseby · Vienna 1683 (hussar charge, reinforcements) |
+| 7 | Linear Warfare | 1704–1781 | Blenheim (village strongpoints) · Poltava · Fontenoy · Plassey · Rossbach · Leuthen (oblique order behind hills) · Quebec · Saratoga · Guilford Courthouse · Cowpens |
+| 8 | Napoleonic Wars | 1800–1815 | Marengo · Austerlitz (fog, Pratzen Heights) · Jena · Eylau · Friedland · Talavera · Wagram · Salamanca · Borodino (redoubts) · Leipzig · **Waterloo** (Hougoumont, La Haye Sainte, Prussians on turn 8) |
+| 9 | Age of Rifles | 1854–1898 | Alma · Balaclava · Solferino · Bull Run · Antietam · Gettysburg · Königgrätz · Sedan · Little Bighorn · Isandlwana · Omdurman |
+
+Each battle definition includes:
+- map, deployment zones, and the enemy army and its general;
+- AI posture, objectives, turn limit, weather and reinforcements;
+- unit slots and the bonus star condition;
+- briefing text (3–4 sentences of history plus the tactical problem);
+- **map coordinates** (latitude/longitude) for its node on the age map.
+
+**MVP content:** Age 0 (2 tutorial battles) plus Age 1 Antiquity (10 battles). Later ages show on the timeline as "In preparation" and are added as content only.
 
 ## 8. Economy and packs
 
@@ -407,8 +465,8 @@ tests/         Unit tests for core/, ai/ and meta/.
 | **M2** Playable board | Render map and units in the battle-map style; full touch controls; hot-seat 2 players | One sandbox battle is playable end to end on a tablet browser |
 | **M3** AI + Prologue | Utility AI, Megiddo tutorial with guided steps | A new player can win the Prologue against the AI |
 | **M4** Army & generals | Army builder (unit slots), deployment phase, generals with traits/skills/rank | Different generals and armies noticeably change how a battle plays |
-| **M5** Meta | Campaign map, coins, shop, packs, XP, save/load | The full loop works: battle → reward → pack → stronger army → next battle |
-| **M6** Age 2 content | 5 Greece & Persia battles, their units and generals | Age 2 is complete and balanced |
+| **M5** Meta | Timeline and age maps with star unlocks, coins, shop, packs, XP, save/load | The full loop works: battle → reward → pack → stronger army → next battle |
+| **M6** Age 0 + Antiquity | 2 tutorial battles plus the 10 Antiquity battles, their units and generals | Age 0 teaches every core skill; Antiquity is complete, balanced and its star gates feel right |
 | M7+ | One age per milestone, plus polish, audio, Capacitor builds | — |
 
 ## 13. Open questions

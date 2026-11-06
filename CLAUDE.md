@@ -31,6 +31,19 @@ BattleQuest is a turn-based tactical battle simulator for tablets and phones. Yo
 - `touch-controls`: the gesture set, controls architecture and gesture tests.
 - `motion-check`: record animations (frame strips, fps, skip, reduced motion) after any motion or controls change.
 
+## Game-dev skills (third-party, `.claude/skills/_third-party/`)
+
+Copied from awesome-gamedev-agent-skills. They give general game-dev guidance; when they disagree with the project skills above or with `docs/GAME_DESIGN.md`, the project wins.
+
+- `pixijs-rendering`: any Pixi v8 board or render code.
+- `game-feel`: juice for hits, charges, routs and rewards (together with `motion`).
+- `game-ui-ux`: screens, HUD, menus, the screen stack, safe areas.
+- `input-systems`, `camera-systems`: input architecture and camera feel (together with `touch-controls`).
+- `game-ai`, `ai-behavior-trees-utility-ai`: the enemy AI.
+- `level-design`: battle maps, campaign pacing and star gates.
+- `save-systems`: profile versioning and migration.
+- `performance-optimization`: frame budget, pooling, profiling.
+
 ## Workflow
 
 - Before committing, run `npm run typecheck && npm run lint && npm test`.

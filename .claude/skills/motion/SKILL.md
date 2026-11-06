@@ -83,6 +83,14 @@ If the game is still loading assets, hold on step 1 with an animated quill line.
    - the general's XP bar fills, with a rank-up flourish if earned;
    - cards earned flip in, using the card recipe.
 
+### Campaign: timeline and age maps
+
+- **Opening the timeline:** the ink line draws left to right to the newest unlocked age (600 ms); age nodes fade and scale in along it with a 60 ms stagger; the view eases to the current age.
+- **Entering an age:** the tapped node grows into the age map (shared-element zoom, `reveal`); the map's coastlines ink in; battle nodes stamp down in historical order; the dotted route draws between the open ones.
+- **Battle unlocked** (after a result pushes the star total past a threshold): back on the age map, the star counter rolls up, the next node's lock shakes, then cracks and falls, and the dotted route draws on to it. If several unlock, play them one after another, at most 1.5 s in total.
+- **Age unlocked** (every battle won): a short banner ("Antiquity complete"), then the timeline: the next age's wax seal cracks into shards, the ink line extends to it, and its node lights up with a single glint.
+- **Stars earned on a node:** each new star stamps in with the `back` easing; a tap anywhere skips to the end state.
+
 ### Defeat
 
 Muted and fast (under 1.2 s): ink bleeds in from the edges, then a "DEFEAT" stamp in dark red at reduced opacity, then one helpful tip and the Retry button. Never punishing.

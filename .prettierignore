@@ -2,3 +2,15 @@ dist
 node_modules
 package-lock.json
 docs
+
+# Third-party skills, kept byte-identical to upstream
+.claude/skills/pixijs-rendering
+.claude/skills/game-feel
+.claude/skills/game-ui-ux
+.claude/skills/input-systems
+.claude/skills/camera-systems
+.claude/skills/game-ai
+.claude/skills/ai-behavior-trees-utility-ai
+.claude/skills/level-design
+.claude/skills/save-systems
+.claude/skills/performance-optimization
