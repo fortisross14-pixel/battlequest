@@ -1,121 +1,134 @@
 /**
- * Dev-only icon sheet (icons.html): every troop pictogram on blue and red blocks, at card
- * size and at board size, for the owner to approve before the in-game icons change.
+ * Dev-only icon sheet (icons.html): every troop badge at card size, and two ways to show
+ * badges on the board, for the owner to approve before the in-game icons change.
  */
-import type { UnitSymbol } from '../core/types';
-import { natoMarkOf, PICTOGRAMS, pictogramSvg } from '../render/pictograms';
-
-const BLUE = { fill: '#2f5d9e', dark: '#1c3a66' };
-const RED = { fill: '#b23a3a', dark: '#6e1f1f' };
-const CREAM = '#f7f1e3';
+import type { Side, UnitSymbol } from '../core/types';
+import { BADGE_COLORS, badgeMarkup, badgeSvg } from '../render/pictograms';
 
 const TYPES: [UnitSymbol, string, string][] = [
   ['spear', 'Spear', 'Spearmen, hoplites'],
-  ['pike', 'Pike', 'Pikemen, sarissa'],
-  ['infantry', 'Sword and shield', 'Heavy swordsmen, legions'],
+  ['pike', 'Pike', 'Pikemen'],
+  ['infantry', 'Sword and shield', 'Heavy swordsmen'],
   ['archer', 'Bow', 'Archers'],
   ['crossbow', 'Crossbow', 'Crossbowmen'],
-  ['skirmisher', 'Javelin / sling', 'Skirmishers, peltasts'],
-  ['cavalry', 'Horse head, heavy', 'Heavy cavalry, knights'],
-  ['lightCavalry', 'Horse head, light', 'Light cavalry, horse archers'],
+  ['skirmisher', 'Javelin / sling', 'Skirmishers'],
+  ['gun', 'Musket', 'Arquebusiers, line'],
+  ['cavalry', 'Heavy horse', 'Heavy cavalry'],
+  ['lightCavalry', 'Light horse', 'Light cavalry'],
   ['chariot', 'Chariot', 'Chariots'],
   ['elephant', 'Elephant', 'War elephants'],
-  ['gun', 'Musket', 'Arquebusiers, line infantry'],
   ['artillery', 'Cannon', 'Field artillery'],
 ];
 
-function nato(symbol: UnitSymbol, x: number, y: number, s: number): string {
-  const m = natoMarkOf(symbol);
-  const sw = Math.max(1, s * 0.16);
-  if (m === 'artillery')
-    return `<circle cx="${x + s / 2}" cy="${y + s / 2}" r="${s * 0.32}" fill="${CREAM}"/>`;
-  const p = `stroke="${CREAM}" stroke-width="${sw}" stroke-linecap="round"`;
-  return m === 'cavalry'
-    ? `<path ${p} d="M${x} ${y + s} L${x + s} ${y}"/>`
-    : `<path ${p} d="M${x} ${y} L${x + s} ${y + s} M${x} ${y + s} L${x + s} ${y}"/>`;
+const PIPS = ['#4f9d4a', '#e2c02b', '#e07b24', '#c0392b'];
+
+interface Mock {
+  sym: UnitSymbol;
+  side: Side;
+  x: number;
+  y: number;
+  /** Degrees, 0 = north. */
+  facing: number;
+  level: number;
+  strength: number;
+  coh: number;
 }
 
-/** A card-size icon: a flat block with the pictogram. */
-function cardIcon(symbol: UnitSymbol, side: typeof BLUE, w: number): string {
-  const h = Math.round(w * 0.62);
-  const icon = h * 0.86;
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-<rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="2" fill="${side.fill}" stroke="${side.dark}" stroke-width="1.5"/>
-<path d="M1 2 L${w - 1} 2" stroke="${side.dark}" stroke-width="${Math.max(3, h * 0.12)}"/>
-<g transform="translate(${w * 0.42 - icon / 2} ${(h - icon) / 2 + 1}) scale(${icon / 32})" color="${CREAM}">${PICTOGRAMS[symbol]}</g>
-${nato(symbol, w - h * 0.3 - 3, h - h * 0.3 - 3, h * 0.22)}
-</svg>`;
-}
-
-/**
- * One board square with a unit: a wide block (80% × 45%) rotated to its facing, the long
- * side as the front, the pictogram kept upright, NATO mark and level chevrons inside the
- * block, and the strength bar and cohesion pip under it.
- */
-function boardUnit(
-  symbol: UnitSymbol,
-  side: typeof BLUE,
-  sq: number,
-  facingDeg: number,
-  level: number,
-  strength: number,
-  pip: string,
-): string {
-  const c = sq / 2;
-  const bw = sq * 0.78;
-  const bh = sq * 0.42;
-  const x0 = c - bw / 2;
-  const y0 = c - bh / 2 - sq * 0.07;
-  const front = Math.max(2.5, sq * 0.07);
-  const chev = Array.from({ length: level - 1 }, (_, i) => {
-    const cx = x0 + bw - sq * 0.09;
-    const cy = y0 + bh * 0.62 - i * sq * 0.075;
-    const a = sq * 0.06;
-    return `<path d="M${cx - a} ${cy + a * 0.6} L${cx} ${cy} L${cx + a} ${cy + a * 0.6}" stroke="${CREAM}" stroke-width="${Math.max(1.2, sq * 0.03)}" fill="none" stroke-linecap="round"/>`;
-  }).join('');
-  const icon = bh * 0.92;
-  const iy = y0 + bh / 2;
+/** One unit on a board of `sq`-pixel squares, with the badge drawn in the given style. */
+function unitMarkup(u: Mock, sq: number, style: 'onBlock' | 'pole'): string {
+  const c = BADGE_COLORS[u.side];
+  const cx = (u.x + 0.5) * sq;
+  const cy = (u.y + 0.5) * sq;
+  const bw = sq * 0.8;
+  const bh = sq * 0.45;
+  const front = Math.max(2.5, sq * 0.09);
+  const block = `<g transform="rotate(${u.facing} ${cx} ${cy})">
+<rect x="${cx - bw / 2}" y="${cy - bh / 2}" width="${bw}" height="${bh}" fill="${c.fill}" stroke="${c.dark}" stroke-width="1.2"/>
+<path d="M${cx - bw / 2} ${cy - bh / 2 + front / 2} L${cx + bw / 2} ${cy - bh / 2 + front / 2}" stroke="${c.dark}" stroke-width="${front}"/>
+</g>`;
   const barW = sq * 0.62;
-  const barY = sq * 0.86;
-  const barH = Math.max(4, sq * 0.075);
-  return `<svg width="${sq}" height="${sq}" viewBox="0 0 ${sq} ${sq}">
-<rect x="0.5" y="0.5" width="${sq - 1}" height="${sq - 1}" fill="none" stroke="rgba(59,50,38,0.12)"/>
-<g transform="rotate(${facingDeg} ${c} ${iy})">
-<rect x="${x0}" y="${y0}" width="${bw}" height="${bh}" fill="${side.fill}" stroke="${side.dark}" stroke-width="1.2"/>
-<path d="M${x0} ${y0 + front / 2} L${x0 + bw} ${y0 + front / 2}" stroke="${side.dark}" stroke-width="${front}"/>
-${nato(symbol, x0 + sq * 0.05, y0 + front + sq * 0.03, sq * 0.11)}
-${chev}
-</g>
-<g transform="translate(${c - icon / 2} ${iy - icon / 2}) scale(${icon / 32})" color="${CREAM}">${PICTOGRAMS[symbol]}</g>
-<rect x="${c - barW / 2}" y="${barY}" width="${barW}" height="${barH}" rx="${barH / 2}" fill="rgba(59,50,38,0.25)"/>
-<rect x="${c - barW / 2}" y="${barY}" width="${(barW * strength) / 100}" height="${barH}" rx="${barH / 2}" fill="#3b3226"/>
-<circle cx="${c + barW / 2 + barH * 1.3}" cy="${barY + barH / 2}" r="${barH * 0.95}" fill="${pip}" stroke="#3b3226" stroke-width="1"/>
+  const barH = Math.max(4, sq * 0.08);
+  const barY = (u.y + 1) * sq - barH - sq * 0.05;
+  const bar = `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${barH}" rx="${barH / 2}" fill="rgba(59,50,38,0.55)"/>
+<rect x="${cx - barW / 2}" y="${barY}" width="${(barW * u.strength) / 100}" height="${barH}" rx="${barH / 2}" fill="#f3ead2"/>
+<circle cx="${cx + barW / 2 + barH}" cy="${barY + barH / 2}" r="${barH}" fill="${PIPS[u.coh]}" stroke="#3b3226" stroke-width="1"/>`;
+  let badge: string;
+  if (style === 'onBlock') {
+    const w = sq * 0.6;
+    const k = w / 40;
+    badge = `<g transform="translate(${cx - w / 2} ${cy - (44 * k) / 2 - sq * 0.04}) scale(${k})">${badgeMarkup(u.sym, u.side, u.level)}</g>`;
+  } else {
+    const w = sq * 0.52;
+    const k = w / 40;
+    const px = cx + sq * 0.14;
+    const by = cy - sq * 0.86;
+    badge = `<path d="M${px} ${cy} L${px} ${by + 40 * k}" stroke="#3b3226" stroke-width="${Math.max(1.2, sq * 0.03)}"/>
+<g transform="translate(${px - w / 2} ${by}) scale(${k})">${badgeMarkup(u.sym, u.side, u.level)}</g>`;
+  }
+  return block + bar + badge;
+}
+
+function board(sq: number, style: 'onBlock' | 'pole'): string {
+  const cols = 9;
+  const rows = 5;
+  // A tight formation: a blue line facing east, a red line facing west.
+  const units: Mock[] = [];
+  TYPES.slice(0, 6).forEach(([sym], i) =>
+    units.push({
+      sym,
+      side: 'blue',
+      x: 2 + (i % 2),
+      y: Math.floor(i / 2) + 1,
+      facing: 90,
+      level: 1 + (i % 3),
+      strength: 100 - i * 9,
+      coh: i % 2,
+    }),
+  );
+  TYPES.slice(6).forEach(([sym], i) =>
+    units.push({
+      sym,
+      side: 'red',
+      x: 5 + (i % 2),
+      y: Math.floor(i / 2) + 1,
+      facing: i === 5 ? 225 : 270,
+      level: 1 + ((i + 1) % 4),
+      strength: 95 - i * 8,
+      coh: (i + 1) % 3,
+    }),
+  );
+  const grid = [
+    ...Array.from(
+      { length: cols + 1 },
+      (_, x) => `<path d="M${x * sq} 0 L${x * sq} ${rows * sq}"/>`,
+    ),
+    ...Array.from(
+      { length: rows + 1 },
+      (_, y) => `<path d="M0 ${y * sq} L${cols * sq} ${y * sq}"/>`,
+    ),
+  ].join('');
+  return `<svg width="${cols * sq}" height="${rows * sq}" viewBox="0 0 ${cols * sq} ${rows * sq}" style="background:#f4ecd8">
+<g stroke="rgba(107,90,58,0.18)" stroke-width="1">${grid}</g>
+${units.map((u) => unitMarkup(u, sq, style)).join('')}
 </svg>`;
 }
 
 const cards = TYPES.map(
   ([sym, name, troops]) => `<figure>
-  <div class="big">${pictogramSvg(sym, 64, '#3b3226')}</div>
-  <div class="pair">${cardIcon(sym, BLUE, 64)}${cardIcon(sym, RED, 64)}</div>
-  <div class="pair">${cardIcon(sym, BLUE, 40)}${cardIcon(sym, RED, 40)}</div>
+  <div class="pair">${badgeSvg(sym, 'blue', 56)}${badgeSvg(sym, 'red', 56)}</div>
+  <div class="pair">${badgeSvg(sym, 'blue', 36, 3)}${badgeSvg(sym, 'red', 36, 5)}</div>
   <figcaption><b>${name}</b><small>${troops}</small></figcaption>
 </figure>`,
 ).join('');
 
-const board = (sq: number) =>
-  TYPES.map(([sym], i) => {
-    const side = i % 2 ? RED : BLUE;
-    const facing = [0, 90, 45, 270][i % 4]!;
-    const level = (i % 4) + 1;
-    const pips = ['#4f8f3a', '#d9b21b', '#e07b1f', '#c0392b'];
-    return boardUnit(sym, side, sq, facing, level, 100 - (i % 5) * 15, pips[i % 4]!);
-  }).join('');
-
 document.querySelector('#sheet')!.innerHTML = `
-<h1>Troop pictograms <small>for approval</small></h1>
-<p>One flat silhouette per troop type, same line weight and size. Top: the pictogram alone, then card-size blocks (Army screen, shop, builder) at 64 and 40 px.</p>
+<h1>Troop badges <small>v2, for approval</small></h1>
+<p>Bold badges that stand out from the plain blocks. The <b>shape tells the role</b> (shield = melee foot, hexagon = missile troops, circle = mounted, rounded square = artillery), the colour tells the side, and a chunky cream pictogram tells the troop type. Pips along the bottom show the level (Lv3 and Lv5 in the second row). Sizes: 56 px and 36 px (Army screen, shop, builder, unit card).</p>
 <div class="grid">${cards}</div>
-<h2>On the board</h2>
-<p>Wide blocks (80% × 45% of a square), long side = front (thick edge), rotated to the facing. The pictogram stays upright so it is always readable; the small NATO mark (✕ infantry, ╱ cavalry, ● artillery) and the level chevrons turn with the block. Strength bar and cohesion pip are larger. Facings shown: N, E, NE, W; levels 1–4.</p>
-<h3>Tablet (64 px squares)</h3><div class="board">${board(64)}</div>
-<h3>Phone (44 px squares)</h3><div class="board">${board(44)}</div>`;
+<h2>On the board: two options</h2>
+<div class="opts">
+<section><h3>A · Badge on the block</h3><p>The badge sits on the unit; the block's ends and thick front edge show the facing.</p>
+<h4>Tablet (64 px squares)</h4>${board(64, 'onBlock')}<h4>Phone (44 px squares)</h4>${board(44, 'onBlock')}</section>
+<section><h3>B · Badge on a pole</h3><p>The badge floats above the unit on a short pole, like a standard; the whole block stays visible.</p>
+<h4>Tablet (64 px squares)</h4>${board(64, 'pole')}<h4>Phone (44 px squares)</h4>${board(44, 'pole')}</section>
+</div>`;
