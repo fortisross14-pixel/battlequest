@@ -1,0 +1,396 @@
+# BattleQuest — Game Design Document
+
+> Working title: **BattleQuest: Through the Ages**
+> Platform: tablet first (landscape), then phone. Touch only.
+> Genre: Turn-based tactical battle simulator with light collection/progression meta.
+> Status: v0.1 draft. Numbers are starting points for tuning, not final balance.
+
+---
+
+## 1. Pitch
+
+You are **the Chronicler**, a traveler who moves through history and re-fights its great battles. Each battle is a short, tight tactical puzzle on a grid: unit type, position, facing, terrain and morale decide the outcome, in the style of *Field of Glory II: Medieval*.
+
+The twist: **you choose your army and your general**, and they don't have to come from the same era. Napoleon with Roman legions at Thermopylae, Alexander with Spanish tercios at Agincourt. Your enemies are historically flavored; your army is whatever you have collected.
+
+The look is a **living historical battle map**: the same red-and-blue blocks, arrows and terrain shapes you see in textbook battle diagrams (Waterloo, Gaugamela), animated and playable.
+
+## 2. Design pillars
+
+1. **Tactics first.** Every decision should be about position, facing, timing and matchups. There is little management outside battle.
+2. **Readable at a glance.** Minimal graphics, maximum clarity. A player should be able to read the whole battle state from the map, the way you read a historical battle diagram.
+3. **Built for fingers.** Every action takes one or two taps. Nothing needs precision dragging, hover or right-click.
+4. **Fun combinations.** Mixing eras and generals is the fantasy. Balance comes from points cost and matchups, not from banning combinations.
+5. **Short sessions.** A battle takes 10–20 minutes, 8–15 turns. You can retry quickly.
+6. **Fair progression.** Coins and packs speed you up. Skill can always beat a battle with a weaker army.
+
+## 3. Core loop
+
+```
+ Campaign map (pick battle)
+        │
+        ▼
+ Battle briefing ──► Army builder (pick general + units within points budget)
+        │
+        ▼
+ Deployment (place units in your deployment zone)
+        │
+        ▼
+ Battle (alternating turns until one army breaks or objectives resolve)
+        │
+        ▼
+ Results: stars, coins, general XP
+        │
+        ▼
+ Shop: buy troop packs / general packs, upgrade
+        │
+        └──► back to the campaign map (next battle, or retry for more stars)
+```
+
+- **First session:** the Prologue battle is the tutorial. It uses a fixed army and general, so the player learns the rules before buying anything.
+- **Losing still pays a little:** you get a small coin reward and general XP. A retry is never a waste of time.
+
+## 4. Battle system
+
+### 4.1 Map and grid
+
+- **Square grid**, 8-directional movement and facing. Squares read well as "blocks", which matches the battle-map look.
+- Map sizes: small 12×8 (phone and tutorial), standard 16×10, large 20×12 (late ages). Pinch to zoom, drag to pan.
+- **One unit per square.** A unit is an abstract block of a few hundred to a few thousand soldiers.
+- Each map has a **deployment zone** for each side (shaded squares).
+
+### 4.2 Turn structure
+
+- **Alternating side turns** (IGOUGO): the player moves all their units, then the AI moves all of theirs. One full round of both sides is one **turn**. Each battle has a turn limit.
+- During your turn, units act in any order you like. Each unit gets:
+  - **Movement**, up to its Movement Points (MP), including turning, and
+  - **One action**: Shoot, Charge, Skill (if it is the general's unit), or Hold (brace and gain a defense bonus).
+  - A charge **is** movement plus action: the unit moves in a straight line into contact.
+- **End of side turn:** every melee in progress resolves (both sides deal damage), then cohesion tests, then rout movement.
+
+### 4.3 Movement, facing and zones of control
+
+- **Costs:** orthogonal step = 2 MP, diagonal step = 3 MP (this approximates real distance). Terrain multiplies the cost (see 4.7).
+- **Facing:** 8 directions. A unit's **front arc** is the 3 squares ahead of it, its **flanks** are the 2 side squares, and its **rear** is the 3 squares behind it.
+- **Turning:** each 45° costs 1 MP. A 180° about-face costs 3 MP. Light units (skirmishers, light cavalry) turn for free.
+- **Zone of control (ZOC):** a unit that enters a square inside an enemy's front arc must stop. It can't walk past enemies. It can leave only by:
+  - charging, or
+  - **pulling back** one square straight backwards (only if it is not in melee), or
+  - **evading**, for units with the Evade ability (see 4.5).
+- **Units in melee** can't move except to rout.
+
+### 4.4 Unit stats
+
+Every unit type has:
+
+| Stat | Meaning |
+|---|---|
+| **Strength** | Hit points as a percentage (100 = full). At 0 the unit is destroyed. |
+| **MP** | Movement points per turn. |
+| **Melee** | Damage dealt in ongoing melee. |
+| **Impact** | Damage dealt on the charge (first clash). |
+| **Ranged / Range** | Shooting damage and range in squares (0 = can't shoot). |
+| **Armor** | Reduces incoming damage. |
+| **Morale** | Base resistance to cohesion loss. |
+| **Cost** | Army points. |
+| **Tags** | Abilities and special rules (see 4.5). |
+
+Stats use a 1–10 scale so they stay readable on the unit card.
+
+### 4.5 Unit archetypes (the rock-paper-scissors core)
+
+Each age re-skins these archetypes: a "Hoplite", a "Legionary" and a "Landsknecht" share a base archetype with era modifiers. That keeps cross-era mixing balanced and readable.
+
+| Archetype | MP | Melee | Impact | Ranged (rng) | Armor | Morale | Cost | Tags / notes |
+|---|---|---|---|---|---|---|---|---|
+| Skirmishers (javelin/sling) | 10 | 2 | 2 | 4 (2) | 2 | 4 | 35 | Evade, LightTurn, RoughTerrainOK |
+| Archers | 8 | 2 | 1 | 6 (4) | 2 | 4 | 55 | — |
+| Crossbowmen | 8 | 3 | 1 | 7 (3) | 4 | 5 | 60 | ArmorPiercing, NoMoveAndShoot |
+| Spearmen | 8 | 5 | 5 | 0 | 5 | 6 | 65 | AntiCavalry (front) |
+| Heavy swordsmen (legion) | 8 | 7 | 6 | 3 (1)* | 6 | 7 | 85 | *Pila: one-shot volley |
+| Pikemen | 6 | 7 | 7 | 0 | 5 | 6 | 75 | AntiCavalry (strong, front), FrontOnly, FlankVulnerable |
+| Light cavalry / horse archers | 16 | 3 | 3 | 4 (3) | 2 | 5 | 70 | Evade, LightTurn |
+| Heavy cavalry / knights | 12 | 6 | 9 | 0 | 7 | 7 | 115 | Charge, Pursue, RoughTerrainBad |
+| Chariots | 12 | 3 | 8 | 3 (2) | 4 | 5 | 90 | Charge, RoughTerrainVeryBad |
+| War elephants | 8 | 7 | 9 | 0 | 6 | 6 | 120 | ScaresHorses, Stampede (routed elephants damage adjacent friends) |
+| Arquebusiers / musketeers | 8 | 3 | 1 | 8 (3) | 3 | 5 | 75 | ArmorPiercing, Reload (fire every other turn until Age 8), RainPenalty |
+| Line infantry | 8 | 5 | 4 | 7 (3) | 3 | 7 | 90 | Formations: Line / Column / Square |
+| Field artillery | 4 | 1 | 0 | 9 (6) | 2 | 5 | 100 | NoMoveAndShoot, HelplessInMelee, Bounce (hits the unit behind the target for half damage) |
+
+Key matchups to protect while balancing:
+
+- Spears and pikes beat a frontal cavalry charge. Cavalry beats them on the flank or rear.
+- Heavy cavalry beats skirmishers and archers in the open, but they evade.
+- Shooters wear down heavy infantry slowly and lose badly if they get caught.
+- Gunpowder shreds armor, but it is slow to fire early on and miserable in rain.
+- Line infantry in **Square** is immune to the cavalry flank bonus, but takes double damage from artillery.
+
+### 4.6 Combat resolution
+
+The math lives entirely in the simulation core, is deterministic for a given RNG seed, and is unit-tested.
+
+**Damage** (applies to ranged, impact and melee):
+
+```
+effAtk  = attackerStat × attackerModifiers
+effDef  = defender.armor × defenderModifiers   (ArmorPiercing halves this)
+damage  = BASE × effAtk / (effAtk + effDef) × situational × random(0.85, 1.15)
+BASE    = 30   (equal stats → about 15 strength lost per exchange)
+```
+
+Situational multipliers (they stack multiplicatively):
+
+| Situation | Multiplier |
+|---|---|
+| Attacking a flank | ×1.5 |
+| Attacking the rear | ×2.0 |
+| Attacker uphill of the defender | ×1.2 |
+| Defender in cover (forest, village, fieldworks) vs ranged | ×0.6 |
+| Defender bracing (Hold) | ×0.8 |
+| Attacker Disrupted / Fragmented | ×0.75 / ×0.5 |
+| Strength scaling: attacker's current strength | × (0.5 + 0.5 × strength/100) |
+| Shooting at long range (more than half of max range) | ×0.7 |
+
+**Impact (charge)** happens once, when the charger makes contact. Both sides deal damage: the charger uses Impact; the defender uses Impact if it is AntiCavalry and is charged from the front by cavalry, otherwise Melee × 0.5. A charge that wins clearly can push the defender back 1 square.
+
+**Melee** goes on at the end of each side's turn while units stay in contact. Both sides use Melee.
+
+### 4.7 Cohesion and morale
+
+Units have four cohesion states:
+
+| State | Effect |
+|---|---|
+| **Steady** | Normal. |
+| **Disrupted** | −25% damage dealt. Can still charge. |
+| **Fragmented** | −50% damage dealt. Can't charge. |
+| **Routed** | Out of control. Flees toward its own map edge every turn. Destroyed if caught. |
+
+**Cohesion test.** A unit tests whenever it takes damage, and when a friendly unit adjacent to it routs. The chance to drop one level:
+
+```
+p = 0.05
+  + 1.5 × (damageTakenThisTest / 100)
+  + 0.20 if attacked in the flank, 0.35 if in the rear
+  + 0.15 if an adjacent friendly unit routed this turn
+  + 0.10 if strength < 50
+  − 0.03 × morale
+  − 0.15 if within the general's command radius
+p clamped to [0, 0.9]
+```
+
+- A unit at strength 25 or lower routs automatically.
+- **Rally:** at the start of its side's turn, a Routed or Fragmented unit that is not adjacent to an enemy and is within the general's command radius has a 35% chance (plus the general's bonus) to go up one level.
+- **Pursuit:** cavalry with Pursue that routs its opponent follows it 1–2 squares. It may get out of position, which is a deliberate trade-off.
+
+### 4.8 Army breakpoint and victory
+
+- **An army breaks** when the cost of its routed and destroyed units reaches **50%** of its total army cost. Some scenarios change this threshold, for example 40% for Teutoburg ambushes.
+- The battle ends when one army breaks, when a scenario objective is met (hold the bridge for 6 turns, kill the enemy general, escape with N units), or when the turn limit is reached. At the turn limit, objectives decide the result; otherwise it is a draw, which counts as a loss for stars.
+- **Stars:** ★ win. ★★ win having lost under 30% of your army. ★★★ win having lost under 30% **and** completed the battle's bonus condition, such as "win by turn 10" or "keep your general alive".
+
+### 4.9 Terrain
+
+| Terrain | Move cost | Effects |
+|---|---|---|
+| Open | ×1 | — |
+| Rough / scrub | ×1.5 | Cavalry and chariots −25% impact. Heavy cavalry −20% melee. |
+| Forest | ×2 | Blocks line of sight. Cover vs ranged. Cavalry −50% impact and melee. Light infantry +20% melee. |
+| Hill (elevation 1–2) | ×1.5 uphill | Uphill bonus. Higher units see and shoot over lower ones. Artillery +1 range. |
+| River | impassable | Crossing only at fords or bridges. |
+| Ford | ×3 | A unit in a ford fights at −30% and counts as Disrupted. |
+| Bridge | ×1 | One unit wide. Only the front square can fight. This is the chokepoint. |
+| Marsh / mud | ×3 | Heavy units −30% melee and impact. Can't charge into it. |
+| Village / farm | ×1.5 | Strong cover. +25% defense. Holds the objective (Hougoumont, La Haye Sainte). |
+| Fieldworks / stakes | ×2 to cross | Cavalry can't charge across them. Defenders get +30% vs impact. |
+| Road | ×0.5 (column only) | Fast movement out of combat. |
+
+**Weather and scenario modifiers:** fog (vision limited to 3 squares, fog of war on), rain (gunpowder ranged −50%, mud spreads), heat (−1 morale after turn 8), and timed **reinforcements** (Blücher arriving at Waterloo on turn 8).
+
+**Line of sight / fog of war:** off by default (you see the full map, as on a battle diagram). Scenarios such as Trasimene, Teutoburg and Austerlitz turn it on.
+
+### 4.10 Generals in battle
+
+- The general is **attached to one unit**, shown with a pennant flag on that block.
+- **Command radius** (3–5 squares, set by rank and traits): units inside it get the cohesion and rally bonus.
+- If the general's unit routs or is destroyed, there is a 30% chance the general is killed or captured. If that happens, every unit makes an immediate cohesion test. In the meta game, a killed general is unavailable for the next battle only. There is no permadeath.
+- **Active skills** cost one action from the general's unit and have a cooldown in turns.
+
+### 4.11 Enemy AI
+
+Utility-based, kept simple:
+
+- Each scenario gives the AI a **posture**: Aggressive, Defensive (hold a line or objective), Ambush (stay hidden until triggered), or Timed (defend until turn N, then attack).
+- For each unit, the AI scores candidate actions: expected damage dealt minus expected damage taken, flank opportunities, objective value, staying near its general, and avoiding counter-flank.
+- The AI acts in order of its highest-scoring action first. Ranged units shoot before melee units charge.
+- **Difficulty** comes from scenario setup (enemy points, quality, terrain) more than from AI cheating. A "Hard" toggle grants a +10% enemy morale bonus.
+
+## 5. Units and collection
+
+- **Unit cards.** Owning a unit type lets you field it, as many copies as the battle's points budget allows.
+- **Unit level 1–5:** each level gives +5% to Melee, Impact, Ranged and Morale. Duplicate cards from packs add level progress.
+- **Era tag:** every unit belongs to an age. Units from later ages cost more points, so a points budget naturally limits anachronistic super-armies. Mixing is still allowed and encouraged.
+- **Starting roster** at the beginning of each age: free basic units for that age (for example, Age 2 gives Hoplites, Peltasts and Greek Archers).
+
+### Army builder
+
+- Each battle sets a **points budget** (for example 800) and a **max unit count** (for example 12).
+- It shows the **recommended power** against the enemy's power, so the player knows how hard the battle is.
+- Saved army presets.
+- An optional **"Historical challenge"** gives a fixed historical army and pays bonus coins.
+
+## 6. Generals
+
+### 6.1 Structure
+
+| Field | Description |
+|---|---|
+| Rarity | Common, Rare, Epic, Legendary |
+| Era | Flavor only. Any general can lead any army. |
+| Rank | 1–10, from XP earned in battle |
+| Command radius | 3 at rank 1, 4 at rank 4, 5 at rank 8 |
+| Passive traits | 1–2 (for example "+10% cavalry impact") that scale with rank |
+| Active skills | 1 at rank 1, a 2nd unlocked at rank 5. Each has a cooldown. |
+
+**Rank-ups** raise passive values (for example, +10% at rank 1 grows to +20% at rank 10) and lower skill cooldowns.
+**XP:** win 100, loss 30, plus bonuses for stars and kills.
+
+### 6.2 Example roster
+
+| General | Rarity | Passive | Active skill(s) |
+|---|---|---|---|
+| Captain (generic) | Common | +5% morale in radius | **Rally** — one routed unit in radius rallies to Disrupted |
+| Centurion (generic) | Common | +5% infantry armor | **Hold Fast** — one unit gets +30% defense this turn |
+| Leonidas | Rare | Infantry in radius +10% strength | **Hold the Line** — units in radius can't drop below Disrupted for 2 turns |
+| Alexander | Legendary | Cavalry +10% impact | **Companion Charge** — the general's unit and adjacent cavalry may charge again this turn · **Hammer and Anvil** (rank 5) — flank bonus +50% for 2 turns |
+| Hannibal | Legendary | Flank attacks +15% | **Ambush** — redeploy 2 units into any forest square before the battle · **Double Envelopment** (rank 5) |
+| Julius Caesar | Epic | Infantry +5% strength, +rally chance | **Veni Vidi Vici** — all units in radius gain +1 cohesion level |
+| Genghis Khan | Legendary | Light cavalry +3 MP | **Feigned Retreat** — evading units pull pursuers out of formation (they become Disrupted) |
+| Joan of Arc | Epic | Morale +1 for the whole army | **Inspire** — heal 15 strength on all units in radius |
+| Gonzalo Fernández de Córdoba | Epic | Gunpowder units +10% ranged | **Entrench** — build fieldworks in front of 3 units |
+| Saladin | Epic | Units ignore heat penalties; light cavalry +10% | **Desert Mirage** — enemy ranged −50% for 1 turn |
+| Gustavus Adolphus | Epic | Musketeers fire every turn (no Reload) | **Salvo** — every shooter in radius fires immediately |
+| Napoleon | Legendary | +1 action to one unit per turn | **Grand Battery** — artillery +50% damage for 2 turns · **Imperial Guard** (rank 5) — one unit becomes immune to cohesion tests for 2 turns |
+| Wellington | Epic | Units behind a hill crest take −30% ranged damage | **Reverse Slope** — hide units from enemy sight for 1 turn |
+| Sun Tzu | Legendary | Sees through fog of war | **Know Your Enemy** — reveal enemy AI targets for next turn; −1 enemy morale |
+
+## 7. Campaign: the ages
+
+The **Prologue** is the tutorial. After that come 10 ages of 3–5 battles each, and each age unlocks after the previous age's final battle. Every battle is built around one clear historical "problem" (the terrain or scenario challenge).
+
+| # | Age | Battles (challenge) |
+|---|---|---|
+| 0 | **Prologue** | **Megiddo, 1457 BC** — the first recorded battle. Tutorial: move, face, charge, flank. Fixed army. |
+| 1 | Bronze & Iron | Kadesh (chariot ambush, river Orontes) · Qarqar (coalition vs Assyria) |
+| 2 | Greece & Persia | Marathon (strengthen the wings, weak center) · Thermopylae (narrow pass: hold N turns) · Leuctra (oblique attack) · Gaugamela (wide plain, scythed chariots, find the gap) · Hydaspes (river crossing plus elephants) |
+| 3 | Rome & Carthage | Lake Trasimene (fog ambush, escape) · Cannae (double envelopment) · Zama (elephant lanes) · Alesia (fortifications on two fronts) · Teutoburg (forest ambush, survive) |
+| 4 | Late Antiquity & Early Middle Ages | Adrianople (cavalry hits the flank) · Catalaunian Plains (hold the ridge) · Tours (shield wall vs cavalry) · Hastings (hill, feigned retreat) |
+| 5 | High Middle Ages & the Steppe | Manzikert (horse archers, don't get lured) · Hattin (heat, water objective) · Legnano (carroccio defense) · Mohi (bridge assault) · Ain Jalut (feigned retreat) |
+| 6 | Late Middle Ages | Stirling Bridge (the bridge trap) · Bannockburn (bog and pits) · Crécy (longbows on the hill) · Agincourt (mud between woods) · Grunwald |
+| 7 | Age of Exploration | Cerignola (arquebus behind a trench) · Pavia (night, walled park) · Otumba (kill the enemy standard-bearer) · Mohács · Sekigahara (fog, defections) |
+| 8 | Pike & Shot | Breitenfeld (mobile vs rigid formations) · Rocroi (the last tercios) · Naseby · Vienna 1683 (winged hussar charge, reinforcements) |
+| 9 | Linear Warfare & Napoleon | Blenheim (village strongpoints) · Leuthen (oblique order behind hills) · Austerlitz (fog, Pratzen Heights) · Borodino (redoubts) · **Waterloo** (Hougoumont, La Haye Sainte, Prussians arrive on turn 8) |
+| 10 | Age of Rifles | Solferino · Gettysburg (Little Round Top, Pickett's Charge) · Isandlwana (rifles vs numbers, ammo supply) · Königgrätz (converging armies) |
+
+Each battle definition includes: map, deployment zones, the enemy army and its general, AI posture, objectives, turn limit, weather, reinforcements, points budget, bonus star condition, and briefing text (3–4 sentences of history plus the tactical problem).
+
+**MVP content:** the Prologue plus Age 2 (5 battles). Every later age is added as content only, with no engine changes beyond new tags and terrain.
+
+## 8. Economy and packs
+
+- **Coins** (one soft currency).
+  - Win, first time: 100 × age number, plus 50 per star.
+  - Replay win: 30% of that.
+  - Loss: 20 coins.
+- **Shop:**
+  - **Recruit Pack** (150 coins): 3 unit cards from unlocked ages, weighted toward the current one.
+  - **Veteran Pack** (400): 3 cards, at least one Rare+.
+  - **General Pack** (600): 1 general, or an XP medal if you get a duplicate.
+  - **Age Pack** (special): unlocks when you reach a new age and contains that age's signature units.
+  - **Daily offer:** one specific unit or general at a fixed price, with no randomness.
+- **Duplicates:** a duplicate unit card adds level progress (Lv2 needs 1 duplicate, Lv3 needs 2, Lv4 needs 4, Lv5 needs 8). A duplicate general becomes a **Medal** worth 500 XP for that general.
+- **Pity:** a guaranteed Epic+ general in every 5 General Packs.
+- **Monetization:** out of scope for the MVP. Design the economy so it is fully playable for free. Keep the shop code isolated so real-money purchases could be added later.
+
+## 9. Touch controls and UX
+
+Target device: a 10–11" tablet in landscape. It must also work on a 6" phone in landscape (auto-zoom, smaller maps).
+
+| Gesture | Result |
+|---|---|
+| Tap own unit | Select it. Shows reachable squares (soft blue), charge targets (red outline) and shoot targets (crosshair). |
+| Tap a reachable square | Shows a **ghost** of the unit at that square, with its path. Tap again to confirm (two-tap confirm prevents fat-finger mistakes). |
+| After a move | A facing ring with 8 handles appears around the unit. Tap a handle, or tap elsewhere to keep the default facing (the direction of movement). |
+| Tap an enemy that is a valid target | A **combat preview** panel shows expected losses for both sides and the chance of a cohesion drop, with Confirm and Cancel. |
+| Long-press any unit | Full unit card (stats, tags, state). |
+| One-finger drag on empty map | Pan. |
+| Pinch | Zoom. |
+| Buttons | **Undo** (last move, allowed only if no combat happened and nothing new was revealed), **Next unit** (cycles units that still have actions), **End turn**, **General skill**. |
+
+- Minimum touch target is 44 pt. Buttons sit along the bottom corners within thumb reach.
+- No hover-only information anywhere.
+- Enemy turn plays back quickly, one move at a time, with a speed toggle (1×, 2×, skip).
+
+## 10. Visual style
+
+The inspiration is classic battle diagrams like the Waterloo and Gaugamela maps: flat, readable and handsome.
+
+- **Map:** off-white or parchment background. Terrain is drawn as flat, soft shapes: green woods, blue river lines, thin contour lines for hills, grey blocks for villages, dotted roads. The grid is subtle (thin lines at low alpha) and gets stronger while a unit is selected.
+- **Units:** colored **rectangles** (player blue, enemy red, configurable for color-blind players) that fill most of a square and are rotated to their facing. The **front edge is drawn thicker** so facing is obvious. Inside each rectangle is a simple **NATO-inspired symbol**: ✕ infantry, ╱ cavalry, ● artillery, ↑ spear/pike, ⌒ archer, and so on. Under it are a thin **strength bar** and a **cohesion pip** (green, yellow, orange, red).
+- **States:** a Disrupted unit's rectangle gets a hatch pattern; Fragmented gets a heavier hatch; a Routed unit is **hollow, outline only** (like the white blocks in the Waterloo map) and slightly faded.
+- **General:** a small pennant flag with the general's name on top of the block ("NEY 1600" style).
+- **Movement:** big translucent **arrows**, like the ones in battle diagrams, show planned charges and the last turn's enemy moves.
+- **Feedback:** short tweens only. A block slides; on impact it shakes; floating numbers show losses; a pulse shows a cohesion drop. Nothing heavier.
+- **Typography:** one serif for titles (map-label feel) and one clean sans for UI.
+- **Assets:** almost everything is drawn in code (vectors). Icons come from one SVG sprite sheet. Generals get a simple portrait medallion (a silhouette plus initials is enough for the MVP).
+
+**Audio** (later): drums at turn start, a clash sound on impact, a horn for a rout, light ambient music per age.
+
+## 11. Technical architecture (recommended)
+
+- **Language:** TypeScript (strict).
+- **Build:** Vite. **Tests:** Vitest.
+- **Rendering:** PixiJS (WebGL canvas) for the battlefield: fast pan and zoom, crisp vectors. HTML/CSS overlay for menus, panels and buttons, using lightweight Preact or plain DOM.
+- **Distribution:** start as a PWA in the browser (fast iteration on a real tablet). Wrap with Capacitor later for iOS and Android.
+- **Persistence:** localStorage or IndexedDB behind a `SaveStore` interface, so Capacitor Preferences can replace it later.
+
+### Layering (strict)
+
+```
+src/
+  core/        Pure simulation. No DOM, no Pixi, no timers.
+               Grid, pathfinding, LOS, rules, combat, morale, turn engine,
+               victory, seeded RNG. Deterministic: same seed + same commands = same result.
+  ai/          Enemy AI. Reads core state, outputs core commands.
+  content/     Data only: units, generals, terrain, battles, ages (typed TS or JSON + schema).
+  meta/        Campaign progress, economy, packs, XP, save/load.
+  render/      Pixi battlefield view. Reads state, never mutates it. Plays animations from core events.
+  ui/          Screens, panels, input → commands.
+tests/         Unit tests for core/, ai/ and meta/.
+```
+
+- **Command pattern:** the UI and AI send commands (`Move`, `Rotate`, `Charge`, `Shoot`, `UseSkill`, `EndTurn`) to `core`. `core` validates them, applies them and emits **events** (`UnitMoved`, `DamageDealt`, `CohesionChanged`, `UnitRouted`, …). The renderer animates the events. This gives undo, replays, AI simulation, and easy tests.
+- **Combat preview** calls the same combat functions with expected-value math, so the preview always matches the rules.
+- **Content is data:** adding a battle or a unit means editing content files, not engine code.
+
+## 12. Milestones
+
+| Milestone | Goal | Done when |
+|---|---|---|
+| **M0** Scaffold | Vite + TS + Pixi + Vitest + lint, folder layout | `npm run dev` shows an empty map, `npm test` passes, CI-ready |
+| **M1** Core sim | Grid, movement/ZOC/facing, combat, cohesion, rout, victory; seeded RNG; headless | Strong unit-test coverage. A scripted test battle runs headless to a result. |
+| **M2** Playable board | Render map and units in the battle-map style; full touch controls; hot-seat 2 players | One sandbox battle is playable end to end on a tablet browser |
+| **M3** AI + Prologue | Utility AI, Megiddo tutorial with guided steps | A new player can win the Prologue against the AI |
+| **M4** Army & generals | Army builder, points budget, deployment phase, generals with traits/skills/rank | Different generals and armies noticeably change how a battle plays |
+| **M5** Meta | Campaign map, coins, shop, packs, XP, save/load | The full loop works: battle → reward → pack → stronger army → next battle |
+| **M6** Age 2 content | 5 Greece & Persia battles, their units and generals | Age 2 is complete and balanced |
+| M7+ | One age per milestone, plus polish, audio, Capacitor builds | — |
+
+## 13. Open questions
+
+1. **Square vs hex grid.** This document picks squares (matches the block look and FoG2). Revisit after M2 playtests.
+2. **Simultaneous vs alternating melee timing:** is end-of-turn resolution readable enough?
+3. **Unit size:** should one square ever hold 2 units (a general's escort plus a unit)? Currently no.
+4. **Phone portrait mode:** worth supporting, or landscape only?
+5. **Player color:** always blue, or flip by scenario to match historical maps?
+6. **Online features** (leaderboards, async PvP): explicitly out of scope for now.
