@@ -37,6 +37,8 @@ export class Controller {
   private targets: Targets | null = null;
   private lastMoves: { side: Side; path: Pos[] }[] = [];
   private turnMoves: { side: Side; path: Pos[] }[] = [];
+  /** turnMoves before each undoable command, so Undo restores the arrows exactly. */
+  private movesHistory: { side: Side; path: Pos[] }[][] = [];
 
   constructor(
     private session: BattleSession,
@@ -233,6 +235,8 @@ export class Controller {
       this.hud.toast(res.rejection.message);
       return false;
     }
+    if (cmd.type === 'Move' || cmd.type === 'Rotate') this.movesHistory.push([...this.turnMoves]);
+    else this.movesHistory = [];
     this.recordMoves(res.events);
     this.mode = { kind: 'busy' };
     this.view.setHighlights(null);
@@ -251,9 +255,8 @@ export class Controller {
 
   private recordMoves(events: GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'ChargeDeclared' && e.path.length > 1) {
-        this.turnMoves.push({ side: this.state.activeSide, path: e.path });
-      } else if (e.type === 'UnitMoved' && (e.kind === 'move' || e.kind === 'pullBack')) {
+      // A charge's approach arrives as a UnitMoved 'move' event too, so it is recorded once.
+      if (e.type === 'UnitMoved' && (e.kind === 'move' || e.kind === 'pullBack')) {
         const u = this.unit(e.unitId);
         if (u) this.turnMoves.push({ side: u.side, path: e.path });
       }
@@ -264,7 +267,7 @@ export class Controller {
     if (!this.session.canUndo() || this.mode.kind === 'busy') return;
     const keep = 'unitId' in this.mode ? this.mode.unitId : null;
     this.session.undo();
-    this.turnMoves.pop();
+    this.turnMoves = this.movesHistory.pop() ?? this.turnMoves;
     this.view.sync(this.state);
     this.view.clearFacingRing();
     if (keep && this.unit(keep)) this.select(keep);

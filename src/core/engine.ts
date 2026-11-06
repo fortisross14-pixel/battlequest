@@ -111,7 +111,9 @@ export function planCommand(state: BattleState, cmd: Command): Plan | Rejection 
     }
     case 'Hold': {
       const acted = needsAction(u);
-      return acted ?? { type: 'Hold', unit: u };
+      if (acted) return acted;
+      if (isEngaged(state, u.id)) return reject('ENGAGED', 'Units already in melee cannot brace.');
+      return { type: 'Hold', unit: u };
     }
   }
 }
@@ -332,7 +334,8 @@ export function meleePhase(state: BattleState, events: GameEvent[]): void {
     if (opps.length === 0) continue;
     const target = opps.find((o) => arcOf(u, u.facing, o) === 'front') ?? opps[0]!;
     const calc = computeDamage(state, u, target, 'melee');
-    const amount = rollDamage(state, calc, 100);
+    const already = hits.get(target.id)?.damage ?? 0;
+    const amount = rollDamage(state, calc, Math.max(0, target.strength - already));
     events.push({
       type: 'DamageDealt',
       attackerId: u.id,
@@ -400,9 +403,12 @@ function startSideTurn(state: BattleState, events: GameEvent[]): void {
   }
   events.push({ type: 'SideTurnStarted', side: state.activeSide, turn: state.turn });
   rallyPhase(state, events);
-  for (const u of state.units) {
-    if (u.side === state.activeSide && isOnMap(u) && isRouted(u)) routMove(state, u, events);
-  }
+  // Only units that were already routed flee now; any that rout during these moves
+  // (from a caught neighbour) flee once, at the end of this side turn.
+  const routers = state.units.filter(
+    (u) => u.side === state.activeSide && isOnMap(u) && isRouted(u),
+  );
+  for (const u of routers) routMove(state, u, events);
   pruneEngagements(state);
 }
 

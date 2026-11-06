@@ -294,3 +294,74 @@ describe('victory (4.8)', () => {
     expect(unit(s, 'a')).toMatchObject({ bracing: false, hasActed: false, mpLeft: 8 });
   });
 });
+
+describe('review fixes (morale)', () => {
+  it('pursuers do not chase a router that has left the map', () => {
+    // The router starts one square from its own (east) edge, so it flees off the map.
+    const s = structuredClone(
+      battle({
+        units: [
+          ['k', 'blue', 'heavyCavalry', 9, 3, E],
+          ['d', 'red', 'archers', 10, 3, W],
+          ['x', 'red', 'archers', 11, 7, W],
+          ['y', 'red', 'archers', 11, 0, W],
+        ],
+      }),
+    );
+    s.engagements.push({ a: 'k', b: 'd' });
+    routUnit(s, unit(s, 'd'), 'cohesion', []);
+    const { state, events } = endTurn(s);
+    expect(unit(state, 'd').status).toBe('fled');
+    expect(unit(state, 'k').x).toBe(9);
+    expect(events.some((e) => e.type === 'UnitMoved' && e.kind === 'pursuit')).toBe(false);
+  });
+
+  it('a unit that routs during the turn-start rout moves flees only once that side turn', () => {
+    // Blue router R is boxed in next to an enemy and gets caught at blue's turn start;
+    // its neighbour F may rout from the shock. F must not run twice in the same side turn.
+    const rows = [
+      '............',
+      '.~~~........',
+      '.~..........',
+      '.~~.........',
+      '............',
+      '............',
+      '............',
+      '............',
+    ];
+    for (let seed = 0; seed < 30; seed++) {
+      const s = structuredClone(
+        battle({
+          seed,
+          rows,
+          units: [
+            ['r', 'blue', 'spearmen', 2, 2, E],
+            ['f', 'blue', 'archers', 3, 3, E],
+            ['g', 'blue', 'spearmen', 0, 7, E],
+            ['g2', 'blue', 'spearmen', 1, 7, E],
+            ['g3', 'blue', 'spearmen', 2, 7, E],
+            ['e', 'red', 'spearmen', 3, 2, W],
+          ],
+        }),
+      );
+      unit(s, 'r').cohesion = Cohesion.Routed;
+      unit(s, 'f').strength = 30;
+      const red = endTurn(s).state; // blue ends; red's turn
+      const back = endTurn(red); // red ends; blue's turn starts: r is caught
+      const fMoves = back.events.filter((e) => e.type === 'UnitMoved' && e.unitId === 'f').length;
+      expect(fMoves).toBeLessThanOrEqual(1);
+      if (
+        unit(back.state, 'f').cohesion === Cohesion.Routed &&
+        unit(back.state, 'f').status === 'active'
+      ) {
+        // It will flee at the end of this side turn, not twice.
+        const end = endTurn(back.state);
+        const total =
+          fMoves +
+          end.events.filter((e) => e.type === 'UnitMoved' && e.unitId === 'f' && e.kind === 'rout')
+            .length;
+        expect(total).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});

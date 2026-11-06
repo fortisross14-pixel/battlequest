@@ -183,7 +183,8 @@ function bestArrival(
   return best;
 }
 
-function reconstruct(r: Reachability, p: Pos, arrival: Dir): Pos[] {
+/** Path from the search start to square `p`, arriving with facing `arrival`. */
+export function reconstruct(r: Reachability, p: Pos, arrival: Dir): Pos[] {
   const path: Pos[] = [];
   let node = (p.y * r.width + p.x) * 8 + arrival;
   while (node >= 0) {

@@ -2,7 +2,7 @@ import { RULES } from './config';
 import type { GameEvent } from './events';
 import { DIRS, isAdjacent, nearestDir, samePos, step, type Arc } from './geometry';
 import { distanceToEdge, edgeDir } from './map';
-import { searchMoves, stepCost } from './movement';
+import { reconstruct, searchMoves, stepCost } from './movement';
 import { nextRandom } from './rng';
 import {
   adjacentEnemies,
@@ -17,7 +17,7 @@ import {
   opponentsOf,
   rallyBonus,
 } from './state';
-import { Cohesion, type BattleState, type Pos, type Unit } from './types';
+import { Cohesion, type BattleState, type Dir, type Pos, type Unit } from './types';
 
 const R = RULES.morale;
 
@@ -191,25 +191,32 @@ export function routMove(state: BattleState, u: Unit, events: GameEvent[]): void
   let best: { pos: Pos; dir: number; cost: number; edge: number; enemy: number } | null = null;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
+      // Cheapest arrival on this square (any facing), then score the square once.
+      let dir = -1;
+      let cost = Infinity;
       for (const f of DIRS) {
-        const cost = r.costs[(y * width + x) * 8 + f]!;
-        if (!Number.isFinite(cost)) continue;
-        const pos = { x, y };
-        const cand = {
-          pos,
-          dir: f,
-          cost,
-          edge: distanceToEdge(state.map, pos, edge),
-          enemy: nearestEnemyDistance(state, u, pos),
-        };
-        if (
-          !best ||
-          cand.edge < best.edge ||
-          (cand.edge === best.edge && cand.enemy > best.enemy) ||
-          (cand.edge === best.edge && cand.enemy === best.enemy && cand.cost < best.cost)
-        ) {
-          best = cand;
+        const c = r.costs[(y * width + x) * 8 + f]!;
+        if (c < cost) {
+          cost = c;
+          dir = f;
         }
+      }
+      if (dir < 0) continue;
+      const pos = { x, y };
+      const cand = {
+        pos,
+        dir,
+        cost,
+        edge: distanceToEdge(state.map, pos, edge),
+        enemy: nearestEnemyDistance(state, u, pos),
+      };
+      if (
+        !best ||
+        cand.edge < best.edge ||
+        (cand.edge === best.edge && cand.enemy > best.enemy) ||
+        (cand.edge === best.edge && cand.enemy === best.enemy && cand.cost < best.cost)
+      ) {
+        best = cand;
       }
     }
   }
@@ -224,15 +231,7 @@ export function routMove(state: BattleState, u: Unit, events: GameEvent[]): void
     }
     return;
   }
-  // Rebuild the path from the search tree.
-  const path: Pos[] = [];
-  let node = (best.pos.y * width + best.pos.x) * 8 + best.dir;
-  while (node >= 0) {
-    const ci = node >> 3;
-    path.push({ x: ci % width, y: Math.floor(ci / width) });
-    node = r.prev[node]!;
-  }
-  path.reverse();
+  const path = reconstruct(r, best.pos, best.dir as Dir);
   u.x = best.pos.x;
   u.y = best.pos.y;
   u.facing = edgeDir(edge);
@@ -252,7 +251,7 @@ export function pursue(
 ): void {
   const p = getUnit(state, pursuerId);
   const r = getUnit(state, routerId);
-  if (!p || !r || !isFighting(p) || opponentsOf(state, p.id).length > 0) return;
+  if (!p || !r || !isOnMap(r) || !isFighting(p) || opponentsOf(state, p.id).length > 0) return;
   const path: Pos[] = [{ x: p.x, y: p.y }];
   for (let i = 0; i < RULES.movement.pursuitSquares; i++) {
     if (isAdjacent(p, r) || samePos(p, r)) break;

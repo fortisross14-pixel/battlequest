@@ -19,6 +19,7 @@ import {
   rejected,
   run,
   S,
+  SE,
   unit,
   W,
   withUnit,
@@ -617,5 +618,47 @@ describe('preview and real outcome agree', () => {
     }
     expect(toDef / n).toBeCloseTo(p.defender.expectedLoss, 0);
     expect(toAtt / n).toBeCloseTo(p.attacker.expectedLoss, 0);
+  });
+});
+
+describe('review fixes', () => {
+  it('a diagonal charge cannot strike across a river corner', () => {
+    const rows = [
+      '............',
+      '............',
+      '...~........',
+      '..~.........',
+      '............',
+      '............',
+      '............',
+      '............',
+    ];
+    const s = battle({
+      rows,
+      units: [
+        ['k', 'blue', 'heavyCavalry', 2, 2, SE],
+        ['d', 'red', 'spearmen', 3, 3, W],
+      ],
+    });
+    expect(rejected(s, { type: 'Charge', unitId: 'k', targetId: 'd' })).toBe('NO_CHARGE_LINE');
+  });
+
+  it('units already in melee cannot Hold', () => {
+    const s = structuredClone(duel());
+    s.engagements.push({ a: 'a', b: 'd' });
+    expect(rejected(s, { type: 'Hold', unitId: 'a' })).toBe('ENGAGED');
+  });
+
+  it('melee damage events never report more than the target had left', () => {
+    const s = structuredClone(duel([['f', 'blue', 'heavySwordsmen', 5, 2, S]]));
+    s.engagements.push({ a: 'a', b: 'd' }, { a: 'f', b: 'd' });
+    const d = s.units.find((x) => x.id === 'd')!;
+    d.strength = 8;
+    const { events } = endTurn(s);
+    const toD = events.filter(
+      (e): e is Extract<GameEvent, { type: 'DamageDealt' }> =>
+        e.type === 'DamageDealt' && e.targetId === 'd',
+    );
+    expect(toD.reduce((sum, e) => sum + e.amount, 0)).toBeLessThanOrEqual(8);
   });
 });

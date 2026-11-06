@@ -79,6 +79,9 @@ export const RULES = {
     /** ...and at least this much damage. */
     pushBackMinDamage: 10,
     artilleryHillRangeBonus: 1,
+    /** How many 45° steps off its facing a unit may wheel into a charge (FrontOnly units: none). */
+    chargeTurnSteps: 1,
+    chargeTurnStepsFrontOnly: 0,
   },
   morale: {
     baseChance: 0.05,

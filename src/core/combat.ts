@@ -8,7 +8,7 @@ import {
   turnSteps,
   type Arc,
 } from './geometry';
-import { cellAt, connects, elevationAt, terrainRules } from './map';
+import { cellAt, connects, cutsCorner, elevationAt, terrainRules } from './map';
 import { stepCost, turnCost } from './movement';
 import { reject, type Rejection } from './rejection';
 import { randomRange } from './rng';
@@ -247,7 +247,7 @@ export function planCharge(state: BattleState, u: Unit, target: Unit): ChargePla
   const line = straightLine(u, target);
   if (!line)
     return reject('NO_CHARGE_LINE', 'Charges must go in a straight line (orthogonal or diagonal).');
-  const allowedTurn = hasTag(u, 'FrontOnly') ? 0 : 1;
+  const allowedTurn = hasTag(u, 'FrontOnly') ? C.chargeTurnStepsFrontOnly : C.chargeTurnSteps;
   if (turnSteps(u.facing, line.dir) > allowedTurn) {
     return reject(
       'NOT_IN_ARC',
@@ -271,6 +271,8 @@ export function planCharge(state: BattleState, u: Unit, target: Unit): ChargePla
   }
   if (!connects(state.map, pos, line.dir))
     return reject('NO_CHARGE_LINE', 'Bridges can only be attacked along the bridge.');
+  if (cutsCorner(state.map, pos, line.dir))
+    return reject('NO_CHARGE_LINE', 'The charge would cut across impassable ground.');
   if (cost > u.mpLeft + 1e-9)
     return reject('NOT_ENOUGH_MP', 'Not enough movement points to reach the target.');
   return { dir: line.dir, path, cost };
