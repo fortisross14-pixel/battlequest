@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BattleQuest icons (dev)</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #efe6cf;
+        color: #3b3226;
+        font:
+          14px system-ui,
+          sans-serif;
+      }
+      h1,
+      h2 {
+        font:
+          italic 26px Georgia,
+          serif;
+        margin: 8px 0;
+      }
+      h1 small {
+        font-size: 15px;
+        color: #6b5d48;
+      }
+      h3 {
+        margin: 14px 0 6px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6b5d48;
+      }
+      p {
+        max-width: 900px;
+        line-height: 1.4;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+      figure {
+        margin: 0;
+        padding: 10px;
+        background: #f8f2e2;
+        border: 1px solid rgba(59, 50, 38, 0.25);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .pair {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      figcaption {
+        text-align: center;
+      }
+      figcaption small {
+        display: block;
+        color: #6b5d48;
+        font-size: 12px;
+      }
+      .board {
+        display: flex;
+        flex-wrap: wrap;
+        background: #f3ead2;
+        border: 1px solid rgba(59, 50, 38, 0.25);
+        width: max-content;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sheet"></div>
+    <script type="module" src="/src/dev/iconSheet.ts"></script>
+  </body>
+</html>

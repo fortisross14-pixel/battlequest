@@ -1,12 +1,58 @@
 // Visual check: screenshots the running game at tablet and phone sizes.
 // Usage: node scripts/visual-check.mjs [--url http://localhost:5173] [--label name]
 // Needs the dev server running (npm run dev). Uses the pre-installed Playwright browsers.
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+
+/** The project's Playwright, or a globally installed one. Never downloads browsers. */
+function loadPlaywright() {
+  try {
+    return require('playwright');
+  } catch {
+    const root = execSync('npm root -g').toString().trim();
+    return createRequire(join(root, 'noop.js'))('playwright');
+  }
+}
+
+/**
+ * A pre-installed Chromium to launch, if Playwright's own revision isn't present:
+ * $BQ_CHROMIUM, or the newest chromium-* under $PLAYWRIGHT_BROWSERS_PATH or /opt/pw-browsers.
+ */
+function findChromium() {
+  if (process.env.BQ_CHROMIUM && existsSync(process.env.BQ_CHROMIUM)) {
+    return process.env.BQ_CHROMIUM;
+  }
+  for (const dir of [process.env.PLAYWRIGHT_BROWSERS_PATH, '/opt/pw-browsers']) {
+    if (!dir || !existsSync(dir)) continue;
+    const builds = readdirSync(dir)
+      .filter((d) => /^chromium-\d+$/.test(d))
+      .sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]));
+    for (const b of builds) {
+      for (const exe of ['chrome-linux64/chrome', 'chrome-linux/chrome', 'chrome-win/chrome.exe']) {
+        const p = join(dir, b, exe);
+        if (existsSync(p)) return p;
+      }
+    }
+  }
+  return undefined;
+}
+
+const { chromium } = loadPlaywright();
+
+async function launch() {
+  try {
+    return await chromium.launch();
+  } catch (e) {
+    const executablePath = findChromium();
+    if (!executablePath) throw e;
+    console.log(`Playwright's browser is missing; using ${executablePath}`);
+    return chromium.launch({ executablePath });
+  }
+}
 
 const args = process.argv.slice(2);
 const arg = (name, def) => {
@@ -105,7 +151,7 @@ const V1_SAVE = {
   lastArmy: {},
 };
 
-const browser = await chromium.launch();
+const browser = await launch();
 const problems = [];
 for (const size of SIZES) {
   const ctx = await browser.newContext({
