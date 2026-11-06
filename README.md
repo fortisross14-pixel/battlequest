@@ -5,3 +5,4 @@ A turn-based tactical battle simulator for tablet and phone. Re-fight history's 
 - Design: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md)
 - Agent prompts: [`docs/prompts/`](docs/prompts/)
 - Reviews: [`docs/reviews/`](docs/reviews/)
+- Agent prompts, in order: `01-kickoff` → `02-review-1-fixes` → `04-campaign-timeline` → `03-controls-and-motion`
