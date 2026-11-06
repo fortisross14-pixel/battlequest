@@ -27,6 +27,20 @@ Deliver milestones **M0, M1 and M2** from section 12 of the design doc:
    - Short event-driven animations (slide, shake, floating damage numbers).
    - One **sandbox battle** in `src/content` (about 16×10 map with a river, a ford, a bridge, a hill and a forest; about 8 units per side mixing archetypes), playable **hot-seat** (two humans, alternating) until one army breaks.
 
+## Skills to use
+
+These project skills are in `.claude/skills/`. Use them; don't improvise their workflows.
+
+| Skill | Use it when |
+|---|---|
+| `rules-change` | You implement any rule in `src/core` (that is most of M1): test first, rules config, events, preview parity, decision log |
+| `add-unit` | You create the archetype and unit data for the sandbox battle |
+| `add-battle` | You create the sandbox battle (skip the history steps; it is fictional) |
+| `visual-check` | After each render or UI change in M2, and once more at the end. You create `scripts/visual-check.mjs` the first time. |
+| `balance-sim` | **Build its first version at the end of M1**: the `duel` and `cost` modes in `scripts/balance/` with `npm run balance`. Run it once and save the report to `docs/balance/`. Don't tune numbers yet unless a counter in §4.5 is clearly broken. |
+
+Built-in skills: use `run` to launch and drive the app, `dataviz` for any balance charts, and `code-review` (medium) on your own diff before the final push. If the `frontend-design` plugin is available, use it for the HTML overlay UI (panels, buttons, unit card).
+
 ## Constraints
 
 - Keep the layering strict: `core` never imports from `render`, `ui` or the DOM. The renderer only reads state and plays events; it never changes game state.
@@ -41,5 +55,5 @@ Deliver milestones **M0, M1 and M2** from section 12 of the design doc:
 2. Write a short plan of the M0–M2 tasks in `docs/PROGRESS.md` and keep it updated as you finish them.
 3. Build M0, then M1 with tests (test-first for combat and morale math), then M2.
 4. Before each commit run `npm run typecheck && npm run lint && npm test`. Commit in small, clear steps (one per meaningful chunk) and push to the working branch.
-5. At the end, run the dev server and check the sandbox battle in a headless browser at tablet size: take screenshots of the initial board, a selected unit with highlights, a combat preview, and a routed unit. Fix anything that looks wrong.
+5. At the end, use the `visual-check` skill: run the dev server and check the sandbox battle in a headless browser at tablet size: take screenshots of the initial board, a selected unit with highlights, a combat preview, and a routed unit. Fix anything that looks wrong.
 6. Finish with a short summary covering what works, what is stubbed, the decisions logged in `docs/DECISIONS.md`, and the recommended next step (M3).
