@@ -1,0 +1,12 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #efe6cf;
+  overflow: hidden;
+}
+#app {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+}
