@@ -1,8 +1,7 @@
+import type { TutorialStep } from './types';
+
 /** Guided steps for the Prologue (Megiddo). `until` is what the player has to do next. */
-export const MEGIDDO_TUTORIAL: {
-  text: string;
-  until: 'select' | 'move' | 'facing' | 'charge' | 'endTurn' | 'never';
-}[] = [
+export const MEGIDDO_TUTORIAL: TutorialStep[] = [
   {
     text: 'Tap your chariots (the round badge with the wheel, under the pennant) to select them.',
     until: 'select',

@@ -37,6 +37,8 @@ export class App implements AppApi {
   private screenHost = el('div', { class: 'screens' });
   private hud: Hud | null = null;
   private gestures: Partial<GestureHandlers> = {};
+  /** The battle being played, so leaving it stops its AI and animations. */
+  private controller: Controller | null = null;
 
   constructor(
     private store: SaveStore,
@@ -94,6 +96,8 @@ export class App implements AppApi {
   }
 
   private endBattleUi(): void {
+    this.controller?.dispose();
+    this.controller = null;
     this.hud?.destroy();
     this.hud = null;
     this.gestures = {};
@@ -118,6 +122,8 @@ export class App implements AppApi {
     let state = startBattle(buildScenario(b, army, seed, placement));
     const hud = this.enterBattleUi(state);
     let selected: number | null = null;
+    /** Two-tap placement (CLAUDE.md): the first tap on a square previews, the second places. */
+    let pending: Pos | null = null;
     const highlight = () =>
       this.view.setHighlights({
         selected: selected !== null ? placement[selected]! : null,
@@ -155,15 +161,31 @@ export class App implements AppApi {
       const idx = placement.findIndex((p) => samePos(p, cell));
       if (selected === null) {
         if (idx >= 0) selected = idx;
+      } else if (idx === selected) {
+        selected = null;
       } else if (zone.some((z) => samePos(z, cell))) {
+        if (!pending || !samePos(pending, cell)) {
+          pending = cell;
+          const u = unitAt(state, placement[selected]!);
+          if (u) this.view.showGhost(u, [placement[selected]!, cell], u.facing);
+          hud.setChip(
+            idx >= 0 ? 'Tap again to swap these units.' : 'Tap again to place the unit here.',
+          );
+          return;
+        }
         if (idx >= 0) placement[idx] = placement[selected]!;
         placement[selected] = cell;
         selected = null;
+        pending = null;
+        this.view.clearGhost();
+        hud.setChip('Placed. Tap another unit to move it, or Start battle.');
         rebuild();
         return;
       } else {
         selected = idx >= 0 ? idx : null;
       }
+      pending = null;
+      this.view.clearGhost();
       highlight();
     };
     this.gestures.longPress = (x, y) => {
@@ -179,7 +201,12 @@ export class App implements AppApi {
     const state = startBattle(buildScenario(b, army, seed, placement));
     const session = new BattleSession(state);
     const hud = this.enterBattleUi(state);
+    // A battle pays out once: a retreat, or the end-of-battle timer, whichever comes first.
+    let finished = false;
     const finish = (final: BattleState, summary: BattleSummary | null) => {
+      if (finished) return;
+      finished = true;
+      controller.dispose();
       const outcome = evaluate(b, final);
       const rewards = applyOutcome(this.profile, b, outcome, army.general?.id ?? null, {
         seed,
@@ -208,6 +235,7 @@ export class App implements AppApi {
         finish(session.state, summary);
       },
     });
+    this.controller = controller;
     this.gestures = {
       tap: (x, y) => controller.tap(x, y),
       longPress: (x, y) => controller.longPress(x, y),
@@ -225,6 +253,7 @@ export class App implements AppApi {
       title: scenario.name,
       onExit: () => this.menu(),
     });
+    this.controller = controller;
     this.gestures = {
       tap: (x, y) => controller.tap(x, y),
       longPress: (x, y) => controller.longPress(x, y),

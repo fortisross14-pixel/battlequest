@@ -3,14 +3,23 @@ import type { Command } from '../core/engine';
 import { validateCommand } from '../core/engine';
 import type { GameEvent } from '../core/events';
 import { generalUnit, skillNeedsTarget, validSkillTarget } from '../core/generals';
-import { DIRS, samePos } from '../core/geometry';
-import { planMove, reachableSquares, turnCost, type ReachableSquare } from '../core/movement';
+import { DIRS } from '../core/geometry';
+import { planMove, reachableSquares, turnCost } from '../core/movement';
 import { previewCombat } from '../core/preview';
 import { isRejection } from '../core/rejection';
 import type { BattleSession } from '../core/session';
-import { armyCost, getUnit, isEngaged, isFighting, isOnMap, lostCost, unitAt } from '../core/state';
+import {
+  armyCost,
+  getUnit,
+  isEngaged,
+  isFighting,
+  isOnMap,
+  isSpent,
+  lostCost,
+  unitAt,
+} from '../core/state';
 import { SIDES, type BattleState, type Pos, type Side, type Unit } from '../core/types';
-import { isSpent, type BattleView } from '../render/battleView';
+import type { BattleView } from '../render/battleView';
 import {
   battleSummary,
   describeEvents,
@@ -19,30 +28,17 @@ import {
   type LogEntry,
 } from './combatLog';
 import type { Hud, TopInfo } from './hud';
+import {
+  decideCellTap,
+  decideSkillTap,
+  TutorialGuide,
+  type Mode,
+  type Targets,
+  type TutorialStep,
+  type TutorialTrigger,
+} from './tapDecision';
 
-type Mode =
-  | { kind: 'idle' }
-  | { kind: 'selected'; unitId: string }
-  | { kind: 'ghost'; unitId: string; dest: Pos }
-  | { kind: 'facing'; unitId: string }
-  | { kind: 'preview'; unitId: string; targetId: string }
-  | { kind: 'skillTarget'; unitId: string; skillId: string }
-  | { kind: 'busy' }
-  | { kind: 'over' };
-
-interface Targets {
-  reach: ReachableSquare[];
-  charge: Unit[];
-  shoot: Unit[];
-}
-
-/** What the tutorial waits for before moving to its next step. */
-export type TutorialTrigger = 'select' | 'move' | 'facing' | 'charge' | 'endTurn' | 'never';
-
-export interface TutorialStep {
-  text: string;
-  until: TutorialTrigger;
-}
+export type { TutorialStep, TutorialTrigger } from './tapDecision';
 
 export interface ControllerOptions {
   title: string;
@@ -70,7 +66,7 @@ export class Controller {
   private turnMoves: { side: Side; path: Pos[] }[] = [];
   /** turnMoves before each undoable command, so Undo restores the arrows exactly. */
   private movesHistory: { side: Side; path: Pos[] }[][] = [];
-  private tutorialStep = 0;
+  private tutorial: TutorialGuide;
   private names: Record<Side, string>;
   private speeds = [1, 2, Infinity];
   private speedIdx = 0;
@@ -78,6 +74,8 @@ export class Controller {
   private log: LogEntry[] = [];
   private startState: BattleState;
   private logNames: Record<Side, string>;
+  /** Set when the player leaves: AI playback and pending results stop. */
+  private disposed = false;
 
   constructor(
     private session: BattleSession,
@@ -86,6 +84,7 @@ export class Controller {
     private opts: ControllerOptions,
   ) {
     this.names = opts.sideNames ?? { blue: 'Blue', red: 'Red' };
+    this.tutorial = new TutorialGuide(opts.tutorial);
     this.startState = structuredClone(session.state);
     // In the campaign the log says "Your spearmen" and "Enemy chariots".
     this.logNames = opts.ai
@@ -103,6 +102,12 @@ export class Controller {
     this.showTutorial();
     this.refresh();
     if (opts.ai && this.state.activeSide === opts.ai.side) void this.runAiTurn();
+  }
+
+  /** Stops the battle: no more AI moves, animations or results. */
+  dispose(): void {
+    this.disposed = true;
+    this.mode = { kind: 'over' };
   }
 
   private get state() {
@@ -128,20 +133,11 @@ export class Controller {
       return;
     }
     if (this.mode.kind === 'skillTarget') {
-      const cell = this.view.screenToCell(x, y);
-      const t = cell && unitAt(this.state, cell);
       const m = this.mode;
-      if (
-        t &&
-        !validateCommand(this.state, {
-          type: 'UseSkill',
-          unitId: m.unitId,
-          skillId: m.skillId,
-          targetId: t.id,
-        })
-      ) {
+      const d = decideSkillTap(this.state, m, this.view.screenToCell(x, y));
+      if (d.do === 'useSkill') {
         void this.run(
-          { type: 'UseSkill', unitId: m.unitId, skillId: m.skillId, targetId: t.id },
+          { type: 'UseSkill', unitId: m.unitId, skillId: m.skillId, targetId: d.targetId },
           null,
         );
       } else {
@@ -179,44 +175,33 @@ export class Controller {
   }
 
   private tapCell(cell: Pos): void {
-    const there = unitAt(this.state, cell);
+    const d = decideCellTap(this.state, this.mode, this.targets, cell);
     const sel = 'unitId' in this.mode ? this.unit(this.mode.unitId) : undefined;
-
-    if (sel && this.targets) {
-      if (there && samePos(there, sel)) {
+    switch (d.do) {
+      case 'preview':
+        this.openPreview(sel!, this.unit(d.targetId)!, d.type);
+        return;
+      case 'explain':
+        this.hud.toast(d.message);
+        return;
+      case 'confirmMove':
+        void this.confirmMove(sel!, d.dest);
+        return;
+      case 'ghost':
+        this.showGhost(sel!, d.dest);
+        return;
+      case 'select':
+        this.select(d.unitId);
+        this.advanceTutorial('select');
+        return;
+      case 'outOfControl':
+        this.hud.toast('Routed units are out of control.');
         this.deselect();
         return;
-      }
-      if (there && there.side !== sel.side) {
-        if (this.targets.charge.includes(there) || this.targets.shoot.includes(there)) {
-          this.openPreview(sel, there, this.targets.charge.includes(there) ? 'Charge' : 'Shoot');
-        } else {
-          const why =
-            validateCommand(this.state, { type: 'Charge', unitId: sel.id, targetId: there.id }) ??
-            validateCommand(this.state, { type: 'Shoot', unitId: sel.id, targetId: there.id });
-          if (why) this.hud.toast(why.message);
-        }
+      case 'deselect':
+        this.deselect();
         return;
-      }
-      const reach = this.targets.reach.find((r) => samePos(r.pos, cell));
-      if (reach) {
-        if (this.mode.kind === 'ghost' && samePos(this.mode.dest, cell)) {
-          void this.confirmMove(sel, cell);
-        } else {
-          this.showGhost(sel, cell);
-        }
-        return;
-      }
     }
-    if (there && there.side === this.state.activeSide && isFighting(there)) {
-      this.select(there.id);
-      this.advanceTutorial('select');
-      return;
-    }
-    if (there && there.side === this.state.activeSide) {
-      this.hud.toast('Routed units are out of control.');
-    }
-    this.deselect();
   }
 
   // ---------- Modes ----------
@@ -334,11 +319,12 @@ export class Controller {
           targetId: skillNeedsTarget(s.effect) ? gu.id : undefined,
         });
         const cooldown = this.state.turn < s.readyTurn ? `Ready on turn ${s.readyTurn}` : null;
-        const blocked = gu.hasActed
-          ? 'The general’s unit has already acted.'
-          : !isFighting(gu)
-            ? 'The general’s unit is routed.'
-            : null;
+        const blocked =
+          gu.hasActed && s.effect.kind !== 'chargeAgain'
+            ? 'The general’s unit has already acted.'
+            : !isFighting(gu)
+              ? 'The general’s unit is routed.'
+              : null;
         const usable = !cooldown && !blocked && (!why || skillNeedsTarget(s.effect));
         return {
           name: s.name,
@@ -368,6 +354,8 @@ export class Controller {
         return 'Units in the command radius cannot drop below Disrupted for 2 turns.';
       case 'flankBoost':
         return 'Your flank and rear attacks hit harder for 2 turns.';
+      case 'chargeAgain':
+        return 'Use after charging: the general’s unit and adjacent cavalry not in melee may charge again.';
       default:
         return '';
     }
@@ -375,6 +363,9 @@ export class Controller {
 
   private useSkill(gu: Unit, skillId: string, needsTarget: boolean): void {
     this.hud.hideSkills();
+    this.hud.hidePreview();
+    this.view.clearFacingRing();
+    this.view.clearGhost();
     if (!needsTarget) {
       void this.run({ type: 'UseSkill', unitId: gu.id, skillId }, null);
       return;
@@ -415,6 +406,7 @@ export class Controller {
     this.view.clearFacingRing();
     this.refresh();
     await this.view.play(res.events, this.state);
+    if (this.disposed) return false;
     this.announce(res.events);
     if (this.state.result) {
       this.finish();
@@ -574,7 +566,11 @@ export class Controller {
     this.refresh();
     this.hud.setChip('Enemy turn…');
     const moves: { side: Side; path: Pos[] }[] = [];
-    for (let i = 0; i < 400 && !this.state.result && this.state.activeSide === ai.side; i++) {
+    for (
+      let i = 0;
+      i < 400 && !this.disposed && !this.state.result && this.state.activeSide === ai.side;
+      i++
+    ) {
       const cmd = ai.player.next(this.state);
       const res = this.session.apply(cmd);
       if (!res.ok) {
@@ -591,6 +587,7 @@ export class Controller {
         }
       }
       await this.view.play(res.events, this.state);
+      if (this.disposed) return;
       this.announce(res.events);
       this.refresh();
       this.hud.setChip('Enemy turn…');
@@ -598,6 +595,8 @@ export class Controller {
     }
     this.hud.showSpeed(false);
     this.view.speed = 1;
+    this.speedIdx = 0;
+    this.hud.setSpeed('Speed 1×');
     if (this.state.result) {
       this.finish();
       return;
@@ -608,6 +607,7 @@ export class Controller {
   }
 
   private finish(): void {
+    if (this.disposed) return;
     this.mode = { kind: 'over' };
     this.refresh();
     if (this.opts.onEnd) {
@@ -637,31 +637,29 @@ export class Controller {
   }
 
   private confirmExit(): void {
-    if (!this.opts.onExit) return;
+    if (!this.opts.onExit || this.disposed) return;
+    if (this.mode.kind === 'busy' && this.isHumanTurn()) return;
     this.hud.showConfirm(
       'Leave the battle?',
       this.opts.ai ? 'Retreating counts as a defeat.' : 'This battle will not be saved.',
       'Leave',
-      () => this.opts.onExit!(this.summary()),
+      () => {
+        const summary = this.summary();
+        this.dispose();
+        this.opts.onExit!(summary);
+      },
     );
   }
 
   // ---------- Tutorial ----------
 
   private showTutorial(): void {
-    const steps = this.opts.tutorial;
-    const step = steps?.[this.tutorialStep];
-    this.hud.setTutorial(
-      step ? step.text : null,
-      steps ? `${Math.min(this.tutorialStep + 1, steps.length)}/${steps.length}` : '',
-    );
+    const c = this.tutorial.current();
+    this.hud.setTutorial(c ? c.text : null, c ? c.progress : '');
   }
 
   private advanceTutorial(trigger: TutorialTrigger): void {
-    const step = this.opts.tutorial?.[this.tutorialStep];
-    if (!step || step.until !== trigger) return;
-    this.tutorialStep++;
-    this.showTutorial();
+    if (this.tutorial.advance(trigger)) this.showTutorial();
   }
 
   // ---------- HUD ----------
@@ -688,7 +686,12 @@ export class Controller {
     const gu = generalUnit(s, s.activeSide);
     const g = s.sides[s.activeSide].general;
     const skillReady =
-      !!g && !!gu && isFighting(gu) && !gu.hasActed && g.skills.some((k) => s.turn >= k.readyTurn);
+      !!g &&
+      !!gu &&
+      isFighting(gu) &&
+      g.skills.some(
+        (k) => s.turn >= k.readyTurn && (!gu.hasActed || k.effect.kind === 'chargeAgain'),
+      );
     this.hud.setButtons({
       undo: !busy && this.session.canUndo(),
       next: !busy && this.actionable().length > 0,

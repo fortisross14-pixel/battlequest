@@ -28,10 +28,12 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] WP4 — Rule bugs and movement feel: evade pull-back, turn-start facing, preview includes melee, ×0.5 flank strike-back, Concede, sidestep, default facing, evade 0.6, end-turn confirm
 - [x] WP3 — Unit graphics and icons: role-shaped troop badges (owner-approved) on the board and every screen, wider blocks, softer hills, clear fords, denser rough, terrain legend, phone layout with side button columns, visual-check browser fallback
 - [x] WP6 — Battle readability: objective chip, melee banner, combat log drawer, preview labels, end-of-battle summary with the turning point
-- [ ] WP5 — Balance and campaign difficulty
-- [ ] WP7 — Code health (screens.ts split done in WP1)
+- [x] WP5 — Balance and campaign difficulty: utility-AI cost tuning (7 of 12 within ±15%, spread −22% to +35%), Charge and HitAndRun tags, enemy levels and breakpoints (4 of 6 battles in band), stronger general traits, Alexander’s Companion Charge and his rank-5 second skill
+- [x] WP7 — Code health: screens split per screen, tap state machine and tutorial guide in tested pure code, combat log module, isSpent in core, new tests
 
 ## Next
+- [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
+- [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills
 - [ ] Human playtest of the six battles; retune with `balance-sim scenario` (current stand-in results are mostly too easy)
 - [ ] Re-run `balance-sim cost` with the AI and retune unit costs
 - [ ] Remaining Age 2 battles (Gaugamela, Hydaspes) and more generals' unique skills

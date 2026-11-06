@@ -1,7 +1,7 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { GameEvent } from '../core/events';
 import { DIR_VECTORS } from '../core/geometry';
-import { isEngaged } from '../core/state';
+import { isSpent } from '../core/state';
 import type { BattleState, Dir, Pos, Side, Unit } from '../core/types';
 import { arrow, dashed } from './draw';
 import { buildGrid, buildTerrainLayer } from './terrainLayer';
@@ -522,10 +522,4 @@ export class BattleView {
     temp.destroy();
     this.sync(final);
   }
-}
-
-/** An own-side unit with nothing left to do this turn (drawn slightly faded). */
-export function isSpent(state: BattleState, u: Unit): boolean {
-  if (u.side !== state.activeSide) return false;
-  return (u.hasActed && u.mpLeft <= 0) || isEngaged(state, u.id);
 }

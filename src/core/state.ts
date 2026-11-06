@@ -209,3 +209,9 @@ export function isArmyBroken(state: BattleState, side: Side): boolean {
 }
 
 export { SIDES };
+
+/** An own unit with nothing left to do this turn: acted with no MP left, or locked in melee. */
+export function isSpent(state: BattleState, u: Unit): boolean {
+  if (u.side !== state.activeSide) return false;
+  return (u.hasActed && u.mpLeft <= 0) || isEngaged(state, u.id);
+}

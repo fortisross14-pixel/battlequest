@@ -16,7 +16,9 @@ import { cardView } from './troopCard';
 
 export function shopScreen(app: AppApi, revealed: PackCard[] | null = null): HTMLElement {
   const p = app.profile;
-  const day = new Date().toISOString().slice(0, 10);
+  // The player's local day, so the offer changes at their midnight, not UTC's.
+  const now = new Date();
+  const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const offer = dailyOffer(p, day);
   const pack = (kind: PackKind, title: string, desc: string) => {
     const price = packPrice(kind);

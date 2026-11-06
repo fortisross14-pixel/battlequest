@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCommand,
   computeDamage,
+  isSpent,
   isRejection,
   previewCombat,
   reachableSquares,
@@ -189,5 +190,23 @@ describe('concede', () => {
 describe('evade', () => {
   it('skirmishers evade infantry less often than before (base 0.6)', () => {
     expect(RULES.movement.evadeBase).toBe(0.6);
+  });
+});
+
+describe('isSpent (review 1 WP7)', () => {
+  it('own units are spent once they acted with no MP left, or when locked in melee', () => {
+    let s = battle({
+      units: [
+        ['b', 'blue', 'heavySwordsmen', 3, 3, E],
+        ['b2', 'blue', 'spearmen', 3, 6, E],
+        ['r', 'red', 'spearmen', 5, 3, W],
+      ],
+    });
+    expect(isSpent(s, unit(s, 'b'))).toBe(false);
+    expect(isSpent(s, unit(s, 'r'))).toBe(false); // not the active side
+    s = run(s, { type: 'Charge', unitId: 'b', targetId: 'r' }).state;
+    expect(isSpent(s, unit(s, 'b'))).toBe(true);
+    s = run(s, { type: 'Hold', unitId: 'b2' }).state;
+    expect(isSpent(s, unit(s, 'b2'))).toBe(true);
   });
 });
