@@ -18,6 +18,8 @@ export interface UnitLook {
   spent: boolean;
   /** General's pennant label, e.g. "LEONIDAS". */
   pennant: string | null;
+  /** Troop level (chevrons on the block). */
+  level: number;
 }
 
 export function lookOf(u: Unit, spent: boolean, pennant: string | null = null): UnitLook {
@@ -32,11 +34,13 @@ export function lookOf(u: Unit, spent: boolean, pennant: string | null = null): 
     visible: u.status === 'active',
     spent,
     pennant,
+    level: u.type.level ?? 1,
   };
 }
 
-export const BLOCK_W = CELL * 0.84;
-export const BLOCK_H = CELL * 0.5;
+/** Wide blocks, long side = front (GAME_DESIGN 10). */
+export const BLOCK_W = CELL * 0.8;
+export const BLOCK_H = CELL * 0.45;
 
 export function facingRotation(f: Dir): number {
   return (f * Math.PI) / 4;
@@ -171,9 +175,18 @@ export class UnitView extends Container {
       }
       b.rect(x0, y0, BLOCK_W, BLOCK_H).stroke({ width: 1.5, color: dark });
       // The front edge is thicker so facing reads at a glance.
-      b.moveTo(x0 - 1, y0)
-        .lineTo(x0 + BLOCK_W + 1, y0)
-        .stroke({ width: 6, color: dark, cap: 'square' });
+      b.moveTo(x0 - 1, y0 + 1)
+        .lineTo(x0 + BLOCK_W + 1, y0 + 1)
+        .stroke({ width: 7, color: dark, cap: 'square' });
+    }
+    // Level chevrons at the right end of the block (one per level above 1).
+    for (let i = 0; i < this.look.level - 1; i++) {
+      const cx = x0 + BLOCK_W - 7;
+      const cy = y0 + BLOCK_H - 6 - i * 4.5;
+      b.moveTo(cx - 4, cy + 2.5)
+        .lineTo(cx, cy)
+        .lineTo(cx + 4, cy + 2.5)
+        .stroke({ width: 1.6, color: routed ? color : THEME.symbol, cap: 'round' });
     }
 
     const s = this.symbolG.clear();
@@ -182,12 +195,16 @@ export class UnitView extends Container {
     // Strength bar and cohesion pip, always upright under the block.
     const o = this.overlay.clear();
     const barW = CELL * 0.62;
-    const barY = CELL * 0.36;
-    o.roundRect(-barW / 2 - 1, barY - 1, barW + 2, 7, 2).fill({ color: THEME.ink, alpha: 0.55 });
-    o.rect(-barW / 2, barY, (barW * Math.max(0, strength)) / 100, 5).fill(
+    const barY = CELL * 0.37;
+    const barH = 7;
+    o.roundRect(-barW / 2 - 1, barY - 1, barW + 2, barH + 2, 3).fill({
+      color: THEME.ink,
+      alpha: 0.6,
+    });
+    o.rect(-barW / 2, barY, (barW * Math.max(0, strength)) / 100, barH).fill(
       strength > 50 ? 0xf3ead2 : strength > 25 ? 0xf0c36a : 0xe0704f,
     );
-    o.circle(barW / 2 + 7, barY + 2.5, 5.5)
+    o.circle(barW / 2 + 9, barY + barH / 2, 7.5)
       .fill(THEME.cohesion[cohesion])
       .stroke({ width: 1.5, color: THEME.ink, alpha: 0.8 });
 

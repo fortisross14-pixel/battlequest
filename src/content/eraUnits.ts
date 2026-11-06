@@ -217,5 +217,5 @@ export function eraUnitType(id: string, level = 1): UnitType {
   stats.ranged *= lv;
   stats.morale *= lv;
   const tags = def.extraTag ? [...base.tags, def.extraTag] : [...base.tags];
-  return { ...base, id: def.id, name: def.name, stats, tags };
+  return { ...base, id: def.id, name: def.name, stats, tags, level: Math.max(1, level) };
 }

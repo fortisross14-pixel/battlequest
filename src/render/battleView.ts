@@ -49,6 +49,8 @@ export class BattleView {
   private mapSize = { w: 0, h: 0 };
   /** Screen padding kept free for the HUD (top bar, bottom buttons). */
   padding = { top: 56, bottom: 72, left: 12, right: 12 };
+  /** Smallest square, in screen pixels, that fit() will use to show the whole map. */
+  private minFitSquare = 44;
   private reducedMotion = false;
   /** Playback speed: 1, 2, or Infinity to skip animations. */
   speed = 1;
@@ -124,17 +126,34 @@ export class BattleView {
     return this.world.scale.x;
   }
 
+  /**
+   * Matches the HUD layout (style.css): on phone landscape (height < 500 px) the buttons
+   * sit in columns at the left and right edges, so the map gets the full height.
+   */
+  private layout(): void {
+    const { height } = this.app.screen;
+    const phone = height < 500;
+    this.padding = phone
+      ? { top: 42, bottom: 6, left: 112, right: 120 }
+      : { top: 56, bottom: 72, left: 12, right: 12 };
+    this.minFitSquare = phone ? 32 : 44;
+  }
+
   private viewport() {
+    this.layout();
     const { width, height } = this.app.screen;
     const p = this.padding;
     return { x: p.left, y: p.top, w: width - p.left - p.right, h: height - p.top - p.bottom };
   }
 
-  /** Fits the map, but never below the zoom where a square is 44 px (touch target). */
+  /**
+   * Fits the map, but never below the zoom where a square is 44 px (32 px on a phone, so
+   * the whole map fits its height; pinch to zoom in).
+   */
   fit(focus?: Pos): void {
     const vp = this.viewport();
     const fitZoom = Math.min(vp.w / this.mapSize.w, vp.h / this.mapSize.h);
-    const z = Math.max(fitZoom, 44 / CELL);
+    const z = Math.max(fitZoom, this.minFitSquare / CELL);
     this.world.scale.set(z);
     if (focus && z > fitZoom + 1e-6) this.centreOn(focus);
     else

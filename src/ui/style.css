@@ -390,8 +390,21 @@ body {
   .chip {
     display: none;
   }
+  /* Buttons in columns at the screen edges, so the map gets the full height. */
   .corner {
     bottom: calc(6px + var(--safe-b));
+    flex-direction: column;
+    gap: 6px;
+  }
+  .corner.left {
+    top: calc(44px + var(--safe-t));
+    bottom: auto;
+  }
+  .corner.left .btn {
+    width: 100px;
+  }
+  .corner.right {
+    align-items: flex-end;
   }
   .btn {
     min-height: 44px;
@@ -405,7 +418,8 @@ body {
     font-size: 15px;
   }
   .preview {
-    bottom: calc(56px + var(--safe-b));
+    bottom: calc(6px + var(--safe-b));
+    width: min(560px, calc(100% - 250px));
     padding: 8px 12px;
   }
   .preview h2 {

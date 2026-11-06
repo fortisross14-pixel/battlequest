@@ -1,11 +1,14 @@
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
-import type { BattleState, Side, Unit, UnitTag } from '../core/types';
+import { cellAt } from '../core/map';
+import type { BattleState, Pos, Side, TerrainType, Unit, UnitTag } from '../core/types';
 import { COHESION_NAMES } from '../render/theme';
 
 type Child = Node | string | null | undefined | false;
 
 /** Tiny DOM helper. */
+const num = (v: number) => String(+v.toFixed(1));
+
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   attrs: Record<string, string> = {},
@@ -15,6 +18,29 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   for (const c of children) if (c) e.append(c);
   return e;
+}
+
+/** Terrain legend for the long-press info (GAME_DESIGN 4.7). */
+export const TERRAIN_TEXT: Record<TerrainType, [string, string]> = {
+  open: ['Open ground', 'No effect.'],
+  rough: ['Rough ground', 'Costs 1.5× MP (more for heavy troops); cavalry charges hit softer.'],
+  forest: [
+    'Woods',
+    'Costs 2× MP; blocks sight; cover halves missile hits; cavalry fights at half.',
+  ],
+  river: ['River', 'Impassable. Cross at fords and bridges.'],
+  ford: ['Ford', 'Costs 3× MP; troops in it fight as Disrupted and their armor counts 0.7×.'],
+  bridge: ['Bridge', 'One square wide: enter, leave and fight only along the bridge.'],
+};
+
+/** Name and effect of the ground at a square, including the hill if any. */
+export function groundText(state: BattleState, p: Pos): string {
+  const c = cellAt(state.map, p);
+  if (!c) return '';
+  const [name, effect] = TERRAIN_TEXT[c.terrain];
+  const hill = 'attacking downhill hits 1.2× harder; climbing costs 1.5× MP.';
+  if (c.elevation > 0 && c.terrain === 'open') return `Hill: ${hill}`;
+  return `${name}${c.elevation > 0 ? ` on a hill (${hill})` : ''}: ${effect}`;
 }
 
 export const TAG_TEXT: Record<UnitTag, string> = {
@@ -333,16 +359,31 @@ export class Hud {
         'div',
         { class: 'stats' },
         stat('MP', String(s.mp)),
-        stat('Melee', String(s.melee)),
-        stat('Impact', String(s.impact)),
-        stat('Ranged', s.range > 0 ? `${s.ranged} (${s.range})` : '—'),
-        stat('Armor', String(s.armor)),
-        stat('Morale', String(s.morale)),
+        stat('Melee', num(s.melee)),
+        stat('Impact', num(s.impact)),
+        stat('Ranged', s.range > 0 ? `${num(s.ranged)} (${s.range})` : '—'),
+        stat('Armor', num(s.armor)),
+        stat('Morale', num(s.morale)),
         stat('Cost', String(s.cost)),
       ),
       u.type.tags.length
         ? el('ul', { class: 'tags' }, ...u.type.tags.map((t) => el('li', {}, TAG_TEXT[t])))
         : '',
+      u.status === 'active'
+        ? el('p', { class: 'ground' }, el('b', {}, 'Ground: '), groundText(state, u))
+        : '',
+      el('div', { class: 'row' }, close),
+    );
+    this.card.classList.remove('hidden');
+  }
+
+  /** Long-press on an empty square: what the ground there does. */
+  showTerrainCard(p: Pos, state: BattleState): void {
+    const close = el('button', { class: 'btn', type: 'button' }, 'Close');
+    close.onclick = () => this.hideUnitCard();
+    this.card.replaceChildren(
+      el('h2', {}, 'Terrain'),
+      el('p', { class: 'ground' }, groundText(state, p)),
       el('div', { class: 'row' }, close),
     );
     this.card.classList.remove('hidden');

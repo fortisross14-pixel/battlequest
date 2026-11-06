@@ -80,6 +80,8 @@ export interface UnitType {
   symbol: UnitSymbol;
   stats: UnitStats;
   tags: UnitTag[];
+  /** Troop level 1–5 from the player's roster (display only: the stats already include it). */
+  level?: number;
 }
 
 export type UnitSymbol =

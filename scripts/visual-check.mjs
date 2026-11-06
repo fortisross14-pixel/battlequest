@@ -178,6 +178,9 @@ for (const size of SIZES) {
   await shot(page, size, '04-facing-ring');
   await tapNear(page, 7, 3, 0, -60); // pick a handle (north-ish)
   await shot(page, size, '05-after-ring');
+  await longPress(page, 13, 4); // empty hill square: terrain card
+  await shot(page, size, '05b-terrain-card');
+  await page.getByRole('button', { name: 'Close' }).tap();
   const small = await smallTargets(page);
   if (small.length) problems.push(`${size.name}: small buttons ${JSON.stringify(small)}`);
 

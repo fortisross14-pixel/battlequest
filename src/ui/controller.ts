@@ -151,8 +151,10 @@ export class Controller {
   longPress(x: number, y: number): void {
     if (this.mode.kind === 'busy') return;
     const cell = this.view.screenToCell(x, y);
-    const u = cell && unitAt(this.state, cell);
+    if (!cell) return;
+    const u = unitAt(this.state, cell);
     if (u) this.hud.showUnitCard(u, this.state);
+    else this.hud.showTerrainCard(cell, this.state);
   }
 
   private tapCell(cell: Pos): void {

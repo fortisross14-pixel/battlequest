@@ -1,7 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { cellAt, narrowAxis } from '../core/map';
 import type { BattleMap, Pos } from '../core/types';
-import { dashed, hash01 } from './draw';
+import { hash01 } from './draw';
 import { CELL, THEME } from './theme';
 
 const centre = (x: number, y: number): Pos => ({ x: (x + 0.5) * CELL, y: (y + 0.5) * CELL });
@@ -21,31 +21,46 @@ export function buildTerrainLayer(map: BattleMap): Container {
   paper.rect(0, 0, W, H).fill(THEME.mapPaper);
   layer.addChild(paper);
 
-  // Hills: tinted plateaus with blocky contour lines at each elevation step.
+  // Hills: soft contour rings with a light fill that darkens towards the top. Each ring is
+  // the union of round blobs and capsules around the hill squares' centres, drawn as a
+  // contour-coloured shape with a slightly smaller fill-coloured shape on top.
   const hills = new Graphics();
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      const e = cellAt(map, { x, y })!.elevation;
-      if (e > 0)
-        hills.rect(x * CELL, y * CELL, CELL, CELL).fill({ color: THEME.hillFill, alpha: 0.35 * e });
+  const maxE = Math.max(0, ...map.cells.map((c) => c.elevation));
+  const fills = [THEME.hillFill1, THEME.hillFill2, THEME.hillFill3];
+  const blob = (g: Graphics, level: number, r: number, color: number) => {
+    const on = (x: number, y: number) => (cellAt(map, { x, y })?.elevation ?? 0) >= level;
+    for (let y = 0; y < map.height; y++) {
+      for (let x = 0; x < map.width; x++) {
+        if (!on(x, y)) continue;
+        const a = centre(x, y);
+        g.circle(a.x, a.y, r).fill(color);
+        for (const [dx, dy] of [
+          [1, 0],
+          [0, 1],
+          [1, 1],
+          [-1, 1],
+        ] as const) {
+          if (!on(x + dx, y + dy)) continue;
+          const b = centre(x + dx, y + dy);
+          g.moveTo(a.x, a.y)
+            .lineTo(b.x, b.y)
+            .stroke({ width: 2 * r, color, cap: 'round' });
+        }
+      }
+    }
+  };
+  const line = 2.2;
+  let ring = 0;
+  for (let level = 1; level <= maxE; level++) {
+    // Two rings per elevation step, shrinking inwards.
+    for (const r of level === 1 ? [0.6, 0.38] : [0.42, 0.24]) {
+      const radius = r * CELL;
+      blob(hills, level, radius, THEME.contourSoft);
+      blob(hills, level, radius - line, fills[Math.min(ring, fills.length - 1)]!);
+      ring++;
     }
   }
-  const contours = new Graphics();
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      const e = cellAt(map, { x, y })!.elevation;
-      if (e === 0) continue;
-      const edge = (nx: number, ny: number) => (cellAt(map, { x: nx, y: ny })?.elevation ?? 0) < e;
-      const x0 = x * CELL;
-      const y0 = y * CELL;
-      if (edge(x, y - 1)) contours.moveTo(x0, y0).lineTo(x0 + CELL, y0);
-      if (edge(x, y + 1)) contours.moveTo(x0, y0 + CELL).lineTo(x0 + CELL, y0 + CELL);
-      if (edge(x - 1, y)) contours.moveTo(x0, y0).lineTo(x0, y0 + CELL);
-      if (edge(x + 1, y)) contours.moveTo(x0 + CELL, y0).lineTo(x0 + CELL, y0 + CELL);
-    }
-  }
-  contours.stroke({ width: 2, color: THEME.contour, alpha: 0.8 });
-  layer.addChild(hills, contours);
+  layer.addChild(hills);
 
   // Rough ground: scattered tufts.
   const rough = new Graphics();
@@ -56,13 +71,18 @@ export function buildTerrainLayer(map: BattleMap): Container {
     for (let x = 0; x < map.width; x++) {
       const t = cellAt(map, { x, y })!.terrain;
       if (t === 'rough') {
-        for (let i = 0; i < 6; i++) {
-          const px = x * CELL + 8 + hash01(x, y, i, 1) * (CELL - 16);
-          const py = y * CELL + 8 + hash01(x, y, i, 2) * (CELL - 16);
+        // Dense scrub: small tufts on a light wash.
+        rough.rect(x * CELL, y * CELL, CELL, CELL).fill({ color: THEME.rough, alpha: 0.12 });
+        for (let i = 0; i < 12; i++) {
+          const px = x * CELL + 6 + hash01(x, y, i, 1) * (CELL - 12);
+          const py = y * CELL + 6 + hash01(x, y, i, 2) * (CELL - 12);
           rough
             .moveTo(px - 4, py + 2)
-            .lineTo(px, py - 3)
-            .lineTo(px + 4, py + 2);
+            .lineTo(px - 1.5, py - 3)
+            .moveTo(px, py + 2)
+            .lineTo(px, py - 4)
+            .moveTo(px + 4, py + 2)
+            .lineTo(px + 1.5, py - 3);
         }
       } else if (t === 'forest') {
         const c = centre(x, y);
@@ -77,7 +97,7 @@ export function buildTerrainLayer(map: BattleMap): Container {
       }
     }
   }
-  rough.stroke({ width: 1.5, color: THEME.rough, alpha: 0.85 });
+  rough.stroke({ width: 1.6, color: THEME.roughDark, alpha: 0.9 });
   layer.addChild(rough, forest, trees);
 
   // Rivers: a thick band through the centres of connected water squares.
@@ -129,14 +149,24 @@ export function buildTerrainLayer(map: BattleMap): Container {
       const t = cellAt(map, { x, y })!.terrain;
       const c = centre(x, y);
       if (t === 'ford') {
-        // Stepping stones across the stream.
+        // A pale shallow band across the stream, with stepping stones along it.
+        const vertical = isWater(map, x, y - 1) || isWater(map, x, y + 1);
+        const across = CELL * 0.98;
+        const along = CELL * 0.5;
+        const w = vertical ? across : along;
+        const h = vertical ? along : across;
+        crossings
+          .roundRect(c.x - w / 2, c.y - h / 2, w, h, along / 2)
+          .fill({ color: THEME.fordShallow, alpha: 0.95 })
+          .stroke({ width: 1.5, color: THEME.waterDark, alpha: 0.5 });
         for (let i = -2; i <= 2; i++) {
+          const o = i * 11;
+          const j = (i % 2) * 4;
           crossings
-            .ellipse(c.x + i * 11, c.y + (i % 2) * 5, 6, 4)
-            .fill({ color: THEME.fordStone, alpha: 0.95 });
+            .ellipse(vertical ? c.x + o : c.x + j, vertical ? c.y + j : c.y + o, 5.5, 4)
+            .fill({ color: THEME.fordStone, alpha: 1 })
+            .stroke({ width: 1, color: THEME.ink, alpha: 0.35 });
         }
-        dashed(crossings, { x: c.x - CELL / 2, y: c.y }, { x: c.x + CELL / 2, y: c.y }, 5, 5);
-        crossings.stroke({ width: 1.5, color: THEME.ink, alpha: 0.35 });
       } else if (t === 'bridge') {
         const axis = narrowAxis(map, { x, y });
         const horizontal = !axis || axis.includes(2);
