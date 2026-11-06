@@ -814,10 +814,6 @@
   z-index: 1;
 }
 
-.hud .topbar {
-  padding-left: calc(60px + var(--safe-l));
-}
-
 .tutorial {
   position: absolute;
   top: 56px;
@@ -896,4 +892,210 @@
 
 .gen-card p b {
   font: 700 14px var(--sans);
+}
+
+/* ---------- Battle readability (review 1 WP6) ---------- */
+
+.topbar .objective {
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.topbar .objective .bonus {
+  color: var(--ink-soft);
+}
+
+.topbar.has-objective .army small {
+  display: none;
+}
+
+.topbar .objective.met .bonus-mark {
+  color: #2e6b2e;
+}
+
+.topbar .objective.failed .bonus-mark {
+  color: var(--red);
+}
+
+.melee-banner {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  max-width: calc(100% - 48px);
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(59, 50, 38, 0.92);
+  color: var(--paper);
+  text-align: center;
+  font-size: 15px;
+  pointer-events: none;
+  box-shadow: 0 6px 24px rgba(59, 50, 38, 0.35);
+}
+
+.melee-banner b {
+  font: italic 22px var(--serif);
+}
+
+.btn.log-btn {
+  position: absolute;
+  top: calc(2px + var(--safe-t));
+  left: calc(56px + var(--safe-l));
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  z-index: 1;
+}
+
+.hud .topbar {
+  padding-left: calc(118px + var(--safe-l));
+}
+
+.log-drawer {
+  top: 50px;
+  left: auto;
+  right: calc(8px + var(--safe-r));
+  transform: none;
+  width: min(420px, calc(100% - 24px));
+  max-height: calc(100% - 140px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.log-list {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.log-list li {
+  padding: 4px 0 4px 8px;
+  border-left: 3px solid var(--line);
+  margin-bottom: 2px;
+}
+
+.log-list li small {
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.log-list li.blue {
+  border-left-color: var(--blue);
+}
+
+.log-list li.red {
+  border-left-color: var(--red);
+}
+
+.log-list li.rout,
+.log-list li.general {
+  font-weight: 700;
+}
+
+.log-list li.melee {
+  background: rgba(59, 50, 38, 0.05);
+}
+
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 10px;
+}
+
+.preview-tags span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(59, 50, 38, 0.08);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary {
+  text-align: left;
+  margin: 6px 0 4px;
+}
+
+.summary .turning {
+  margin: 0 0 8px;
+}
+
+.sum-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sum-side h3 {
+  margin: 4px 0;
+}
+
+.sum-side ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.sum-side li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  padding: 2px 0 2px 8px;
+  border-left: 3px solid var(--line);
+}
+
+.sum-side.blue li {
+  border-left-color: var(--blue);
+}
+
+.sum-side.red li {
+  border-left-color: var(--red);
+}
+
+.sum-side li small {
+  color: var(--ink-soft);
+}
+
+.sum-side li.routed small,
+.sum-side li.destroyed small,
+.sum-side li.fled small {
+  color: var(--red);
+  font-weight: 700;
+}
+
+@media (max-height: 500px) {
+  .topbar .objective {
+    font-size: 12px;
+  }
+  .topbar .objective .bonus {
+    display: none;
+  }
+  .melee-banner {
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+  .melee-banner b {
+    font-size: 18px;
+  }
+  .log-drawer {
+    top: 40px;
+    max-height: calc(100% - 50px);
+    width: min(380px, calc(100% - 250px));
+  }
+  .preview-tags {
+    margin: -2px 0 6px;
+  }
+  .preview-tags span {
+    font-size: 11.5px;
+    padding: 2px 7px;
+  }
 }

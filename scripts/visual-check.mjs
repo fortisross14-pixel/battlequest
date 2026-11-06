@@ -248,6 +248,10 @@ for (const size of SIZES) {
     { timeout: 30000 },
   );
   await shot(page, size, '23c-after-enemy-turn');
+  await page.getByRole('button', { name: 'Combat log' }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '23d-combat-log');
+  await page.locator('.log-drawer').getByRole('button', { name: 'Close' }).tap();
   await page.getByRole('button', { name: 'Leave battle' }).tap();
   await page.getByRole('button', { name: 'Leave', exact: true }).tap();
   await page.waitForTimeout(1200);

@@ -152,3 +152,33 @@ export function applyOutcome(
     unlocks,
   };
 }
+
+/** Live state of the ★★★ bonus during a battle, for the objective chip. */
+export type BonusStatus = 'met' | 'failed' | 'pending';
+
+export function bonusStatus(b: CampaignBattle, s: BattleState): BonusStatus {
+  const c = b.bonus;
+  switch (c.kind) {
+    case 'winByTurn':
+      return s.turn > c.turn
+        ? 'failed'
+        : s.result
+          ? bonusMet(b, s)
+            ? 'met'
+            : 'failed'
+          : 'pending';
+    case 'generalAlive':
+      return !s.sides[PLAYER_SIDE].general || s.sides[PLAYER_SIDE].general!.lost ? 'failed' : 'met';
+    case 'noUnitLost':
+      return lostCost(s, PLAYER_SIDE) > 0 ? 'failed' : 'met';
+    case 'enemyGeneralLost':
+      return s.sides.red.general?.lost ? 'met' : 'pending';
+  }
+}
+
+/** Short objective line for the battle HUD: what to do and how long is left. */
+export function objectiveText(b: CampaignBattle, s: BattleState): string {
+  const left = Math.max(0, s.turnLimit - s.turn + 1);
+  const turns = `${left} turn${left === 1 ? '' : 's'} left`;
+  return b.holdOut ? `Hold out · ${turns}` : `Break the enemy · ${turns}`;
+}

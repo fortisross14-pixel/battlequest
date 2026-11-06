@@ -9,12 +9,49 @@ import { el } from '../hud';
 import { stars } from '../icons';
 import { button, shell, type AppApi } from './common';
 import { cardView } from './troopCard';
+import type { BattleSummary } from '../combatLog';
+
+const FATE = { fighting: 'held', routed: 'routed', destroyed: 'destroyed', fled: 'fled' } as const;
+
+/** Losses per unit, who broke, and the turning point (review 1 WP6). */
+function summaryView(s: BattleSummary): HTMLElement {
+  const side = (who: 'blue' | 'red', title: string) =>
+    el(
+      'div',
+      { class: `sum-side ${who}` },
+      el('h3', {}, title),
+      el(
+        'ul',
+        {},
+        ...s.units
+          .filter((u) => u.side === who)
+          .map((u) =>
+            el(
+              'li',
+              { class: u.fate },
+              el('span', {}, u.name),
+              el('span', {}, u.lost ? `−${u.lost}` : '—'),
+              el('small', {}, FATE[u.fate]),
+            ),
+          ),
+      ),
+    );
+  return el(
+    'section',
+    { class: 'summary' },
+    s.turningPoint
+      ? el('p', { class: 'turning' }, el('b', {}, 'Turning point: '), s.turningPoint)
+      : '',
+    el('div', { class: 'sum-cols' }, side('blue', 'Your army'), side('red', 'Enemy')),
+  );
+}
 
 export function resultsScreen(
   app: AppApi,
   b: CampaignBattle,
   o: BattleOutcome,
   r: Rewards,
+  summary: BattleSummary | null,
   retry: () => void,
 ): HTMLElement {
   const next = nextBattle(app.profile);
@@ -41,6 +78,7 @@ export function resultsScreen(
     { class: `results ${o.won ? 'win' : 'loss'}` },
     el('h1', {}, o.won ? 'Victory' : 'Defeat'),
     el('p', { class: 'big-stars', 'aria-label': `${o.stars} stars` }, stars(o.stars)),
+    summary ? summaryView(summary) : '',
     el('ul', {}, ...lines.map((l) => el('li', {}, l))),
     r.cards.length ? el('h3', {}, 'Troop cards earned') : '',
     r.cards.length ? el('div', { class: 'reveal-row' }, ...r.cards.map(cardView)) : '',

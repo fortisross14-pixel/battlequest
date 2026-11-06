@@ -1,6 +1,8 @@
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
+import type { BonusStatus } from '../meta/rewards';
+import type { LogEntry } from './combatLog';
 import type { BattleState, Pos, Side, TerrainType, Unit, UnitTag } from '../core/types';
 import { badgeSvg } from '../render/pictograms';
 import { COHESION_NAMES } from '../render/theme';
@@ -79,6 +81,8 @@ export interface TopInfo {
   lost: Record<Side, number>;
   breakpoint: Record<Side, number>;
   names?: Record<Side, string>;
+  /** Campaign battles: what to do, and the live state of the ★★★ bonus. */
+  objective?: { text: string; bonus: string; status: BonusStatus };
 }
 
 export class Hud {
@@ -136,6 +140,7 @@ export class Hud {
       this.overlay,
     );
     host.append(this.root);
+    this.mountExtras();
   }
 
   setTop(i: TopInfo): void {
@@ -148,6 +153,7 @@ export class Hud {
         ` lost ${pct(i.lost[s])} `,
         el('small', {}, `/ breaks at ${pct(i.breakpoint[s])}`),
       );
+    this.top.classList.toggle('has-objective', !!i.objective);
     this.top.replaceChildren(
       el('span', { class: 'title' }, i.title),
       el(
@@ -156,6 +162,20 @@ export class Hud {
         `Turn ${i.turn} / ${i.turnLimit} · `,
         el('b', {}, `${N[i.side]} to move`),
       ),
+      i.objective
+        ? el(
+            'span',
+            { class: `objective ${i.objective.status}` },
+            i.objective.text,
+            ' · ',
+            el(
+              'b',
+              { class: 'bonus-mark', 'aria-label': `bonus ${i.objective.status}` },
+              `★${i.objective.status === 'met' ? '✓' : i.objective.status === 'failed' ? '✗' : '…'}`,
+            ),
+            el('small', { class: 'bonus' }, ` ${i.objective.bonus}`),
+          )
+        : '',
       el('span', { class: 'armies' }, army('blue'), army('red')),
     );
   }
@@ -237,7 +257,58 @@ export class Hud {
     this.overlay.classList.remove('hidden');
   }
 
+  // ---------- Readability: objective, melee banner, combat log (review 1 WP6) ----------
+
+  private banner = el('div', { class: 'melee-banner hidden', role: 'status' });
+  private bannerTimer: number | undefined;
+  readonly logBtn = el(
+    'button',
+    { class: 'btn log-btn', type: 'button', 'aria-label': 'Combat log' },
+    'Log',
+  );
+  private logPanel = el('div', { class: 'panel log-drawer hidden', role: 'log' });
+  private logList = el('ol', { class: 'log-list' });
+  private logOpen = false;
+
+  private mountExtras(): void {
+    const close = el('button', { class: 'btn', type: 'button' }, 'Close');
+    close.onclick = () => this.toggleLog(false);
+    this.logPanel.append(
+      el('h2', {}, 'Combat log'),
+      this.logList,
+      el('div', { class: 'row' }, close),
+    );
+    this.logBtn.onclick = () => this.toggleLog(!this.logOpen);
+    this.root.append(this.banner, this.logBtn, this.logPanel);
+  }
+
+  toggleLog(open: boolean): void {
+    this.logOpen = open;
+    this.logPanel.classList.toggle('hidden', !open);
+    if (open) this.logList.lastElementChild?.scrollIntoView({ block: 'end' });
+  }
+
+  /** Adds lines to the combat log (newest last). */
+  addLog(entries: LogEntry[]): void {
+    for (const e of entries) {
+      this.logList.append(
+        el('li', { class: `log ${e.kind} ${e.side}` }, el('small', {}, `T${e.turn}`), ` ${e.text}`),
+      );
+    }
+    while (this.logList.children.length > 300) this.logList.firstElementChild?.remove();
+    if (this.logOpen) this.logList.lastElementChild?.scrollIntoView({ block: 'end' });
+  }
+
+  /** A short banner over the map, e.g. the melee results at the end of a turn. */
+  showBanner(title: string, lines: string[], ms: number): void {
+    window.clearTimeout(this.bannerTimer);
+    this.banner.replaceChildren(el('b', {}, title), ...lines.map((l) => el('span', {}, l)));
+    this.banner.classList.remove('hidden');
+    this.bannerTimer = window.setTimeout(() => this.banner.classList.add('hidden'), ms);
+  }
+
   destroy(): void {
+    window.clearTimeout(this.bannerTimer);
     this.root.remove();
   }
 
@@ -291,6 +362,21 @@ export class Hud {
           : p.kind === 'charge'
             ? 'Impact, then melee at the end of the turn.'
             : 'Expected losses (±15%).';
+    // Plain labels for what decides this fight (review 1 WP6).
+    const tags: string[] = [];
+    if (p.kind === 'charge' && p.outcome !== 'catchRouter') {
+      const arc = p.defender.modifiers.find(
+        (m) => m.label === 'Flank attack' || m.label === 'Rear attack',
+      );
+      tags.push(arc ? `${arc.label.replace(' attack', '')} ×${arc.value}` : 'Frontal');
+      const half = p.attacker.modifiers.some((m) => m.label === 'Struck in the flank');
+      const none = p.attacker.expectedLoss <= 0;
+      tags.push(none ? 'Cannot strike back' : half ? 'Strikes back at half' : 'Can strike back');
+      tags.push(
+        `Impact −${Math.round(p.defender.impactLoss)}, melee −${Math.round(p.defender.meleeLoss)}`,
+      );
+    }
+    if (p.outcome === 'mayEvade') tags.push(`Evade chance ${pct(p.evadeChance)}`);
     const confirm = el(
       'button',
       { class: 'btn primary', type: 'button' },
@@ -309,6 +395,9 @@ export class Hud {
     this.panel.replaceChildren(
       el('h2', {}, `${verb}: ${att.type.name} → ${def.type.name}`),
       el('p', { class: 'note' }, note),
+      tags.length
+        ? el('div', { class: 'preview-tags' }, ...tags.map((t) => el('span', {}, t)))
+        : '',
       el(
         'div',
         { class: 'cols' },

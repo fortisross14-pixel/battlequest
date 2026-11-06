@@ -8,10 +8,11 @@ import { samePos } from '../core/geometry';
 import { BattleSession } from '../core/session';
 import { unitAt } from '../core/state';
 import type { BattleState, Pos } from '../core/types';
-import { applyOutcome, evaluate } from '../meta/rewards';
+import { applyOutcome, bonusStatus, evaluate, objectiveText } from '../meta/rewards';
 import { newProfile, type Profile } from '../meta/profile';
 import type { SaveStore } from '../meta/saveStore';
 import type { BattleView } from '../render/battleView';
+import type { BattleSummary } from './combatLog';
 import { Controller } from './controller';
 import { el, Hud } from './hud';
 import type { GestureHandlers } from './input';
@@ -178,14 +179,14 @@ export class App implements AppApi {
     const state = startBattle(buildScenario(b, army, seed, placement));
     const session = new BattleSession(state);
     const hud = this.enterBattleUi(state);
-    const finish = (final: BattleState) => {
+    const finish = (final: BattleState, summary: BattleSummary | null) => {
       const outcome = evaluate(b, final);
       const rewards = applyOutcome(this.profile, b, outcome, army.general?.id ?? null, {
         seed,
         fielded: army.units.map((u) => u.type),
       });
       this.save();
-      this.show(resultsScreen(this, b, outcome, rewards, () => this.briefing(b)));
+      this.show(resultsScreen(this, b, outcome, rewards, summary, () => this.briefing(b)));
     };
     const controller = new Controller(session, this.view, hud, {
       title: b.name,
@@ -195,11 +196,16 @@ export class App implements AppApi {
         player: new AiPlayer('red', { posture: b.posture, attackTurn: b.attackTurn }),
       },
       tutorial: b.tutorial ? MEGIDDO_TUTORIAL : undefined,
-      onEnd: (final) => window.setTimeout(() => finish(final), 900),
-      onExit: () => {
+      objective: (s) => ({
+        text: objectiveText(b, s),
+        bonus: b.bonusText.replace(/\.$/, ''),
+        status: bonusStatus(b, s),
+      }),
+      onEnd: (final, summary) => window.setTimeout(() => finish(final, summary), 900),
+      onExit: (summary) => {
         // Retreating is a defeat, through the rules like any other command.
         if (!session.state.result) session.apply({ type: 'Concede', side: 'blue' });
-        finish(session.state);
+        finish(session.state, summary);
       },
     });
     this.gestures = {

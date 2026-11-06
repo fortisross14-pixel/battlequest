@@ -11,7 +11,14 @@ import type { BattleSession } from '../core/session';
 import { armyCost, getUnit, isEngaged, isFighting, isOnMap, lostCost, unitAt } from '../core/state';
 import { SIDES, type BattleState, type Pos, type Side, type Unit } from '../core/types';
 import { isSpent, type BattleView } from '../render/battleView';
-import type { Hud } from './hud';
+import {
+  battleSummary,
+  describeEvents,
+  meleeResults,
+  type BattleSummary,
+  type LogEntry,
+} from './combatLog';
+import type { Hud, TopInfo } from './hud';
 
 type Mode =
   | { kind: 'idle' }
@@ -45,9 +52,11 @@ export interface ControllerOptions {
   ai?: { side: Side; player: AiPlayer };
   tutorial?: TutorialStep[];
   /** Called when the battle ends. Without it a "Play again" sheet appears. */
-  onEnd?: (state: BattleState) => void;
+  onEnd?: (state: BattleState, summary: BattleSummary) => void;
+  /** Campaign battles: the objective line and live bonus state for the top bar. */
+  objective?: (state: BattleState) => TopInfo['objective'];
   /** The player retreats to the menu. */
-  onExit?: () => void;
+  onExit?: (summary: BattleSummary) => void;
 }
 
 /**
@@ -65,6 +74,10 @@ export class Controller {
   private names: Record<Side, string>;
   private speeds = [1, 2, Infinity];
   private speedIdx = 0;
+  /** Everything that happened, in plain words (combat log, end-of-battle summary). */
+  private log: LogEntry[] = [];
+  private startState: BattleState;
+  private logNames: Record<Side, string>;
 
   constructor(
     private session: BattleSession,
@@ -73,6 +86,14 @@ export class Controller {
     private opts: ControllerOptions,
   ) {
     this.names = opts.sideNames ?? { blue: 'Blue', red: 'Red' };
+    this.startState = structuredClone(session.state);
+    // In the campaign the log says "Your spearmen" and "Enemy chariots".
+    this.logNames = opts.ai
+      ? ({ [opts.ai.side]: 'Enemy', [opts.ai.side === 'blue' ? 'red' : 'blue']: 'Your' } as Record<
+          Side,
+          string
+        >)
+      : this.names;
     hud.undoBtn.onclick = () => this.undo();
     hud.nextBtn.onclick = () => this.nextUnit();
     hud.endBtn.onclick = () => void this.endTurn();
@@ -385,6 +406,7 @@ export class Controller {
       this.hud.toast(res.rejection.message);
       return false;
     }
+    this.record(res.events);
     if (cmd.type === 'Move' || cmd.type === 'Rotate') this.movesHistory.push([...this.turnMoves]);
     else this.movesHistory = [];
     this.recordMoves(res.events);
@@ -402,6 +424,27 @@ export class Controller {
     if (again && isFighting(again) && !isSpent(this.state, again)) this.select(again.id);
     else this.deselect();
     return true;
+  }
+
+  private summary(): BattleSummary {
+    return battleSummary(this.startState, this.state, this.log);
+  }
+
+  /** Adds events to the combat log, and announces the melee phase with its results. */
+  private record(events: GameEvent[]): void {
+    const entries = describeEvents(events, this.state, this.logNames);
+    this.log.push(...entries);
+    this.hud.addLog(entries);
+    if (!events.some((e) => e.type === 'MeleePhase')) return;
+    const fights = meleeResults(events);
+    if (fights.length === 0) return;
+    const name = (id: string) => this.unit(id)?.type.name ?? id;
+    const ms = this.view.speed === Infinity ? 900 : this.view.speed > 1 ? 1600 : 2800;
+    this.hud.showBanner(
+      'Melee: ' + fights.length + (fights.length === 1 ? ' fight' : ' fights'),
+      fights.map((f) => name(f.a) + ' −' + f.lossA + '  ·  ' + name(f.b) + ' −' + f.lossB),
+      ms,
+    );
   }
 
   private announce(events: GameEvent[]): void {
@@ -541,6 +584,7 @@ export class Controller {
         if (cmd.type === 'EndTurn') break;
         continue;
       }
+      this.record(res.events);
       for (const e of res.events) {
         if (e.type === 'UnitMoved' && e.kind === 'move' && this.unit(e.unitId)?.side === ai.side) {
           moves.push({ side: ai.side, path: e.path });
@@ -567,7 +611,7 @@ export class Controller {
     this.mode = { kind: 'over' };
     this.refresh();
     if (this.opts.onEnd) {
-      this.opts.onEnd(this.state);
+      this.opts.onEnd(this.state, this.summary());
       return;
     }
     const r = this.state.result!;
@@ -582,11 +626,12 @@ export class Controller {
           : r.reason === 'conceded'
             ? `${this.names[r.broken[0] ?? 'blue']} retreated from the field.`
             : `The turn limit (${this.state.turnLimit}) was reached with neither army broken.`;
+    const turning = this.summary().turningPoint;
     this.hud.showOverlay(
       title,
-      body,
+      turning ? body + ' Turning point: ' + turning : body,
       this.opts.onExit ? 'Back to menu' : 'Play again',
-      () => (this.opts.onExit ? this.opts.onExit() : window.location.reload()),
+      () => (this.opts.onExit ? this.opts.onExit(this.summary()) : window.location.reload()),
       r.winner ?? undefined,
     );
   }
@@ -597,7 +642,7 @@ export class Controller {
       'Leave the battle?',
       this.opts.ai ? 'Retreating counts as a defeat.' : 'This battle will not be saved.',
       'Leave',
-      () => this.opts.onExit!(),
+      () => this.opts.onExit!(this.summary()),
     );
   }
 
@@ -637,6 +682,7 @@ export class Controller {
       lost,
       breakpoint,
       names: this.names,
+      objective: this.opts.objective?.(s),
     });
     const busy = this.mode.kind === 'busy' || this.mode.kind === 'over' || !this.isHumanTurn();
     const gu = generalUnit(s, s.activeSide);
