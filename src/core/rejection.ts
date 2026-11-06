@@ -21,7 +21,9 @@ export type RejectionCode =
   | 'MOVED_THIS_TURN'
   | 'RELOADING'
   | 'NO_AMMO'
-  | 'NOTHING_TO_UNDO';
+  | 'NOTHING_TO_UNDO'
+  | 'NO_GENERAL'
+  | 'SKILL_COOLDOWN';
 
 /** Why a command was refused. `message` is written for players. */
 export interface Rejection {

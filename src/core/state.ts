@@ -1,5 +1,6 @@
 import { RULES } from './config';
 import { chebyshev, frontSquares, isAdjacent, samePos } from './geometry';
+import { deployGeneral, type GeneralSetup } from './generals';
 import { seedRng } from './rng';
 import {
   Cohesion,
@@ -29,6 +30,7 @@ export interface ScenarioSide {
   name: string;
   edge: MapEdge;
   breakpoint?: number;
+  general?: GeneralSetup;
 }
 
 /** Everything needed to start a battle. Content files produce these. */
@@ -39,6 +41,8 @@ export interface Scenario {
   sides: Record<Side, ScenarioSide>;
   units: ScenarioUnit[];
   turnLimit: number;
+  /** Side that wins if the turn limit is reached (a 'hold out' objective). Default: draw. */
+  turnLimitWinner?: Side;
   firstSide: Side;
   seed: number;
 }
@@ -60,6 +64,7 @@ export function createUnit(u: ScenarioUnit): Unit {
     bracing: false,
     ammoUsed: false,
     lastShotTurn: -99,
+    holdFast: 1,
   };
 }
 
@@ -79,13 +84,15 @@ export function createBattleState(s: Scenario): BattleState {
     edge: s.sides[id].edge,
     breakpoint: s.sides[id].breakpoint ?? RULES.victory.defaultBreakpoint,
     general: null,
+    effects: [],
   });
-  return {
+  const state: BattleState = {
     map: s.map,
     units: s.units.map(createUnit),
     sides: { blue: side('blue'), red: side('red') },
     turn: 1,
     turnLimit: s.turnLimit,
+    turnLimitWinner: s.turnLimitWinner ?? null,
     firstSide: s.firstSide,
     activeSide: s.firstSide,
     engagements: [],
@@ -94,6 +101,11 @@ export function createBattleState(s: Scenario): BattleState {
     result: null,
     rng: seedRng(s.seed),
   };
+  for (const id of SIDES) {
+    const g = s.sides[id].general;
+    if (g) deployGeneral(state, id, g);
+  }
+  return state;
 }
 
 // ---------- Queries ----------
@@ -160,14 +172,15 @@ export function inEnemyZoc(state: BattleState, side: Side, p: Pos): boolean {
  */
 export function inCommandRadius(state: BattleState, u: Unit): boolean {
   const g = state.sides[u.side].general;
-  if (!g) return false;
+  if (!g || g.lost) return false;
   const gu = getUnit(state, g.unitId);
   if (!gu || !isFighting(gu)) return false;
   return chebyshev(gu, u) <= g.commandRadius;
 }
 
 export function rallyBonus(state: BattleState, side: Side): number {
-  return state.sides[side].general?.rallyBonus ?? 0;
+  const g = state.sides[side].general;
+  return g && !g.lost ? g.rallyBonus : 0;
 }
 
 export function isCavalryLike(t: UnitType): boolean {

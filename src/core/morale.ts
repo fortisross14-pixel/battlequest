@@ -1,6 +1,7 @@
 import { RULES } from './config';
 import type { GameEvent } from './events';
 import { DIRS, isAdjacent, nearestDir, samePos, step, type Arc } from './geometry';
+import { holdsTheLine } from './generals';
 import { distanceToEdge, edgeDir } from './map';
 import { reconstruct, searchMoves, stepCost } from './movement';
 import { nextRandom } from './rng';
@@ -70,6 +71,8 @@ export function cohesionTest(
   const dropped = roll < chance;
   events.push({ type: 'CohesionTest', unitId: u.id, chance, roll, dropped });
   if (!dropped) return;
+  // Hold the Line: units in the general's radius cannot fall below Disrupted.
+  if (u.cohesion >= Cohesion.Disrupted && holdsTheLine(state, u)) return;
   if (u.cohesion + 1 >= Cohesion.Routed) routUnit(state, u, 'cohesion', events);
   else setCohesion(u, (u.cohesion + 1) as Cohesion, events);
 }
@@ -89,6 +92,7 @@ export function routUnit(
   setCohesion(u, Cohesion.Routed, events);
   u.bracing = false;
   events.push({ type: 'UnitRouted', unitId: u.id, cause });
+  checkGeneralLoss(state, u, events);
   state.routedThisTurn.push(u.id);
   testNeighbours(state, u, events);
 }
@@ -105,9 +109,27 @@ export function destroyUnit(
   u.status = 'destroyed';
   u.strength = cause === 'strength' ? 0 : u.strength;
   events.push({ type: 'UnitDestroyed', unitId: u.id, cause });
+  checkGeneralLoss(state, u, events);
   if (wasFighting) {
     state.routedThisTurn.push(u.id);
     testNeighbours(state, u, events);
+  }
+}
+
+/**
+ * If the general's unit breaks, the general may be killed or captured (4.10).
+ * Then every unit of that army tests at once.
+ */
+function checkGeneralLoss(state: BattleState, u: Unit, events: GameEvent[]): void {
+  const g = state.sides[u.side].general;
+  if (!g || g.lost || g.unitId !== u.id) return;
+  if (nextRandom(state) >= RULES.generals.lossChance) return;
+  g.lost = true;
+  events.push({ type: 'GeneralLost', side: u.side, generalId: g.generalId, name: g.name });
+  for (const f of state.units) {
+    if (f.side === u.side && f.id !== u.id && isFighting(f)) {
+      cohesionTest(state, f, { damage: 0, arc: 'front', adjacentRout: false }, events);
+    }
   }
 }
 

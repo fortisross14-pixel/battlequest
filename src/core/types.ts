@@ -127,14 +127,50 @@ export interface Unit {
   ammoUsed: boolean;
   /** Turn number of the last shot (for Reload). */
   lastShotTurn: number;
+  /** Damage-taken multiplier from Hold Fast, until the start of its side's next turn (1 = none). */
+  holdFast: number;
+}
+
+/** What a general's active skill does (GAME_DESIGN 6.2). Data, resolved by core/generals.ts. */
+export type SkillEffect =
+  /** One routed unit in radius rallies to Disrupted. */
+  | { kind: 'rally' }
+  /** One unit in radius takes less damage until your next turn. */
+  | { kind: 'holdFast'; damageTaken: number }
+  /** Every unit in radius regains strength. */
+  | { kind: 'heal'; amount: number }
+  /** Every non-routed unit in radius goes up one cohesion level. */
+  | { kind: 'cohesionUp' }
+  /** Units in radius cannot drop below Disrupted from cohesion tests for N turns. */
+  | { kind: 'holdTheLine'; turns: number }
+  /** Your flank and rear attacks deal extra damage for N turns. */
+  | { kind: 'flankBoost'; mult: number; turns: number };
+
+export interface SkillState {
+  id: string;
+  name: string;
+  effect: SkillEffect;
+  cooldown: number;
+  /** First turn the skill can be used. */
+  readyTurn: number;
 }
 
 export interface GeneralSlot {
+  generalId: string;
+  name: string;
   /** Unit the general is attached to. */
   unitId: string;
   commandRadius: number;
   rallyBonus: number;
+  skills: SkillState[];
+  /** Killed or captured when the general's unit broke. */
+  lost: boolean;
 }
+
+/** A timed effect on one side, e.g. a general's skill. Expires at the start of that side's turn . */
+export type SideEffect =
+  | { kind: 'holdTheLine'; untilTurn: number }
+  | { kind: 'flankBoost'; mult: number; untilTurn: number };
 
 export interface SideState {
   name: string;
@@ -142,8 +178,9 @@ export interface SideState {
   edge: MapEdge;
   /** Fraction of total army cost lost (routed + destroyed + fled) that breaks the army. */
   breakpoint: number;
-  /** M4 will fill this in. Without a general, command radius checks are always false. */
+  /** Without a general, command radius checks are always false. */
   general: GeneralSlot | null;
+  effects: SideEffect[];
 }
 
 export interface Engagement {
@@ -151,7 +188,7 @@ export interface Engagement {
   b: string;
 }
 
-export type BattleEndReason = 'armyBroken' | 'turnLimit';
+export type BattleEndReason = 'armyBroken' | 'turnLimit' | 'heldOut';
 
 export interface BattleResult {
   /** null = draw. */
@@ -168,6 +205,8 @@ export interface BattleState {
   /** Full turn number, starting at 1. One turn = both sides act once. */
   turn: number;
   turnLimit: number;
+  /** Side that wins if the turn limit is reached (a 'hold out' objective); null = draw. */
+  turnLimitWinner: Side | null;
   firstSide: Side;
   activeSide: Side;
   engagements: Engagement[];

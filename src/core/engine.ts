@@ -9,6 +9,7 @@ import {
   type ChargePlan,
 } from './combat';
 import { RULES } from './config';
+import { expireEffects, planSkill, resolveSkill, type SkillPlan } from './generals';
 import { nextRandom } from './rng';
 import type { GameEvent } from './events';
 import { arcOf, isAdjacent, step, toDir, type Arc } from './geometry';
@@ -35,6 +36,7 @@ export type Command =
   | { type: 'Charge'; unitId: string; targetId: string }
   | { type: 'Shoot'; unitId: string; targetId: string }
   | { type: 'Hold'; unitId: string }
+  | { type: 'UseSkill'; unitId: string; skillId: string; targetId?: string }
   | { type: 'EndTurn' };
 
 export type CommandResult =
@@ -72,6 +74,7 @@ type Plan =
   | { type: 'Charge'; unit: Unit; target: Unit; plan: ChargePlan }
   | { type: 'Shoot'; unit: Unit; target: Unit }
   | { type: 'Hold'; unit: Unit }
+  | { type: 'UseSkill'; unit: Unit; plan: SkillPlan }
   | { type: 'EndTurn' };
 
 /** Checks a command against the rules. Never changes state. */
@@ -108,6 +111,10 @@ export function planCommand(state: BattleState, cmd: Command): Plan | Rejection 
       if (!target) return reject('UNKNOWN_UNIT', `No unit ${cmd.targetId}.`);
       const bad = checkShot(state, u, target);
       return bad ?? { type: 'Shoot', unit: u, target };
+    }
+    case 'UseSkill': {
+      const plan = planSkill(state, u, cmd.skillId, cmd.targetId);
+      return isRejection(plan) ? plan : { type: 'UseSkill', unit: u, plan };
     }
     case 'Hold': {
       const acted = needsAction(u);
@@ -168,6 +175,9 @@ export function applyCommand(state: BattleState, cmd: Command): CommandResult {
       unit!.bracing = true;
       unit!.mpLeft = 0;
       events.push({ type: 'HoldDeclared', unitId: unit!.id });
+      break;
+    case 'UseSkill':
+      resolveSkill(draft, unit!, checked.plan, events);
       break;
     case 'EndTurn':
       endSideTurn(draft, events);
@@ -382,7 +392,13 @@ function endSideTurn(state: BattleState, events: GameEvent[]): void {
   const next = otherSide(state.activeSide);
   if (next === state.firstSide) {
     if (state.turn >= state.turnLimit) {
-      state.result = { winner: null, reason: 'turnLimit', turn: state.turn, broken: [] };
+      const w = state.turnLimitWinner;
+      state.result = {
+        winner: w,
+        reason: w ? 'heldOut' : 'turnLimit',
+        turn: state.turn,
+        broken: [],
+      };
       events.push({ type: 'BattleEnded', result: state.result });
       return;
     }
@@ -400,7 +416,9 @@ function startSideTurn(state: BattleState, events: GameEvent[]): void {
     u.hasActed = false;
     u.hasMoved = false;
     u.bracing = false;
+    u.holdFast = 1;
   }
+  expireEffects(state, state.activeSide);
   events.push({ type: 'SideTurnStarted', side: state.activeSide, turn: state.turn });
   rallyPhase(state, events);
   // Only units that were already routed flee now; any that rout during these moves

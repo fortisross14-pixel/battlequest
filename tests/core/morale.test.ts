@@ -46,7 +46,15 @@ describe('cohesion test chance (4.7)', () => {
   it('the general command radius gives -0.15 (stub until M4: no general = no bonus)', () => {
     const s = structuredClone(pair());
     expect(chance(s, 'f', 20)).toBeCloseTo(0.17);
-    s.sides.blue.general = { unitId: 'a', commandRadius: 3, rallyBonus: 0 };
+    s.sides.blue.general = {
+      generalId: 'g',
+      name: 'G',
+      skills: [],
+      lost: false,
+      unitId: 'a',
+      commandRadius: 3,
+      rallyBonus: 0,
+    };
     expect(chance(s, 'f', 20)).toBeCloseTo(0.02);
   });
 
@@ -212,7 +220,15 @@ describe('rally', () => {
       unit(s, 'a').cohesion = Cohesion.Fragmented;
       const without = endTurn(endTurn(s).state).state;
       expect(unit(without, 'a').cohesion).toBe(Cohesion.Fragmented);
-      s.sides.blue.general = { unitId: 'g', commandRadius: 3, rallyBonus: 0 };
+      s.sides.blue.general = {
+        generalId: 'g',
+        name: 'G',
+        skills: [],
+        lost: false,
+        unitId: 'g',
+        commandRadius: 3,
+        rallyBonus: 0,
+      };
       const withGen = endTurn(endTurn(s).state).state;
       if (unit(withGen, 'a').cohesion === Cohesion.Disrupted) rallied++;
     }
@@ -231,7 +247,15 @@ describe('rally', () => {
       }),
     );
     unit(s, 'a').cohesion = Cohesion.Fragmented;
-    s.sides.blue.general = { unitId: 'g', commandRadius: 3, rallyBonus: 1 };
+    s.sides.blue.general = {
+      generalId: 'g',
+      name: 'G',
+      skills: [],
+      lost: false,
+      unitId: 'g',
+      commandRadius: 3,
+      rallyBonus: 1,
+    };
     expect(unit(endTurn(endTurn(s).state).state, 'a').cohesion).toBe(Cohesion.Fragmented);
   });
 });

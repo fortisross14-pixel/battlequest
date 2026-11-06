@@ -97,6 +97,16 @@ export const RULES = {
     autoRoutStrength: 25,
     rallyChance: 0.35,
   },
+  generals: {
+    /** Chance the general is killed or captured when the general's unit routs or is destroyed. */
+    lossChance: 0.3,
+    /** [minimum rank, command radius] (6.1). */
+    radiusByRank: [
+      [1, 3],
+      [4, 4],
+      [8, 5],
+    ] as [number, number][],
+  },
   victory: {
     defaultBreakpoint: 0.5,
   },

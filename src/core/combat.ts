@@ -9,6 +9,7 @@ import {
   type Arc,
 } from './geometry';
 import { cellAt, connects, cutsCorner, elevationAt, terrainRules } from './map';
+import { flankBoost } from './generals';
 import { stepCost, turnCost } from './movement';
 import { reject, type Rejection } from './rejection';
 import { randomRange } from './rng';
@@ -150,12 +151,15 @@ export function computeDamage(
     });
     if (hasTag(def, 'FlankVulnerable'))
       sit.push({ label: 'Flank-vulnerable target', value: C.flankVulnerable });
+    const boost = flankBoost(state, att.side);
+    if (boost !== 1) sit.push({ label: 'General: flank attack', value: boost });
   }
   if (elevationAt(state.map, att) > elevationAt(state.map, def))
     sit.push({ label: 'Uphill', value: C.uphill });
   if (role === 'ranged' && terrainRules(state.map, def).cover)
     sit.push({ label: 'Target in cover', value: C.coverVsRanged });
   if (def.bracing) sit.push({ label: 'Target bracing', value: C.bracing });
+  if (def.holdFast !== 1) sit.push({ label: 'Target holds fast', value: def.holdFast });
   const coh = effectiveCohesion(state, att);
   if (coh === Cohesion.Disrupted) sit.push({ label: 'Disrupted', value: C.disrupted });
   if (coh >= Cohesion.Fragmented) sit.push({ label: 'Fragmented', value: C.fragmented });

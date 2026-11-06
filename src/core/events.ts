@@ -27,6 +27,9 @@ export type GameEvent =
   | { type: 'UnitFled'; unitId: string }
   | { type: 'UnitRallied'; unitId: string; from: Cohesion; to: Cohesion }
   | { type: 'MeleeJoined'; a: string; b: string }
+  | { type: 'SkillUsed'; unitId: string; skillId: string; name: string }
+  | { type: 'UnitHealed'; unitId: string; amount: number }
+  | { type: 'GeneralLost'; side: Side; generalId: string; name: string }
   | { type: 'MeleePhase' }
   | { type: 'SideTurnEnded'; side: Side; turn: number }
   | { type: 'SideTurnStarted'; side: Side; turn: number }
