@@ -11,27 +11,27 @@ The game looks like a living historical battle map, and animation should feel li
 
 1. **Use tokens, not magic numbers.** All durations and easings live in one `MOTION` config (`src/ui/motion.ts`; the renderer imports the same values).
 
-   | Token | ms | Use |
-   |---|---|---|
-   | `instant` | 80 | Press feedback, highlight on |
-   | `quick` | 160 | Selection, small state changes |
-   | `move` | 240 | One unit sliding one square (scale with path length, at most 600) |
-   | `impact` | 320 | Charge contact, squash and shake |
-   | `reveal` | 450 | Card flip, panel in |
-   | `ceremony` | up to 2400 | Battle intro, victory sequence (total) |
+   | Token      | ms         | Use                                                               |
+   | ---------- | ---------- | ----------------------------------------------------------------- |
+   | `instant`  | 80         | Press feedback, highlight on                                      |
+   | `quick`    | 160        | Selection, small state changes                                    |
+   | `move`     | 240        | One unit sliding one square (scale with path length, at most 600) |
+   | `impact`   | 320        | Charge contact, squash and shake                                  |
+   | `reveal`   | 450        | Card flip, panel in                                               |
+   | `ceremony` | up to 2400 | Battle intro, victory sequence (total)                            |
 
-   | Easing | Use |
-   |---|---|
-   | `out` cubic-bezier(.2,.8,.2,1) | Things arriving |
-   | `in` cubic-bezier(.6,0,.8,.2) | Things leaving |
-   | `inOut` | Things moving across |
-   | `back` (small overshoot) | Stamps, seals, stars |
-   | `spring` | Card settle, only via a damped spring helper |
+   | Easing                         | Use                                          |
+   | ------------------------------ | -------------------------------------------- |
+   | `out` cubic-bezier(.2,.8,.2,1) | Things arriving                              |
+   | `in` cubic-bezier(.6,0,.8,.2)  | Things leaving                               |
+   | `inOut`                        | Things moving across                         |
+   | `back` (small overshoot)       | Stamps, seals, stars                         |
+   | `spring`                       | Card settle, only via a damped spring helper |
 
 2. **Input never waits for decoration.**
    - Any tap during an animation either acts at once or fast-forwards the animation to its end state. Never queue up taps.
    - Every ceremony (intro, pack opening, victory) can be skipped with a tap. A **Skip** button appears after 600 ms.
-   - Core state is already final when an animation starts; animations only *show* events.
+   - Core state is already final when an animation starts; animations only _show_ events.
 3. **Respect `prefers-reduced-motion`,** plus an in-game "Reduce motion" setting. Both replace movement with short fades (at most 160 ms) and turn off shake, flashes and parallax. Test both modes.
 4. **Performance budget:** 60 fps on a mid-range tablet.
    - Animate only `transform` and `opacity` in CSS; on the Pixi side, only position, rotation, scale and alpha.
@@ -50,6 +50,7 @@ The game looks like a living historical battle map, and animation should feel li
 ## Recipes
 
 ### Battle loading / intro (about 2.2 s total, skippable; also covers real loading)
+
 1. The parchment fades in. The **title card** (place, year, age, in serif) writes on letter by letter, or with a clip reveal, over 400 ms.
 2. Terrain **inks in**: rivers and roads draw along their path (stroke dash), forests and hills fade and scale in from 0.96 with a 30 ms stagger.
 3. The grid sketches in at low alpha.
@@ -59,6 +60,7 @@ The game looks like a living historical battle map, and animation should feel li
 If the game is still loading assets, hold on step 1 with an animated quill line. Never show a blank screen.
 
 ### Pack opening and hero (general) cards
+
 1. **Pack:** a sealed paper envelope with a wax seal sits centre screen and breathes (scale 1 ↔ 1.02). Tap to break the seal: it cracks into 3–4 flat shards and the flap opens.
 2. **Fan out:** the cards slide out face down and fan into a row, with a 70 ms stagger and the `out` easing.
 3. **Anticipation:** before the flip, Rare and better cards show their rarity: an edge glint in the rarity color, and Epic and Legendary cards tremble slightly (±1.5°, 2 cycles).
@@ -71,6 +73,7 @@ If the game is still loading assets, hold on step 1 with an animated quill line.
 7. **Skip** reveals everything instantly.
 
 ### Victory (about 2.4 s, then the results screen)
+
 1. The last enemy routs: a 250 ms slow-motion beat (0.4× speed), then the board desaturates slightly.
 2. The **battle diagram**: the turns just played redraw as translucent blue and red arrows, sped up, like the historical maps the game is styled on. This is the signature moment.
 3. The **"VICTORY" seal** stamps on with the `back` easing and a small paper shake, plus a laurel wreath drawing around it.
@@ -81,9 +84,11 @@ If the game is still loading assets, hold on step 1 with an animated quill line.
    - cards earned flip in, using the card recipe.
 
 ### Defeat
+
 Muted and fast (under 1.2 s): ink bleeds in from the edges, then a "DEFEAT" stamp in dark red at reduced opacity, then one helpful tip and the Retry button. Never punishing.
 
 ### In battle
+
 - **Move:** slide along the path's squares (not a straight line), easing per segment; facing rotates at the end with `quick`.
 - **Charge:** wind-up (pull back 4% for 80 ms), a fast dash with a fading ink trail arrow, an impact squash (scale 1.06 × 0.94) and shake on both blocks, ink specks, then the floating loss numbers.
 - **Shoot:** a faint dashed arc from shooter to target, a small dot burst, then the numbers.

@@ -8,7 +8,9 @@ description: Record and inspect BattleQuest animations (frame strips, video, fps
 A screenshot can't show whether an animation feels right, so this check records it.
 
 ## Tool
+
 `scripts/motion-check.mjs` (create it the first time if it doesn't exist).
+
 - Use the globally installed Playwright: `require('/opt/node22/lib/node_modules/playwright')`, or `executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome'`. Never run `playwright install`.
 - Sizes: 1024×768 and 812×375, `deviceScaleFactor: 1`, `hasTouch: true`.
 - Debug entry points (add them as URL params if missing):
@@ -26,7 +28,9 @@ A screenshot can't show whether an animation feels right, so this check records 
   5. **Reduced motion:** run again with `reducedMotion: 'reduce'` and confirm there's no movement or shake, only short fades.
 
 ## Review
+
 Open each contact sheet with the Read tool and check:
+
 - [ ] The timing matches the `motion` skill tokens (count frames: 100 ms per tile)
 - [ ] Anticipation, action and settle are all visible: nothing pops in without easing, nothing drifts on after it should have stopped
 - [ ] The style stays minimal: flat shapes, ink, paper and seals, with rarity colors only on cards
