@@ -9,15 +9,15 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] `npm run dev` shows an empty map
 
 ## M1 — Core simulation
-- [ ] Seeded RNG, rules config, grid/direction helpers
-- [ ] Content: archetypes (4.5) and terrain (4.9: open, rough, forest, hill, river, ford, bridge)
-- [ ] Data model: map, units, battle state, turn and side
-- [ ] Command → validation → events engine, with rejection reasons
-- [ ] Movement: MP costs, terrain multipliers, pathfinding, turning, ZOC, pull back, evade
-- [ ] Combat: ranged, impact, melee (4.6); flank/rear detection; `previewCombat()`
-- [ ] Cohesion tests, auto-rout, rout movement, caught routers destroyed, rally (4.7)
-- [ ] Army breakpoint, turn limit, victory result (4.8)
-- [ ] Unit tests for every rule + reproducible headless scripted battle
+- [x] Seeded RNG, rules config, grid/direction helpers
+- [x] Content: archetypes (4.5) and terrain (4.9: open, rough, forest, hill, river, ford, bridge)
+- [x] Data model: map, units, battle state, turn and side
+- [x] Command → validation → events engine, with rejection reasons
+- [x] Movement: MP costs, terrain multipliers, pathfinding, turning, ZOC, pull back, evade
+- [x] Combat: ranged, impact, melee (4.6); flank/rear detection; `previewCombat()`
+- [x] Cohesion tests, auto-rout, rout movement, caught routers destroyed, rally (4.7)
+- [x] Army breakpoint, turn limit, victory result (4.8)
+- [x] Unit tests for every rule + reproducible headless scripted battle
 
 ## M2 — Playable board
 - [ ] Battle-map renderer: parchment, terrain shapes, grid, unit blocks, NATO symbols, bars, pips, hatches, hollow routers
