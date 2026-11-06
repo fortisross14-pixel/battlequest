@@ -1,5 +1,5 @@
 /**
- * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]> [--seeds N] [--points P] [--out dir]
+ * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P] [--out dir]
  * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit level).
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
@@ -11,11 +11,16 @@ import {
   costBattle,
   duel,
   DUEL_SETUPS,
+  aiVsAi,
   scenarioBattle,
   type DuelSetup,
 } from './sim';
 import { BATTLE_BY_ID, CAMPAIGN, finalBattleOfAge } from '../../src/content/campaign/battles';
 import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
+import { buildScenario } from '../../src/content/campaign/build';
+import { sandboxScenario } from '../../src/content/battles/sandbox';
+import type { Posture } from '../../src/ai/utility';
+import type { Scenario, Side } from '../../src/core';
 import { ERA_UNITS, ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
 
 const args = process.argv.slice(2);
@@ -306,6 +311,96 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
   );
 }
 
+function runAiVsAi(seeds: number[]): string {
+  const maps: {
+    name: string;
+    make: (seed: number) => Scenario;
+    postures: Record<Side, Posture>;
+    attackTurn?: number;
+  }[] = [
+    {
+      name: 'Sandbox',
+      make: (seed) => sandboxScenario(seed),
+      postures: { blue: 'aggressive', red: 'aggressive' },
+    },
+    ...CAMPAIGN.map((b) => ({
+      name: b.name,
+      make: (seed: number) => buildScenario(b, b.testArmy, seed),
+      postures: {
+        blue: b.testPosture ?? (b.holdOut === 'player' ? 'defensive' : 'aggressive'),
+        red: b.posture,
+      } as Record<Side, Posture>,
+      attackTurn: b.attackTurn,
+    })),
+  ];
+  const rows: string[][] = [];
+  let score = 0;
+  let games = 0;
+  const idle = { new: 0, legacy: 0 };
+  const missed = { new: 0, legacy: 0 };
+  const unitTurns = { new: 0, legacy: 0 };
+  for (const m of maps) {
+    let s = 0;
+    let n = 0;
+    let turns = 0;
+    const mi = { new: 0, legacy: 0 };
+    const mm = { new: 0, legacy: 0 };
+    for (const seed of seeds) {
+      for (const side of ['blue', 'red'] as const) {
+        const r = aiVsAi(m.make(seed), m.postures, m.attackTurn, side);
+        s += r.score;
+        n++;
+        turns += r.turns;
+        mi.new += r.idle.new;
+        mi.legacy += r.idle.legacy;
+        mm.new += r.missed.new;
+        mm.legacy += r.missed.legacy;
+        unitTurns.new += r.unitTurns.new;
+        unitTurns.legacy += r.unitTurns.legacy;
+      }
+    }
+    score += s;
+    games += n;
+    idle.new += mi.new;
+    idle.legacy += mi.legacy;
+    missed.new += mm.new;
+    missed.legacy += mm.legacy;
+    rows.push([
+      m.name,
+      String(n),
+      pct(s / n),
+      (turns / n).toFixed(1),
+      `${mi.new} / ${mm.new}`,
+      `${mi.legacy} / ${mm.legacy}`,
+    ]);
+  }
+  const rate = score / games;
+  const per100 = (k: 'new' | 'legacy') => ((100 * idle[k]) / Math.max(1, unitTurns[k])).toFixed(1);
+  return (
+    [
+      `# Balance: new AI vs legacy AI (${today})`,
+      '',
+      `The utility AI (src/ai/utility.ts) plays the frozen M3 AI (src/ai/legacy.ts) on the sandbox and every campaign map, ${seeds.length} seeds × both sides each. Campaign maps use the test army for blue and the scenario army for red; both AIs get the same posture for a side. Draws count half. Target: the new AI wins more than 60%.`,
+      '',
+      `**New AI score: ${pct(rate)}** over ${games} games (${rate > 0.6 ? 'pass' : '**below target**'}).`,
+      '',
+      table(
+        [
+          'Map',
+          'Games',
+          'New AI score',
+          'Avg turns',
+          'Idle / missed support (new)',
+          'Idle / missed support (legacy)',
+        ],
+        rows,
+      ),
+      '',
+      `"Idle" counts a unit that is free to act, with a friend within 4 squares already in melee, that neither moves, charges nor shoots that side turn. "Missed support" is the subset where that unit could have charged the enemy its friend was fighting (from where it stood or after one move). Totals: idle new ${idle.new} / legacy ${idle.legacy} (per 100 unit-turns: ${per100('new')} / ${per100('legacy')}); missed support new ${missed.new} / legacy ${missed.legacy}.`,
+    ].join('\n') + '\n'
+  );
+}
+
 function write(name: string, body: string): void {
   mkdirSync(outDir, { recursive: true });
   const file = join(outDir, `${today}-${name}.md`);
@@ -316,6 +411,7 @@ function write(name: string, body: string): void {
 
 const started = Date.now();
 if (mode === 'duel') write('duel', runDuel(seedList(opt('seeds', 40))));
+else if (mode === 'aivsai') write('aivsai', runAiVsAi(seedList(opt('seeds', 100))));
 else if (mode === 'scenario') {
   const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
   const army = optStr('army', 'test') === 'identical' ? 'identical' : 'test';
@@ -325,7 +421,7 @@ else if (mode === 'scenario') {
 } else if (mode === 'cost') write('cost', runCost(seedList(opt('seeds', 4)), opt('points', 600)));
 else {
   console.error(
-    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]> [--seeds N] [--points P] [--out dir]',
+    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P] [--out dir]',
   );
   process.exit(1);
 }

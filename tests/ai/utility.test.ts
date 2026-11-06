@@ -67,7 +67,7 @@ describe('utility AI', () => {
     expect(wins / games).toBeGreaterThan(0.5);
   });
 
-  it('takes a flank charge when one is offered', () => {
+  it('takes a flank (or better, rear) charge when one is offered', () => {
     const s = battle({
       units: [
         ['k', 'red', 'heavyCavalry', 6, 4, W],
@@ -77,8 +77,17 @@ describe('utility AI', () => {
     });
     const state = structuredClone(s);
     state.activeSide = 'red';
-    const cmd = new AiPlayer('red', { posture: 'aggressive' }).next(state);
-    expect(cmd).toEqual({ type: 'Charge', unitId: 'k', targetId: 'd' });
+    const session = new BattleSession(state);
+    const cmds: unknown[] = [];
+    playAiSideTurn(
+      new AiPlayer('red', { posture: 'aggressive' }),
+      (c) => {
+        cmds.push(c);
+        return session.apply(c);
+      },
+      () => session.state,
+    );
+    expect(cmds).toContainEqual({ type: 'Charge', unitId: 'k', targetId: 'd' });
   });
 
   it('defensive units hold their ground instead of marching off', () => {

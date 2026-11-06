@@ -1,5 +1,6 @@
 import { playGreedyBattle } from '../../src/ai/greedy';
-import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
+import { LegacyAiPlayer } from '../../src/ai/legacy';
+import { AiPlayer, playAiSideTurn, type CommandSource, type Posture } from '../../src/ai/utility';
 import { buildScenario } from '../../src/content/campaign/build';
 import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
 import { ARCHETYPES, unitType, type ArchetypeId } from '../../src/content/units';
@@ -11,6 +12,18 @@ import {
   startBattle,
   type BattleState,
   type Dir,
+  chebyshev,
+  isEngaged,
+  isFighting,
+  isOnMap,
+  isRejection,
+  isRouted,
+  nearestDir,
+  planCharge,
+  planMove,
+  reachableSquares,
+  type Unit,
+  type Scenario,
   type ScenarioUnit,
   type Side,
 } from '../../src/core';
@@ -149,5 +162,115 @@ export function scenarioBattle(
     won: s.result?.winner === 'blue',
     turns: s.result?.turn ?? s.turn,
     lostPct: lost / total,
+  };
+}
+
+// ---------- AI vs AI ----------
+
+export interface AiVsAiResult {
+  /** 1 = the new AI won, 0 = the legacy AI won, 0.5 = draw. */
+  score: number;
+  turns: number;
+  /** Side turns where a unit idled while a friend within 4 squares was in melee. */
+  idle: { new: number; legacy: number };
+  /** …and could have charged that friend's opponent (directly or after one move). */
+  missed: { new: number; legacy: number };
+  /** Unit side turns observed, per AI (for the idle rate). */
+  unitTurns: { new: number; legacy: number };
+}
+
+const IDLE_RADIUS = 4;
+
+/** Whether the unit could charge an enemy that is in melee with one of its friends. */
+function supportChargePossible(state: BattleState, u: Unit): boolean {
+  const targets = state.units.filter(
+    (e) => e.side !== u.side && isOnMap(e) && isEngaged(state, e.id) && !isRouted(e),
+  );
+  if (!targets.length) return false;
+  const canCharge = (s: BattleState, from: Unit) =>
+    targets.some((e) => !isRejection(planCharge(s, from, e)));
+  if (canCharge(state, u)) return true;
+  for (const r of reachableSquares(state, u)) {
+    if (r.kind !== 'move') continue;
+    for (const e of targets) {
+      const dx = e.x - r.pos.x;
+      const dy = e.y - r.pos.y;
+      if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) continue;
+      const dir = nearestDir(r.pos, e);
+      const plan = planMove(state, u, r.pos, dir);
+      if (isRejection(plan)) continue;
+      const moved = { ...u, x: r.pos.x, y: r.pos.y, facing: dir, mpLeft: u.mpLeft - plan.cost };
+      const sim = { ...state, units: state.units.map((x) => (x.id === u.id ? moved : x)) };
+      if (!isRejection(planCharge(sim, moved, e))) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * One battle between the new utility AI and the frozen legacy AI on a scenario, with the
+ * new AI on `newSide`. Both AIs get the same posture for a side.
+ */
+export function aiVsAi(
+  scenario: Scenario,
+  postures: Record<Side, Posture>,
+  attackTurn: number | undefined,
+  newSide: Side,
+): AiVsAiResult {
+  const session = new BattleSession(startBattle(scenario));
+  const make = (side: Side): CommandSource =>
+    side === newSide
+      ? new AiPlayer(side, { posture: postures[side], attackTurn })
+      : new LegacyAiPlayer(side, { posture: postures[side], attackTurn });
+  const ais: Record<Side, CommandSource> = { blue: make('blue'), red: make('red') };
+  const idle = { new: 0, legacy: 0 };
+  const missed = { new: 0, legacy: 0 };
+  const unitTurns = { new: 0, legacy: 0 };
+  for (let i = 0; i < 80 && !session.state.result; i++) {
+    const side = session.state.activeSide;
+    const who = side === newSide ? 'new' : 'legacy';
+    const start = session.state;
+    const mine = start.units.filter((u) => u.side === side && isFighting(u));
+    // Units free to act while a friend nearby is already locked in melee.
+    const watch = new Set(
+      mine
+        .filter(
+          (u) =>
+            !isEngaged(start, u.id) &&
+            mine.some(
+              (f) => f.id !== u.id && isEngaged(start, f.id) && chebyshev(f, u) <= IDLE_RADIUS,
+            ),
+        )
+        .map((u) => u.id),
+    );
+    unitTurns[who] += mine.length;
+    const acted = new Set<string>();
+    playAiSideTurn(
+      ais[side],
+      (c) => {
+        const r = session.apply(c);
+        if (r.ok && (c.type === 'Move' || c.type === 'Charge' || c.type === 'Shoot')) {
+          acted.add(c.unitId);
+        }
+        return r;
+      },
+      () => session.state,
+    );
+    // A battle that ends mid-turn leaves later units no chance to act: not idling.
+    if (session.state.result) continue;
+    for (const id of watch) {
+      if (acted.has(id)) continue;
+      idle[who]++;
+      if (supportChargePossible(start, requireUnit(start, id))) missed[who]++;
+    }
+  }
+  const s = session.state;
+  const winner = s.result?.winner;
+  return {
+    score: winner === newSide ? 1 : winner ? 0 : 0.5,
+    turns: s.result?.turn ?? s.turn,
+    idle,
+    missed,
+    unitTurns,
   };
 }

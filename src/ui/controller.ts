@@ -503,9 +503,14 @@ export class Controller {
     const moves: { side: Side; path: Pos[] }[] = [];
     for (let i = 0; i < 400 && !this.state.result && this.state.activeSide === ai.side; i++) {
       const cmd = ai.player.next(this.state);
-      let res = this.session.apply(cmd);
-      if (!res.ok) res = this.session.apply({ type: 'EndTurn' });
-      if (!res.ok) break;
+      const res = this.session.apply(cmd);
+      if (!res.ok) {
+        // Skip that unit and carry on with the rest of the AI's turn.
+        console.warn('AI command rejected', cmd, res.rejection);
+        ai.player.rejected(cmd);
+        if (cmd.type === 'EndTurn') break;
+        continue;
+      }
       for (const e of res.events) {
         if (e.type === 'UnitMoved' && e.kind === 'move' && this.unit(e.unitId)?.side === ai.side) {
           moves.push({ side: ai.side, path: e.path });
