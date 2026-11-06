@@ -30,7 +30,7 @@ The look is a **living historical battle map**: the same red-and-blue blocks, ar
  Campaign map (pick battle)
         │
         ▼
- Battle briefing ──► Army builder (pick general + units within points budget)
+ Battle briefing ──► Army builder (pick general + fill unit slots)
         │
         ▼
  Deployment (place units in your deployment zone)
@@ -227,16 +227,35 @@ Utility-based, kept simple:
 
 ## 5. Units and collection
 
-- **Unit cards.** Owning a unit type lets you field it, as many copies as the battle's points budget allows.
-- **Unit level 1–5:** each level gives +5% to Melee, Impact, Ranged and Morale. Duplicate cards from packs add level progress.
-- **Era tag:** every unit belongs to an age. Units from later ages cost more points, so a points budget naturally limits anachronistic super-armies. Mixing is still allowed and encouraged.
-- **Starting roster** at the beginning of each age: free basic units for that age (for example, Age 2 gives Hoplites, Peltasts and Greek Archers).
+The troop dynamic is **unlock and upgrade**.
+
+- **Troop cards.** A troop type is **unlocked** the first time you get one of its cards. Once a type is unlocked you can field **any number of copies** of it. The battle's unit slots are the only limit.
+- **Starting roster:** a new player owns **2 troop types**: the two units the Prologue battle uses. More types come from packs, battle rewards and age unlocks.
+- **Card count.** Every extra card of a type you already own is kept as a spare card. The Army screen shows how many spare cards you hold for each type.
+- **Upgrading costs cards and coins.** You choose when to upgrade; it is never automatic.
+
+  | Upgrade | Spare cards | Coins |
+  |---|---|---|
+  | Lv1 → Lv2 | 1 | 15 |
+  | Lv2 → Lv3 | 2 | 40 |
+  | Lv3 → Lv4 | 4 | 100 |
+  | Lv4 → Lv5 | 8 | 250 |
+
+  - Coin costs ×1.5 for Rare troops and ×2 for Epic troops.
+  - Level 5 is the maximum. Spare cards beyond it convert to 5 coins each.
+- **Level effect:** each level gives +5% to Melee, Impact, Ranged and Morale. The level applies to every copy of that type you field.
+- **Era tag:** every unit belongs to an age. Mixing eras is allowed and encouraged.
 
 ### Army builder
 
-- Each battle sets a **points budget** (for example 800) and a **max unit count** (for example 12).
-- It shows the **recommended power** against the enemy's power, so the player knows how hard the battle is.
-- Saved army presets.
+- Each battle sets a number of **unit slots** (for example 3) and a choice of **general**.
+- **Slots are the main limit, not points.** You can fill 3 slots with 3 archers, 3 chariots, or one of each. Matchups make it a real decision: 3 archers get slaughtered by cavalry.
+- Every slot must be filled to deploy.
+- The screen shows an **army power** indicator against the enemy's power as a difficulty hint only. It doesn't block anything.
+- Unit point costs still exist inside the battle rules: they set when an army breaks and how stars count losses.
+- The **general picker** appears on every battle. Each option shows the general's rank, traits and skills. You also choose which unit the general rides with.
+- The Prologue is the only battle with a fixed army, and that army is built from the player's two starting troop types.
+- Saved army presets are a later feature.
 - An optional **"Historical challenge"** gives a fixed historical army and pays bonus coins.
 
 ## 6. Generals
@@ -292,7 +311,7 @@ The **Prologue** is the tutorial. After that come 10 ages of 3–5 battles each,
 | 9 | Linear Warfare & Napoleon | Blenheim (village strongpoints) · Leuthen (oblique order behind hills) · Austerlitz (fog, Pratzen Heights) · Borodino (redoubts) · **Waterloo** (Hougoumont, La Haye Sainte, Prussians arrive on turn 8) |
 | 10 | Age of Rifles | Solferino · Gettysburg (Little Round Top, Pickett's Charge) · Isandlwana (rifles vs numbers, ammo supply) · Königgrätz (converging armies) |
 
-Each battle definition includes: map, deployment zones, the enemy army and its general, AI posture, objectives, turn limit, weather, reinforcements, points budget, bonus star condition, and briefing text (3–4 sentences of history plus the tactical problem).
+Each battle definition includes: map, deployment zones, the enemy army and its general, AI posture, objectives, turn limit, weather, reinforcements, unit slots, bonus star condition, and briefing text (3–4 sentences of history plus the tactical problem).
 
 **MVP content:** the Prologue plus Age 2 (5 battles). Every later age is added as content only, with no engine changes beyond new tags and terrain.
 
@@ -303,12 +322,13 @@ Each battle definition includes: map, deployment zones, the enemy army and its g
   - Replay win: 30% of that.
   - Loss: 20 coins.
 - **Shop:**
-  - **Recruit Pack** (150 coins): 3 unit cards from unlocked ages, weighted toward the current one.
+  - **Recruit Pack** (120 coins): 4 troop cards from unlocked ages, weighted toward the current age and toward types you already own.
   - **Veteran Pack** (400): 3 cards, at least one Rare+.
   - **General Pack** (600): 1 general, or an XP medal if you get a duplicate.
   - **Age Pack** (special): unlocks when you reach a new age and contains that age's signature units.
   - **Daily offer:** one specific unit or general at a fixed price, with no randomness.
-- **Duplicates:** a duplicate unit card adds level progress (Lv2 needs 1 duplicate, Lv3 needs 2, Lv4 needs 4, Lv5 needs 8). A duplicate general becomes a **Medal** worth 500 XP for that general.
+- **Battle rewards include troop cards:** 2 cards for a first win, 1 for a replay win, none for a loss. Cards are drawn mostly from types you already own, so you can upgrade them.
+- **Duplicates:** a duplicate troop card becomes a spare card for upgrading (see §5). A duplicate general becomes a **Medal** worth 500 XP for that general.
 - **Pity:** a guaranteed Epic+ general in every 5 General Packs.
 - **Monetization:** out of scope for the MVP. Design the economy so it is fully playable for free. Keep the shop code isolated so real-money purchases could be added later.
 
@@ -336,7 +356,12 @@ Target device: a 10–11" tablet in landscape. It must also work on a 6" phone i
 The inspiration is classic battle diagrams like the Waterloo and Gaugamela maps: flat, readable and handsome.
 
 - **Map:** off-white or parchment background. Terrain is drawn as flat, soft shapes: green woods, blue river lines, thin contour lines for hills, grey blocks for villages, dotted roads. The grid is subtle (thin lines at low alpha) and gets stronger while a unit is selected.
-- **Units:** colored **rectangles** (player blue, enemy red, configurable for color-blind players) that fill most of a square and are rotated to their facing. The **front edge is drawn thicker** so facing is obvious. Inside each rectangle is a simple **NATO-inspired symbol**: ✕ infantry, ╱ cavalry, ● artillery, ↑ spear/pike, ⌒ archer, and so on. Under it are a thin **strength bar** and a **cohesion pip** (green, yellow, orange, red).
+- **Units:** colored **wide rectangles** (player blue, enemy red, configurable for color-blind players), about 80% of the square's width and 45% of its depth, rotated to their facing. The **long side is the front**, as in historical battle maps, and is drawn thicker. Inside each block:
+  - a clear **pictogram** of the troop: spear, pike, sword and shield, bow, crossbow, javelins, horse head, chariot wheel, elephant, musket, cannon;
+  - a small **NATO-style frame mark** (✕ infantry, ╱ cavalry, ● artillery) as a secondary cue;
+  - **level chevrons** (one per level above 1).
+
+  Under the block sit a **strength bar** and a **cohesion pip** (green, yellow, orange, red), both large enough to read at a glance on a phone.
 - **States:** a Disrupted unit's rectangle gets a hatch pattern; Fragmented gets a heavier hatch; a Routed unit is **hollow, outline only** (like the white blocks in the Waterloo map) and slightly faded.
 - **General:** a small pennant flag with the general's name on top of the block ("NEY 1600" style).
 - **Movement:** big translucent **arrows**, like the ones in battle diagrams, show planned charges and the last turn's enemy moves.
@@ -381,7 +406,7 @@ tests/         Unit tests for core/, ai/ and meta/.
 | **M1** Core sim | Grid, movement/ZOC/facing, combat, cohesion, rout, victory; seeded RNG; headless | Strong unit-test coverage. A scripted test battle runs headless to a result. |
 | **M2** Playable board | Render map and units in the battle-map style; full touch controls; hot-seat 2 players | One sandbox battle is playable end to end on a tablet browser |
 | **M3** AI + Prologue | Utility AI, Megiddo tutorial with guided steps | A new player can win the Prologue against the AI |
-| **M4** Army & generals | Army builder, points budget, deployment phase, generals with traits/skills/rank | Different generals and armies noticeably change how a battle plays |
+| **M4** Army & generals | Army builder (unit slots), deployment phase, generals with traits/skills/rank | Different generals and armies noticeably change how a battle plays |
 | **M5** Meta | Campaign map, coins, shop, packs, XP, save/load | The full loop works: battle → reward → pack → stronger army → next battle |
 | **M6** Age 2 content | 5 Greece & Persia battles, their units and generals | Age 2 is complete and balanced |
 | M7+ | One age per milestone, plus polish, audio, Capacitor builds | — |
