@@ -2,6 +2,7 @@ import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
 import type { BattleState, Pos, Side, TerrainType, Unit, UnitTag } from '../core/types';
+import { badgeSvg } from '../render/pictograms';
 import { COHESION_NAMES } from '../render/theme';
 
 type Child = Node | string | null | undefined | false;
@@ -346,8 +347,10 @@ export class Hud {
       u.bracing ? 'Braced (Hold)' : null,
       u.side === state.activeSide ? (u.hasActed ? 'Action used' : 'Action ready') : null,
     ].filter(Boolean);
+    const badge = el('span', { class: 'card-badge' });
+    badge.innerHTML = badgeSvg(u.type.symbol, u.side, 34, u.type.level ?? 1);
     this.card.replaceChildren(
-      el('h2', { class: u.side }, `${SIDE_NAME[u.side]} ${u.type.name}`),
+      el('h2', { class: u.side }, badge, `${SIDE_NAME[u.side]} ${u.type.name}`),
       el(
         'div',
         { class: 'state' },

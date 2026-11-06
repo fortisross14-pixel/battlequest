@@ -4,7 +4,7 @@ export const MEGIDDO_TUTORIAL: {
   until: 'select' | 'move' | 'facing' | 'charge' | 'endTurn' | 'never';
 }[] = [
   {
-    text: 'Tap your chariots (the block with the wheel and the pennant) to select them.',
+    text: 'Tap your chariots (the round badge with the wheel, under the pennant) to select them.',
     until: 'select',
   },
   {

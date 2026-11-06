@@ -69,7 +69,7 @@ function infoSection(b: CampaignBattle, enemyPower: number): HTMLElement {
       ...b.enemy.map((e) => {
         const t = eraUnitType(e.type, e.level);
         return html(
-          `<span class="mini">${unitIcon(t.symbol, 'red', 34)}<span>${t.name}${e.level && e.level > 1 ? ` Lv${e.level}` : ''}</span></span>`,
+          `<span class="mini">${unitIcon(t.symbol, 'red', 34, e.level ?? 1)}<span>${t.name}${e.level && e.level > 1 ? ` Lv${e.level}` : ''}</span></span>`,
         );
       }),
     ),
@@ -123,7 +123,7 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
         `${t.name}${rides ? ', general rides here' : army.general ? ', tap to put the general here' : ''}`,
       );
       tile.append(
-        html(unitIcon(t.symbol, 'blue', 40)),
+        html(unitIcon(t.symbol, 'blue', 40, u.level ?? 1)),
         el('span', { class: 'slot-name' }, t.name),
         levelBadge(u.level ?? 1),
         rides ? el('span', { class: 'star' }, '★') : '',
@@ -155,7 +155,7 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
             return el(
               'div',
               { class: `troop-row ${count ? 'picked' : ''}` },
-              html(unitIcon(t.symbol, 'blue', 34)),
+              html(unitIcon(t.symbol, 'blue', 34, owned.level)),
               el(
                 'span',
                 { class: 'troop-name' },

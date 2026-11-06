@@ -109,7 +109,7 @@ function troopCard(app: AppApi, def: EraUnitDef): HTMLElement {
   const head = el(
     'div',
     { class: 'unit-head' },
-    html(unitIcon(t.symbol, 'blue', 48)),
+    html(unitIcon(t.symbol, 'blue', 48, owned?.level ?? 1)),
     el(
       'div',
       {},

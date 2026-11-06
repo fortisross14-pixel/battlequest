@@ -6,6 +6,7 @@ import type { BattleState, Dir, Pos, Side, Unit } from '../core/types';
 import { arrow, dashed } from './draw';
 import { buildGrid, buildTerrainLayer } from './terrainLayer';
 import { CELL, THEME } from './theme';
+import { loadBadgeTextures } from './badgeTextures';
 import { facingRotation, lookOf, UnitView } from './unitView';
 
 export interface Highlights {
@@ -69,6 +70,7 @@ export class BattleView {
       autoDensity: true,
     });
     host.appendChild(app.canvas);
+    await loadBadgeTextures();
     const view = new BattleView(app);
     view.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     app.stage.addChild(view.world);

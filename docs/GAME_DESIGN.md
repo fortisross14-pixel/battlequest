@@ -360,13 +360,15 @@ Target device: a 10–11" tablet in landscape. It must also work on a 6" phone i
 The inspiration is classic battle diagrams like the Waterloo and Gaugamela maps: flat, readable and handsome.
 
 - **Map:** off-white or parchment background. Terrain is drawn as flat, soft shapes: green woods, blue river lines, thin contour lines for hills, grey blocks for villages, dotted roads. The grid is subtle (thin lines at low alpha) and gets stronger while a unit is selected.
-- **Units:** colored **wide rectangles** (player blue, enemy red, configurable for color-blind players), about 80% of the square's width and 45% of its depth, rotated to their facing. The **long side is the front**, as in historical battle maps, and is drawn thicker. Inside each block:
-  - a clear **pictogram** of the troop: spear, pike, sword and shield, bow, crossbow, javelins, horse head, chariot wheel, elephant, musket, cannon;
-  - a small **NATO-style frame mark** (✕ infantry, ╱ cavalry, ● artillery) as a secondary cue;
-  - **level chevrons** (one per level above 1).
+- **Units:** colored **wide rectangles** (player blue, enemy red, configurable for color-blind players), about 80% of the square's width and 45% of its depth, rotated to their facing. The **long side is the front**, as in historical battle maps, and is drawn thicker.
+- **Troop badges:** on each block sits a bold, upright **badge** that stands out from the plain blocks:
+  - its **shape tells the role**: a heraldic shield for melee foot, a hexagon for missile troops, a circle for mounted troops, a rounded square for artillery;
+  - it is filled with the side's colour, with a cream inner ring, a dark outline and a soft shadow;
+  - inside is a chunky cream **pictogram** of the troop: spear, pike, sword and shield, bow, crossbow, javelins, horse head with lance (heavy) or with flowing mane (light), chariot, elephant, musket, cannon;
+  - **level pips** (one per level above 1) run along its bottom edge.
 
-  Under the block sit a **strength bar** and a **cohesion pip** (green, yellow, orange, red), both large enough to read at a glance on a phone.
-- **States:** a Disrupted unit's rectangle gets a hatch pattern; Fragmented gets a heavier hatch; a Routed unit is **hollow, outline only** (like the white blocks in the Waterloo map) and slightly faded.
+  The same badge is the troop's icon in every screen (army builder, Army screen, shop, pack reveal, unit card). Under the block sit a **strength bar** and a **cohesion pip** (green, yellow, orange, red), both large enough to read at a glance on a phone.
+- **States:** a Disrupted unit's rectangle gets a hatch pattern; Fragmented gets a heavier hatch; a Routed unit is **hollow, outline only** (like the white blocks in the Waterloo map), slightly faded, and its badge turns pale.
 - **General:** a small pennant flag with the general's name on top of the block ("NEY 1600" style).
 - **Movement:** big translucent **arrows**, like the ones in battle diagrams, show planned charges and the last turn's enemy moves.
 - **Feedback:** short tweens only. A block slides; on impact it shakes; floating numbers show losses; a pulse shows a cohesion drop. Nothing heavier.

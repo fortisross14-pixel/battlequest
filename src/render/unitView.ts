@@ -1,5 +1,6 @@
-import { Container, Graphics, Text } from 'pixi.js';
+import { Container, Graphics, Sprite, Text } from 'pixi.js';
 import { Cohesion, type Dir, type Side, type Unit, type UnitSymbol } from '../core/types';
+import { BADGE_ASPECT, badgeTexture } from './badgeTextures';
 import { hatch } from './draw';
 import { CELL, THEME } from './theme';
 
@@ -46,78 +47,15 @@ export function facingRotation(f: Dir): number {
   return (f * Math.PI) / 4;
 }
 
-/** Draws a NATO-inspired symbol centred on (0,0), about 26×16 px. */
-export function drawSymbol(g: Graphics, symbol: UnitSymbol, color: number): void {
-  const w = 13;
-  const h = 8;
-  const line = { width: 2.2, color, cap: 'round' as const };
-  switch (symbol) {
-    case 'infantry':
-      g.moveTo(-w, -h).lineTo(w, h).moveTo(-w, h).lineTo(w, -h).stroke(line);
-      break;
-    case 'gun':
-      g.moveTo(-w, -h).lineTo(w, h).moveTo(-w, h).lineTo(w, -h).stroke(line);
-      g.circle(0, 0, 3.2).fill(color);
-      break;
-    case 'skirmisher':
-      for (const dx of [-8, 0, 8]) g.circle(dx, 0, 2.6).fill(color);
-      break;
-    case 'archer':
-      g.moveTo(-w, h * 0.6)
-        .quadraticCurveTo(0, -h * 1.6, w, h * 0.6)
-        .stroke(line);
-      break;
-    case 'crossbow':
-      g.moveTo(-w, h * 0.4)
-        .quadraticCurveTo(0, -h * 1.4, w, h * 0.4)
-        .stroke(line);
-      g.moveTo(0, h).lineTo(0, -h).stroke(line);
-      break;
-    case 'spear':
-      g.moveTo(0, h + 1)
-        .lineTo(0, -h - 1)
-        .stroke(line);
-      g.poly([0, -h - 4, -4, -h + 2, 4, -h + 2]).fill(color);
-      break;
-    case 'pike':
-      for (const dx of [-5, 5]) {
-        g.moveTo(dx, h + 1)
-          .lineTo(dx, -h - 1)
-          .stroke(line);
-        g.poly([dx, -h - 4, dx - 3.5, -h + 2, dx + 3.5, -h + 2]).fill(color);
-      }
-      break;
-    case 'cavalry':
-      g.moveTo(-w, h).lineTo(w, -h).stroke(line);
-      break;
-    case 'lightCavalry':
-      g.moveTo(-w, h)
-        .lineTo(w, -h)
-        .stroke({ ...line, width: 1.6 });
-      g.circle(-w + 3, -h + 3, 2.4).fill(color);
-      break;
-    case 'chariot':
-      g.moveTo(-w, h).lineTo(w, -h).stroke(line);
-      g.circle(0, 0, 5).stroke({ width: 1.8, color });
-      break;
-    case 'elephant':
-      g.moveTo(-w, h)
-        .lineTo(-w, -h * 0.2)
-        .quadraticCurveTo(0, -h * 1.8, w, -h * 0.2)
-        .lineTo(w, h)
-        .stroke(line);
-      break;
-    case 'artillery':
-      g.circle(0, 0, 6).fill(color);
-      break;
-  }
-}
+/** Badge size on the board: 60% of a square wide, drawn upright on the block. */
+export const BADGE_W = CELL * 0.6;
 
 export class UnitView extends Container {
   readonly body = new Container();
   private block = new Graphics();
   private overlay = new Graphics();
-  private symbolG = new Graphics();
+  private badge = new Sprite();
+  private badgeKey = '';
   private flag = new Graphics();
   private flagText = new Text({
     text: '',
@@ -129,7 +67,11 @@ export class UnitView extends Container {
     super();
     this.look = look;
     this.body.addChild(this.block);
-    this.addChild(this.body, this.symbolG, this.overlay, this.flag, this.flagText);
+    this.badge.anchor.set(0.5);
+    this.badge.width = BADGE_W;
+    this.badge.height = BADGE_W * BADGE_ASPECT;
+    this.badge.position.set(0, -CELL * 0.04);
+    this.addChild(this.body, this.badge, this.overlay, this.flag, this.flagText);
     this.redraw();
     this.snap();
   }
@@ -138,6 +80,12 @@ export class UnitView extends Container {
   snap(): void {
     this.position.set((this.look.x + 0.5) * CELL, (this.look.y + 0.5) * CELL);
     this.body.rotation = facingRotation(this.look.facing);
+  }
+
+  private setBadge(t: Sprite['texture']): void {
+    this.badge.texture = t;
+    this.badge.width = BADGE_W;
+    this.badge.height = BADGE_W * BADGE_ASPECT;
   }
 
   update(look: Partial<UnitLook>): void {
@@ -179,18 +127,16 @@ export class UnitView extends Container {
         .lineTo(x0 + BLOCK_W + 1, y0 + 1)
         .stroke({ width: 7, color: dark, cap: 'square' });
     }
-    // Level chevrons at the right end of the block (one per level above 1).
-    for (let i = 0; i < this.look.level - 1; i++) {
-      const cx = x0 + BLOCK_W - 7;
-      const cy = y0 + BLOCK_H - 6 - i * 4.5;
-      b.moveTo(cx - 4, cy + 2.5)
-        .lineTo(cx, cy)
-        .lineTo(cx + 4, cy + 2.5)
-        .stroke({ width: 1.6, color: routed ? color : THEME.symbol, cap: 'round' });
+    // The troop badge: upright, on the block (GAME_DESIGN 10). Routed units get a pale one.
+    const want = `${symbol}|${side}|${this.look.level}|${routed}`;
+    if (want !== this.badgeKey) {
+      this.badgeKey = want;
+      this.setBadge(
+        badgeTexture(symbol, side, this.look.level, routed, (t) => {
+          if (this.badgeKey === want) this.setBadge(t);
+        }),
+      );
     }
-
-    const s = this.symbolG.clear();
-    drawSymbol(s, symbol, routed ? color : THEME.symbol);
 
     // Strength bar and cohesion pip, always upright under the block.
     const o = this.overlay.clear();

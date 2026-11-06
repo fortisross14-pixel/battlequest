@@ -26,7 +26,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] WP1 — Army choice, troop cards and upgrades: profile v2 + migration, upgrade with cards and coins, reward cards, slot-based army builder, general picker, Army screen upgrades
 - [x] WP2 — Enemy AI that fights as an army: one best action at a time, move + charge, posture triggers, support, path-aware approach; beats the M3 AI 65% (`balance-sim aivsai`)
 - [x] WP4 — Rule bugs and movement feel: evade pull-back, turn-start facing, preview includes melee, ×0.5 flank strike-back, Concede, sidestep, default facing, evade 0.6, end-turn confirm
-- [ ] WP3 — Unit graphics and icons (icon sheet needs owner approval)
+- [x] WP3 — Unit graphics and icons: role-shaped troop badges (owner-approved) on the board and every screen, wider blocks, softer hills, clear fords, denser rough, terrain legend, phone layout with side button columns, visual-check browser fallback
 - [ ] WP6 — Battle readability
 - [ ] WP5 — Balance and campaign difficulty
 - [ ] WP7 — Code health (screens.ts split done in WP1)
