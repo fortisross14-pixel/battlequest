@@ -29,8 +29,9 @@ export interface CampaignBattle {
   /** e.g. "1457 BC". */
   year: string;
   age: number;
-  /** Order inside its age. */
-  order: number;
+  /** Real location, for the node on the age map (decimal degrees). */
+  lat: number;
+  lon: number;
   /** The tactical problem in one sentence. */
   problem: string;
   /** 3–4 sentences: history plus one tactical hint. */
@@ -68,7 +69,10 @@ export interface CampaignBattle {
   testArmy: ArmyChoice;
   /** How the stand-in player plays (default: defensive for hold-outs, else aggressive). */
   testPosture?: Posture;
-  tutorial?: boolean;
+  /** Guided steps shown in battle until the battle is first won (GAME_DESIGN 7.4). */
+  tutorial?: TutorialStep[];
+  /** Tips shown in the army builder for this battle (tutorial). */
+  builderTips?: string[];
 }
 
 export interface ArmyChoice {
@@ -78,16 +82,72 @@ export interface ArmyChoice {
 }
 
 /** What the tutorial waits for before moving to its next step. */
-export type TutorialTrigger = 'select' | 'move' | 'facing' | 'charge' | 'endTurn' | 'never';
+export type TutorialTrigger =
+  | 'select'
+  | 'move'
+  | 'facing'
+  | 'charge'
+  /** A charge that hits an enemy's flank or rear. */
+  | 'flankCharge'
+  /** A charge on an enemy already in melee with one of your units. */
+  | 'support'
+  | 'shoot'
+  | 'skill'
+  | 'endTurn'
+  | 'never';
 
 export interface TutorialStep {
   text: string;
   until: TutorialTrigger;
 }
 
+export type AgeEmblem =
+  | 'chariot'
+  | 'laurel'
+  | 'eagle'
+  | 'crown'
+  | 'castle'
+  | 'ship'
+  | 'pike'
+  | 'tricorne'
+  | 'bicorne'
+  | 'rifle';
+
+/** A map region in degrees. */
+export interface MapBounds {
+  west: number;
+  east: number;
+  south: number;
+  north: number;
+}
+
+/** A battle listed for an age whose content isn't built yet. */
+export interface PlannedBattle {
+  name: string;
+  year: string;
+  lat: number;
+  lon: number;
+}
+
+/** One age of the campaign (GAME_DESIGN 7). Its id is also its number on the timeline. */
 export interface Age {
   id: number;
   name: string;
-  /** Prologue: the new player's troops. Later ages: free troops granted when the age unlocks. */
+  /** Shown under the name, e.g. "860–320 BC". */
+  years: string;
+  /** Start and end year for the timeline (BC negative). */
+  from: number;
+  to: number;
+  /** The region its map shows. */
+  region: MapBounds;
+  emblem: AgeEmblem;
+  /** Playable battles, in historical order. */
+  battles: string[];
+  /** Battles of an age in preparation: names and places only. */
+  planned?: PlannedBattle[];
+  /** Stars earned in this age needed to open battle #1, #2, … */
+  starThresholds: number[];
+  /** Age 0: the new player's troops. Later ages: free troops granted when the age opens. */
   starterUnits: string[];
+  status: 'playable' | 'inPreparation';
 }

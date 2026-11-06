@@ -1,4 +1,5 @@
 import { AGES, CAMPAIGN } from '../content/campaign/battles';
+import { syncAgeUnlocks } from './campaign';
 import type { ArmyChoice } from '../content/campaign/types';
 import { ERA_UNIT_BY_ID } from '../content/eraUnits';
 import type { Rarity } from '../core/generals';
@@ -22,7 +23,7 @@ export interface BattleRecord {
   plays: number;
 }
 
-export const PROFILE_VERSION = 2;
+export const PROFILE_VERSION = 3;
 
 export interface Profile {
   version: typeof PROFILE_VERSION;
@@ -189,28 +190,46 @@ export function anyUpgradeAvailable(p: Profile): boolean {
  */
 export function migrateProfile(raw: unknown): Profile | null {
   if (!raw || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown> & { version?: unknown };
-  if (r.version === 1) {
-    const units: Record<string, OwnedUnit> = {};
-    const old = (r.units ?? {}) as Record<string, { level?: number; dupes?: number }>;
-    for (const [id, u] of Object.entries(old)) {
-      if (!ERA_UNIT_BY_ID[id]) continue;
-      units[id] = { level: Math.min(ECONOMY.maxLevel, u.level ?? 1), cards: u.dupes ?? 0 };
-    }
-    const p: Profile = { ...newProfile(), ...(r as object), version: PROFILE_VERSION, units };
-    // Old saves started with only the Captain; v2 players also get the Centurion.
-    for (const id of ECONOMY.startingGenerals) p.generals[id] ??= { xp: 0, resting: false };
-    // Battles already won grant what their first win now unlocks.
-    for (const b of CAMPAIGN) {
-      if (!p.battles[b.id]?.wins) continue;
-      for (const id of b.firstWinUnlocks?.units ?? []) p.units[id] ??= { level: 1, cards: 0 };
-      for (const id of b.firstWinUnlocks?.generals ?? [])
-        p.generals[id] ??= { xp: 0, resting: false };
-    }
-    return p;
-  }
+  let r = raw as Record<string, unknown> & { version?: unknown };
+  if (r.version === 1) r = migrateV1toV2(r);
+  if (r.version === 2) r = migrateV2toV3(r);
   if (r.version === PROFILE_VERSION) return { ...newProfile(), ...(r as object) } as Profile;
   return null;
+}
+
+/** v1 → v2: duplicates become spare cards; the Centurion and first-win unlocks are added. */
+function migrateV1toV2(r: Record<string, unknown>): Record<string, unknown> & { version: 2 } {
+  const units: Record<string, OwnedUnit> = {};
+  const old = (r.units ?? {}) as Record<string, { level?: number; dupes?: number }>;
+  for (const [id, u] of Object.entries(old)) {
+    if (!ERA_UNIT_BY_ID[id]) continue;
+    units[id] = { level: Math.min(ECONOMY.maxLevel, u.level ?? 1), cards: u.dupes ?? 0 };
+  }
+  const p = { ...newProfile(), ...(r as object), units } as unknown as Profile;
+  // Old saves started with only the Captain; v2 players also get the Centurion.
+  for (const id of ECONOMY.startingGenerals) p.generals[id] ??= { xp: 0, resting: false };
+  // Battles already won grant what their first win now unlocks.
+  for (const b of CAMPAIGN) {
+    if (!p.battles[b.id]?.wins) continue;
+    for (const id of b.firstWinUnlocks?.units ?? []) p.units[id] ??= { level: 1, cards: 0 };
+    for (const id of b.firstWinUnlocks?.generals ?? [])
+      p.generals[id] ??= { xp: 0, resting: false };
+  }
+  return { ...(p as unknown as Record<string, unknown>), version: 2 };
+}
+
+/**
+ * v2 → v3: the campaign became ages with star-gated battles (GAME_DESIGN 7). Battle ids
+ * are unchanged, so every record and star is kept: Megiddo and Kadesh now form Age 0, and
+ * Qarqar, Marathon, Thermopylae and Leuctra are in Antiquity. `unlockedAge` now means "the
+ * newest age whose starter troops were granted", so it is recomputed from the battles won.
+ */
+function migrateV2toV3(r: Record<string, unknown>): Record<string, unknown> & { version: 3 } {
+  const p = { ...newProfile(), ...(r as object), version: PROFILE_VERSION } as Profile;
+  p.battles = { ...((r.battles as Profile['battles']) ?? {}) };
+  p.unlockedAge = 0;
+  syncAgeUnlocks(p);
+  return p as unknown as Record<string, unknown> & { version: 3 };
 }
 
 export function cloneProfile(p: Profile): Profile {

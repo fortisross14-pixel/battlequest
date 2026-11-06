@@ -3,7 +3,7 @@ import type { CampaignBattle } from '../content/campaign/types';
 import { isRouted, lostCost, armyCost } from '../core/state';
 import type { BattleState } from '../core/types';
 import { drawTroop, giveTroop, type TroopCard } from './cards';
-import { grantFirstWinUnlocks, unlockAfterWin } from './campaign';
+import { grantFirstWinUnlocks, syncAgeUnlocks } from './campaign';
 import { rankForXp, type Profile } from './profile';
 
 export const REWARDS = {
@@ -115,7 +115,8 @@ export function applyOutcome(
 
   // First-win unlocks come before XP, so a general who joins after this battle earns it too.
   const unlocks = firstWin ? grantFirstWinUnlocks(p, b) : { units: [], generals: [] };
-  const unlockedAge = o.won ? unlockAfterWin(p, b) : null;
+  // A win can complete an age, which opens the next one and grants its starter troops.
+  const unlockedAge = o.won ? (syncAgeUnlocks(p)[0] ?? null) : null;
   const cards: TroopCard[] = [];
   const n = !o.won ? 0 : firstWin ? REWARDS.cardsFirstWin : REWARDS.cardsReplayWin;
   const rng = { rng: (ctx.seed ^ 0x5eed) >>> 0 };

@@ -29,7 +29,7 @@ describe('profile', () => {
     expect(Object.keys(p.generals).sort()).toEqual(['captain', 'centurion']);
     expect(p.coins).toBe(300);
     expect(p.unlockedAge).toBe(0);
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
   });
 
   it('extra cards are kept as spares and never level a unit up', () => {
@@ -54,22 +54,24 @@ describe('profile', () => {
 });
 
 describe('campaign progress and rewards', () => {
-  it('battles unlock in order and the age final unlocks the next age', () => {
+  it('winning both Age 0 battles opens Antiquity and grants its starter troops', () => {
     const p = newProfile();
     const megiddo = BATTLE_BY_ID.megiddo!;
     expect(nextBattle(p)?.id).toBe('megiddo');
-    expect(isBattleUnlocked(p, BATTLE_BY_ID.kadesh!)).toBe(false);
+    // Both tutorial battles are open from the start (battles 1 and 2 of an age).
+    expect(isBattleUnlocked(p, BATTLE_BY_ID.kadesh!)).toBe(true);
     const r = applyOutcome(p, megiddo, win(3), 'thutmose');
-    expect(r.unlockedAge).toBe(1);
+    expect(r.unlockedAge).toBeNull();
     expect(r.unlocks).toEqual({ units: ['egyptianArchers'], generals: ['thutmose'] });
     expect(p.units.egyptianArchers).toBeDefined();
     expect(p.generals.thutmose).toBeDefined();
-    // Age 1 starter troops no longer re-grant the chariots the player already has.
-    expect(p.units.hittiteSpearmen).toBeDefined();
     expect(r.cards).toHaveLength(2);
-    expect(isBattleUnlocked(p, BATTLE_BY_ID.kadesh!)).toBe(true);
     expect(isBattleUnlocked(p, BATTLE_BY_ID.qarqar!)).toBe(false);
-    expect(nextBattle(p)?.id).toBe('kadesh');
+    const r2 = applyOutcome(p, BATTLE_BY_ID.kadesh!, win(1), 'captain');
+    expect(r2.unlockedAge).toBe(1);
+    expect(p.units.hoplites).toBeDefined();
+    expect(p.units.peltasts).toBeDefined();
+    expect(nextBattle(p)?.id).toBe('qarqar');
   });
 
   it('pays coins per GAME_DESIGN 8: first win, replay at 30%, loss 20', () => {
@@ -77,10 +79,10 @@ describe('campaign progress and rewards', () => {
     p.generals.captain!.xp = 0;
     const b = BATTLE_BY_ID.marathon!;
     const first = applyOutcome(p, b, win(2), 'captain');
-    expect(first.coins).toBe(REWARDS.winBasePerAge * 2 + 2 * REWARDS.perStar);
+    expect(first.coins).toBe(REWARDS.winBasePerAge * 1 + 2 * REWARDS.perStar);
     expect(first.firstWin).toBe(true);
     const replay = applyOutcome(p, b, win(3), 'captain');
-    expect(replay.coins).toBe(Math.round((200 + 150) * 0.3));
+    expect(replay.coins).toBe(Math.round((100 + 150) * 0.3));
     expect(replay.newStars).toBe(1);
     const loss = applyOutcome(p, b, { ...win(0), won: false }, 'captain');
     expect(loss.coins).toBe(20);

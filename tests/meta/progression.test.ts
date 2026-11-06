@@ -46,14 +46,15 @@ const V1_SAVE = {
 describe('profile migration v1 → v2', () => {
   it('keeps levels, turns duplicates into spare cards and keeps the rest', () => {
     const p = migrateProfile(structuredClone(V1_SAVE))!;
-    expect(p.version).toBe(2);
+    expect(p.version).toBe(3);
     expect(p.units.egyptianSpearmen).toEqual({ level: 2, cards: 1 });
     expect(p.units.hittiteSpearmen).toEqual({ level: 3, cards: 2 });
     expect(p.coins).toBe(410);
     expect(p.generals.captain).toEqual({ xp: 240, resting: false });
     expect(p.battles.megiddo).toEqual({ stars: 3, wins: 1, plays: 2 });
     expect(p.rng).toBe(777);
-    expect(p.unlockedAge).toBe(1);
+    // Only Megiddo is won: Antiquity (Age 1) isn't open under the v3 rules yet.
+    expect(p.unlockedAge).toBe(0);
   });
 
   it('gives old saves the new starting general and what their won battles now unlock', () => {

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { ARCHETYPES, type ArchetypeId } from '../../src/content/units';
 import { ARCHETYPE_IDS, duel, DUEL_SETUPS, aiVsAi, scenarioBattle, type DuelSetup } from './sim';
-import { BATTLE_BY_ID, CAMPAIGN, finalBattleOfAge } from '../../src/content/campaign/battles';
+import { AGE_BY_ID, BATTLE_BY_ID, CAMPAIGN, battleIndex } from '../../src/content/campaign/battles';
 import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
 import { buildScenario } from '../../src/content/campaign/build';
 import { sandboxScenario } from '../../src/content/battles/sandbox';
@@ -248,6 +248,18 @@ function identicalArmies(b: CampaignBattle, level: number): ArmyChoice[] {
   }));
 }
 
+/**
+ * Target win rate for a battle's place in its age (prompt 04): tutorial battles 75–100%;
+ * in a full age, about 80% for battles 1–2 falling to about 40% for the last two, ±10%.
+ */
+function targetBand(b: CampaignBattle): [number, number] {
+  if (b.tutorial) return [0.75, 1];
+  const n = AGE_BY_ID[b.age]?.battles.length ?? 1;
+  const i = Math.max(0, battleIndex(b) - 1);
+  const t = 0.8 - (0.4 * Math.min(i, n - 2)) / Math.max(1, n - 2);
+  return [Math.max(0, t - 0.1), Math.min(1, t + 0.1)];
+}
+
 function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string {
   const battles = id === 'all' ? CAMPAIGN : [BATTLE_BY_ID[id]!].filter(Boolean);
   const rows: string[][] = [];
@@ -272,9 +284,7 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
       }
     }
     const rate = best.rate;
-    const final = finalBattleOfAge(b.age)?.id === b.id && b.age > 0;
-    // Review 1 targets: Prologue 80–90%, other battles 50–75%, age finals 35–50%.
-    const band: [number, number] = b.tutorial ? [0.8, 0.9] : final ? [0.35, 0.5] : [0.5, 0.75];
+    const band = targetBand(b);
     const ok = rate >= band[0] && rate <= band[1];
     const target = `${pct(band[0])}–${pct(band[1])}`;
     if (!ok) outliers.push(`- **${b.name}**: ${pct(rate)} (target ${target})`);
@@ -301,7 +311,7 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
     [
       `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level})`,
       '',
-      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: Prologue 80–90% player wins, other battles 50–75%, age finals 35–50%.`,
+      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: tutorial battles 75–100%; in an age, about 80% for battles 1–2 falling to about 40% for the last two (±10%).`,
       '',
       table(
         [

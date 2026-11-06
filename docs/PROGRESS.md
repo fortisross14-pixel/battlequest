@@ -39,6 +39,12 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Turning costs 1 MP; Turn button
 - [x] Whole army joins once any unit is in melee (idle Megiddo unit)
 
+## Campaign timeline (docs/prompts/04-campaign-timeline.md)
+- [x] Phase A — ages data (10 ages, 2 playable), star-gated unlocks, age unlocks on all wins, newlyUnlocked, profile v3 migration, tests
+- [ ] Phase B — timeline and age map screens, build-time maps, screen stack
+- [ ] Phase C — Age 0 tutorial battles (Megiddo, Kadesh) with data-driven tutorial scripts
+- [ ] Phase D — Antiquity: 10 battles, new troops, generals and rules
+
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
 - [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
-import { AGES, CAMPAIGN } from '../../src/content/campaign/battles';
+import { AGES, BATTLE_BY_ID, CAMPAIGN } from '../../src/content/campaign/battles';
 import { buildScenario, deploymentSquares } from '../../src/content/campaign/build';
 import { ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
 import { GENERAL_BY_ID } from '../../src/content/generals';
@@ -51,10 +51,31 @@ function playAi(b: CampaignBattle, seed: number) {
 }
 
 describe('campaign', () => {
-  it('every age has battles and starter units that exist', () => {
+  it('playable ages list real battles and starter troops; the rest list planned battles', () => {
+    expect(AGES).toHaveLength(10);
     for (const a of AGES) {
-      expect(CAMPAIGN.some((b) => b.age === a.id)).toBe(true);
-      for (const u of a.starterUnits) expect(ERA_UNIT_BY_ID[u]).toBeDefined();
+      for (const u of a.starterUnits) expect(ERA_UNIT_BY_ID[u], u).toBeDefined();
+      if (a.status === 'playable') {
+        expect(a.battles.length).toBeGreaterThanOrEqual(2);
+        for (const id of a.battles) expect(BATTLE_BY_ID[id], id).toBeDefined();
+      } else {
+        expect(a.planned!.length).toBeGreaterThanOrEqual(10);
+        for (const b of a.planned!) {
+          expect(Math.abs(b.lat)).toBeLessThanOrEqual(90);
+          expect(Math.abs(b.lon)).toBeLessThanOrEqual(180);
+        }
+      }
+    }
+  });
+
+  it('every battle sits inside its age map, in its age list', () => {
+    for (const b of CAMPAIGN) {
+      const age = AGES.find((a) => a.id === b.age)!;
+      expect(age.battles, b.id).toContain(b.id);
+      expect(b.lat).toBeGreaterThan(age.region.south);
+      expect(b.lat).toBeLessThan(age.region.north);
+      expect(b.lon).toBeGreaterThan(age.region.west);
+      expect(b.lon).toBeLessThan(age.region.east);
     }
   });
 

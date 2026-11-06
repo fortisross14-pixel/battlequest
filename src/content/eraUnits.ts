@@ -23,7 +23,7 @@ export interface EraUnitDef {
 export const COST_PER_AGE = 3;
 
 export const ERA_UNITS: EraUnitDef[] = [
-  // Age 0 – Prologue: New Kingdom Egypt and the Canaanite coalition.
+  // Age 0 – Dawn of War: New Kingdom Egypt, the Canaanite coalition and the Hittites.
   {
     id: 'egyptianSpearmen',
     name: 'Egyptian spearmen',
@@ -69,11 +69,11 @@ export const ERA_UNITS: EraUnitDef[] = [
     flavor: 'The pride of the city kings.',
     enemyOnly: true,
   },
-  // Age 1 – Bronze & Iron.
+  // Hittites: Age 0, Dawn of War. Assyrians and Aramaeans: Age 1, Antiquity.
   {
     id: 'hittiteChariots',
     name: 'Hittite chariots',
-    age: 1,
+    age: 0,
     archetype: 'chariots',
     rarity: 'epic',
     flavor: 'Heavy three-man chariots that broke the Amun division.',
@@ -82,7 +82,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'hittiteSpearmen',
     name: 'Hittite spearmen',
-    age: 1,
+    age: 0,
     archetype: 'spearmen',
     rarity: 'common',
     flavor: 'Steady infantry of the Hatti lands.',
@@ -122,11 +122,11 @@ export const ERA_UNITS: EraUnitDef[] = [
     rarity: 'common',
     flavor: 'Hill men with javelins and slings.',
   },
-  // Age 2 – Greece & Persia.
+  // Age 1, Antiquity: Greeks and Persians.
   {
     id: 'hoplites',
     name: 'Hoplites',
-    age: 2,
+    age: 1,
     archetype: 'spearmen',
     rarity: 'rare',
     flavor: 'Bronze-clad citizens locked shield to shield.',
@@ -135,7 +135,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'spartanHoplites',
     name: 'Spartan hoplites',
-    age: 2,
+    age: 1,
     archetype: 'spearmen',
     rarity: 'epic',
     flavor: 'Raised for war since boyhood. They do not retreat.',
@@ -144,7 +144,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'peltasts',
     name: 'Peltasts',
-    age: 2,
+    age: 1,
     archetype: 'skirmishers',
     rarity: 'common',
     flavor: 'Thracian-style javelin men with light crescent shields.',
@@ -153,7 +153,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'cretanArchers',
     name: 'Cretan archers',
-    age: 2,
+    age: 1,
     archetype: 'archers',
     rarity: 'rare',
     flavor: 'Famous mercenary bowmen: they shoot a square further.',
@@ -162,7 +162,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'sparabara',
     name: 'Sparabara',
-    age: 2,
+    age: 1,
     archetype: 'archers',
     rarity: 'common',
     flavor: 'Persian archers behind a wall of wicker shields.',
@@ -171,7 +171,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'immortals',
     name: 'Immortals',
-    age: 2,
+    age: 1,
     archetype: 'archers',
     rarity: 'epic',
     flavor: 'The King’s ten thousand: spear and bow.',
@@ -180,7 +180,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'persianCavalry',
     name: 'Persian cavalry',
-    age: 2,
+    age: 1,
     archetype: 'lightCavalry',
     rarity: 'rare',
     flavor: 'Horse archers and javelin riders of the satrapies.',
@@ -188,7 +188,7 @@ export const ERA_UNITS: EraUnitDef[] = [
   {
     id: 'thessalianCavalry',
     name: 'Thessalian cavalry',
-    age: 2,
+    age: 1,
     archetype: 'heavyCavalry',
     rarity: 'epic',
     flavor: 'The finest horsemen of Greece.',

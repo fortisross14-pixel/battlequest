@@ -1,7 +1,6 @@
 import { AiPlayer } from '../ai/utility';
 import { BATTLES } from '../content/battles';
 import { buildScenario, defaultPlacement, deploymentSquares } from '../content/campaign/build';
-import { MEGIDDO_TUTORIAL } from '../content/campaign/tutorial';
 import type { ArmyChoice, CampaignBattle } from '../content/campaign/types';
 import { startBattle } from '../core/engine';
 import { samePos } from '../core/geometry';
@@ -223,7 +222,8 @@ export class App implements AppApi {
         side: 'red',
         player: new AiPlayer('red', { posture: b.posture, attackTurn: b.attackTurn }),
       },
-      tutorial: b.tutorial ? MEGIDDO_TUTORIAL : undefined,
+      // Tutorial steps until the battle has been won once.
+      tutorial: b.tutorial && !this.profile.battles[b.id]?.wins ? b.tutorial : undefined,
       objective: (s) => ({
         text: objectiveText(b, s),
         bonus: b.bonusText.replace(/\.$/, ''),

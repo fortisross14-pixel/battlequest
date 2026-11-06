@@ -1,13 +1,9 @@
-import type { Age, CampaignBattle } from './types';
+import { AGES, AGE_BY_ID } from './ages';
+import { KADESH_BUILDER_TIPS, KADESH_TUTORIAL, MEGIDDO_TUTORIAL } from './tutorial';
+import type { CampaignBattle } from './types';
 
 const W = 6 as const;
 const SW = 5 as const;
-
-export const AGES: Age[] = [
-  { id: 0, name: 'Prologue', starterUnits: ['egyptianSpearmen', 'egyptianChariots'] },
-  { id: 1, name: 'Bronze & Iron', starterUnits: ['hittiteSpearmen'] },
-  { id: 2, name: 'Greece & Persia', starterUnits: ['hoplites', 'peltasts'] },
-];
 
 /*
  * Megiddo, 1457 BC (research):
@@ -21,8 +17,9 @@ const megiddo: CampaignBattle = {
   name: 'Megiddo',
   year: '1457 BC',
   age: 0,
-  order: 0,
-  tutorial: true,
+  lat: 32.585,
+  lon: 35.184,
+  tutorial: MEGIDDO_TUTORIAL,
   problem: 'Strike the Canaanite line from the flank before it can turn to face you.',
   briefing:
     'Thutmose III has led his army through the narrow Aruna pass and out onto the plain before Megiddo, where the Canaanite kings did not expect him. Their warriors are still forming up. Turn your chariots against the side of their line, where a unit can only strike back at half strength — and keep your spearmen facing the enemy.',
@@ -91,8 +88,9 @@ const kadesh: CampaignBattle = {
   id: 'kadesh',
   name: 'Kadesh',
   year: '1274 BC',
-  age: 1,
-  order: 0,
+  age: 0,
+  lat: 34.557,
+  lon: 36.519,
   problem: 'Hold the camp against a chariot ambush across the Orontes for 5 turns.',
   briefing:
     'False reports have led Ramesses II into a trap: Hittite chariots are splashing across the Orontes towards his camp. Help is on the way, but it will take time. Spearmen in front stop chariots cold, and chariots in a ford fight badly — make them pay for every crossing.',
@@ -135,6 +133,8 @@ const kadesh: CampaignBattle = {
     general: { id: 'captain', rank: 1 },
   },
   bonus: { kind: 'noUnitLost' },
+  tutorial: KADESH_TUTORIAL,
+  builderTips: KADESH_BUILDER_TIPS,
   bonusText: 'Lose no unit (none routed or destroyed).',
 };
 
@@ -150,7 +150,8 @@ const qarqar: CampaignBattle = {
   name: 'Qarqar',
   year: '853 BC',
   age: 1,
-  order: 1,
+  lat: 35.79,
+  lon: 36.33,
   problem: 'Close with the Assyrian archers before their volleys break your line.',
   briefing:
     'The kings of Syria and Israel have joined forces to stop Shalmaneser III by the Orontes. The Assyrian army is the most professional of its age, its archers sheltered behind spearmen and shields. Every turn spent at a distance favours them: get in close, and watch for their cavalry on your flank.',
@@ -212,8 +213,9 @@ const marathon: CampaignBattle = {
   id: 'marathon',
   name: 'Marathon',
   year: '490 BC',
-  age: 2,
-  order: 0,
+  age: 1,
+  lat: 38.118,
+  lon: 23.978,
   problem: 'Win on the wings while a thin centre holds, then close the trap.',
   briefing:
     'The Persians have landed at Marathon, a day’s march from Athens. Miltiades has stretched the Greek line to match theirs: thin in the middle, strong on the wings. The Persian centre is their best infantry — let it push, beat their flanks, and turn in on it.',
@@ -285,8 +287,9 @@ const thermopylae: CampaignBattle = {
   id: 'thermopylae',
   name: 'Thermopylae',
   year: '480 BC',
-  age: 2,
-  order: 1,
+  age: 1,
+  lat: 38.796,
+  lon: 22.536,
   problem: 'Hold the narrow pass against a far larger army for 10 turns.',
   briefing:
     'Between the mountains and the sea, the road to Greece is barely wide enough for a few ranks. Xerxes’ army is enormous, but here only a few of his units can fight at once. Fill the pass with your best infantry, keep your line closed, and do not be drawn out into the open.',
@@ -346,8 +349,9 @@ const leuctra: CampaignBattle = {
   id: 'leuctra',
   name: 'Leuctra',
   year: '371 BC',
-  age: 2,
-  order: 2,
+  age: 1,
+  lat: 38.256,
+  lon: 23.18,
   problem:
     'Mass your strength on one wing and break the Spartan king before your weak wing gives way.',
   briefing:
@@ -420,11 +424,14 @@ export const BATTLE_BY_ID: Record<string, CampaignBattle> = Object.fromEntries(
   CAMPAIGN.map((b) => [b.id, b]),
 );
 
+/** An age's playable battles, in order. */
 export function battlesOfAge(age: number): CampaignBattle[] {
-  return CAMPAIGN.filter((b) => b.age === age).sort((a, b) => a.order - b.order);
+  return (AGE_BY_ID[age]?.battles ?? []).map((id) => BATTLE_BY_ID[id]!).filter(Boolean);
 }
 
-/** The battle whose win unlocks the next age. */
-export function finalBattleOfAge(age: number): CampaignBattle | undefined {
-  return battlesOfAge(age).at(-1);
+/** A battle's position (0-based) in its age. */
+export function battleIndex(b: CampaignBattle): number {
+  return AGE_BY_ID[b.age]?.battles.indexOf(b.id) ?? -1;
 }
+
+export { AGES, AGE_BY_ID };
