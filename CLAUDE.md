@@ -23,6 +23,9 @@ BattleQuest is a turn-based tactical battle simulator for tablets and phones. Yo
 - `add-battle`: new or reworked battle scenarios.
 - `balance-sim`: measure balance with headless battles before and after tuning any number.
 - `visual-check`: screenshot at tablet and phone sizes and check the style and touch rules after any UI or render change.
+- `motion`: timing tokens, style and recipes for every animation (intro, card reveals, victory, in-battle effects).
+- `touch-controls`: the gesture set, controls architecture and gesture tests.
+- `motion-check`: record animations (frame strips, fps, skip, reduced motion) after any motion or controls change.
 
 ## Workflow
 - Before committing, run `npm run typecheck && npm run lint && npm test`.
