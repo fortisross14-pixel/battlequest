@@ -5,6 +5,7 @@ import type { GameEvent } from '../core/events';
 import { generalUnit, skillNeedsTarget, validSkillTarget } from '../core/generals';
 import { DIRS } from '../core/geometry';
 import { planMove, reachableSquares, turnCost } from '../core/movement';
+import { rangeSquares } from '../core/combat';
 import { previewCombat } from '../core/preview';
 import { isRejection } from '../core/rejection';
 import type { BattleSession } from '../core/session';
@@ -98,6 +99,10 @@ export class Controller {
     hud.endBtn.onclick = () => void this.endTurn();
     hud.skillBtn.onclick = () => this.openSkills();
     hud.speedBtn.onclick = () => this.cycleSpeed();
+    hud.turnBtn.onclick = () => {
+      const u = 'unitId' in this.mode ? this.unit(this.mode.unitId) : undefined;
+      if (u && this.canTurnSelected()) this.openFacingRing(u);
+    };
     hud.menuBtn.onclick = () => this.confirmExit();
     this.showTutorial();
     this.refresh();
@@ -116,6 +121,14 @@ export class Controller {
 
   private unit(id: string): Unit | undefined {
     return getUnit(this.state, id);
+  }
+
+  /** The selected unit can turn now (Turn button). */
+  private canTurnSelected(): boolean {
+    if (this.mode.kind !== 'selected' && this.mode.kind !== 'ghost') return false;
+    const u = this.unit(this.mode.unitId);
+    if (!u || !isFighting(u) || isEngaged(this.state, u.id)) return false;
+    return DIRS.some((d) => d !== u.facing && turnCost(u, u.facing, d) <= u.mpLeft + 1e-9);
   }
 
   private isHumanTurn(): boolean {
@@ -216,6 +229,8 @@ export class Controller {
       reach: this.targets.reach.map((r) => ({ pos: r.pos, kind: r.kind })),
       charge: this.targets.charge,
       shoot: this.targets.shoot,
+      // Show a missile unit's reach while it can still shoot this turn.
+      range: !u.hasActed && !isEngaged(this.state, u.id) ? rangeSquares(this.state, u) : [],
     });
     this.refresh();
   }
@@ -699,6 +714,7 @@ export class Controller {
       skill:
         !!g && !!gu && g.skills.length > 0 ? (!busy && skillReady ? 'ready' : 'waiting') : 'none',
       menu: !!this.opts.onExit,
+      turn: !busy && this.canTurnSelected(),
     });
     if (this.mode.kind === 'selected' || this.mode.kind === 'preview') {
       const u = this.unit(this.mode.unitId)!;

@@ -1099,3 +1099,228 @@
     padding: 2px 7px;
   }
 }
+
+/* ---------- Compact cards (owner feedback) ---------- */
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.mini-grid.wide {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.mini-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font: 14px var(--sans);
+  text-align: left;
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+}
+
+button.mini-card {
+  cursor: pointer;
+}
+
+.mini-card.pick.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  background: #fffaf0;
+}
+
+.mini-card:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mini-card.ready {
+  box-shadow: 0 0 0 3px rgba(217, 162, 27, 0.6);
+}
+
+/* Rarity: card edge and pill share one colour per tier. */
+.mini-card.common {
+  border-color: #9a9a9a;
+}
+.mini-card.rare {
+  border-color: #3f7cc2;
+}
+.mini-card.epic {
+  border-color: #7b4fb0;
+}
+.mini-card.legendary {
+  border-color: #c99a1e;
+  box-shadow: 0 0 0 2px rgba(217, 162, 27, 0.35);
+}
+
+.rarity-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font: 700 10.5px var(--sans);
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+.rarity-pill.common {
+  background: #8a8a8a;
+}
+.rarity-pill.rare {
+  background: #3f7cc2;
+}
+.rarity-pill.epic {
+  background: #7b4fb0;
+}
+.rarity-pill.legendary {
+  background: linear-gradient(#e6bd45, #b8860b);
+  color: #2b2208;
+}
+
+.mini-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-head .medallion {
+  width: 44px;
+  height: 44px;
+  font-size: 17px;
+}
+
+.mini-text b {
+  display: block;
+  font: italic 17px var(--serif);
+  line-height: 1.15;
+}
+
+.mini-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.mini-card .power {
+  align-self: start;
+  min-width: 34px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 15px var(--serif);
+  text-align: center;
+}
+
+.mini-card .in-army {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+/* Details: long-press on touch, hover with a mouse. */
+.card-details {
+  display: none;
+  position: absolute;
+  z-index: 6;
+  left: -2px;
+  right: -2px;
+  top: calc(100% - 4px);
+  padding: 8px 10px;
+  border-radius: 0 0 12px 12px;
+  border: 2px solid var(--ink);
+  border-top: 1px dashed var(--line);
+  background: #fffaf0;
+  box-shadow: 0 8px 18px rgba(59, 50, 38, 0.25);
+  font-size: 13px;
+  line-height: 1.35;
+  cursor: default;
+}
+
+.card-details p {
+  margin: 4px 0;
+}
+
+.card-details .tags {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
+.has-details.open {
+  z-index: 7;
+}
+
+.has-details.open > .card-details {
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .has-details:hover {
+    z-index: 7;
+  }
+  .has-details:hover > .card-details {
+    display: block;
+  }
+}
+
+/* Not found yet: just a big question mark. */
+.mini-card.locked {
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border-style: dashed;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.big-q {
+  font: 700 54px var(--serif);
+  line-height: 1;
+  color: rgba(59, 50, 38, 0.35);
+}
+
+/* Slot picker. */
+.slot-plus {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 230, 207, 0.85);
+}
+
+.picker {
+  width: min(760px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+  border-radius: 16px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  box-sizing: border-box;
+}
+
+.picker h2 {
+  margin: 4px 0;
+}
+
+.mini-grid.enemy .mini-card {
+  background: #fbf3ef;
+}

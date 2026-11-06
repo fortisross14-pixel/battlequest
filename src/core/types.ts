@@ -48,6 +48,8 @@ export type UnitTag =
   | 'FlankVulnerable'
   | 'OneShot'
   | 'Charge'
+  /** The general's own bodyguard: if it routs or dies, the battle is lost. */
+  | 'Commander'
   | 'HitAndRun'
   | 'Pursue'
   | 'ScaresHorses'
@@ -97,7 +99,8 @@ export type UnitSymbol =
   | 'chariot'
   | 'elephant'
   | 'gun'
-  | 'artillery';
+  | 'artillery'
+  | 'general';
 
 export enum Cohesion {
   Steady = 0,
@@ -195,7 +198,13 @@ export interface Engagement {
   b: string;
 }
 
-export type BattleEndReason = 'armyBroken' | 'turnLimit' | 'heldOut' | 'conceded';
+export type BattleEndReason =
+  | 'armyBroken'
+  | 'turnLimit'
+  | 'heldOut'
+  | 'conceded'
+  /** A side's general was routed or destroyed. */
+  | 'generalFell';
 
 export interface BattleResult {
   /** null = draw. */

@@ -28,7 +28,10 @@ import {
   type Side,
 } from '../../src/core';
 
-export const ARCHETYPE_IDS = Object.keys(ARCHETYPES) as ArchetypeId[];
+/** Archetypes a player fields (the general's 0-cost guard is not one). */
+export const ARCHETYPE_IDS = (Object.keys(ARCHETYPES) as ArchetypeId[]).filter(
+  (id) => ARCHETYPES[id].stats.cost > 0,
+);
 
 const E: Dir = 2;
 const W: Dir = 6;

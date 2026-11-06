@@ -76,6 +76,12 @@ export const PICTOGRAMS: Record<UnitSymbol, string> = {
 <path ${S} stroke-width="${W}" d="M13 23 L2.5 29.8"/>
 <circle ${S} stroke-width="3.2" cx="13" cy="23" r="6.4"/>
 <circle ${F} cx="13" cy="23" r="2.4"/>`,
+
+  // The general: a swallowtail banner on a staff with a finial.
+  general: `<path ${S} stroke-width="${W}" d="M8 31 L8 5"/>
+<circle ${F} cx="8" cy="3.2" r="2.6"/>
+<path ${F} d="M9.5 6 L29.5 8.5 L24 13.5 L29.5 18.5 L9.5 20 Z"/>
+<path ${F} d="M4.5 31 L11.5 31 L10 27.5 L6 27.5 Z"/>`,
 };
 
 /** Badge shape by battlefield role. */
@@ -95,6 +101,8 @@ export function badgeShapeOf(symbol: UnitSymbol): BadgeShape {
       return 'circle';
     case 'artillery':
       return 'square';
+    case 'general':
+      return 'circle';
     default:
       return 'shield';
   }
@@ -121,6 +129,8 @@ export const BADGE_COLORS: Record<Side, { fill: string; dark: string }> = {
   red: { fill: '#b23a3a', dark: '#4e1414' },
 };
 export const BADGE_CREAM = '#f7f1e3';
+/** Generals' badges get a gold ring so the commander stands out. */
+export const BADGE_GOLD = '#e0b43a';
 
 /**
  * The badge's inner SVG markup in a 40×44 box: shadow, dark outline, side fill, cream inner
@@ -141,7 +151,7 @@ export function badgeMarkup(symbol: UnitSymbol, side: Side, level = 1, muted = f
   const iconY = pips ? at.cy - 2 : at.cy;
   return `<path d="${d}" transform="translate(1.2 1.6)" fill="#000" fill-opacity="0.28"/>
 <path d="${d}" fill="${muted ? '#fff' : c.fill}" fill-opacity="${muted ? 0.5 : 1}" stroke="${c.dark}" stroke-width="2.6" stroke-linejoin="round"/>
-<path d="${d}" transform="translate(20 21.5) scale(0.82) translate(-20 -21.5)" fill="none" stroke="${muted ? c.fill : BADGE_CREAM}" stroke-width="1.6" stroke-opacity="0.85" stroke-linejoin="round"/>
+<path d="${d}" transform="translate(20 21.5) scale(0.82) translate(-20 -21.5)" fill="none" stroke="${muted ? c.fill : symbol === 'general' ? BADGE_GOLD : BADGE_CREAM}" stroke-width="1.6" stroke-opacity="0.85" stroke-linejoin="round"/>
 <g transform="translate(${20 - at.size / 2} ${iconY - at.size / 2}) scale(${k})" color="${muted ? c.fill : BADGE_CREAM}">${PICTOGRAMS[symbol]}</g>
 ${pipMarks}`;
 }

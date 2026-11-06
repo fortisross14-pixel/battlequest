@@ -51,6 +51,8 @@ export interface CampaignBattle {
    * higher value so one lost unit doesn't end the battle.
    */
   enemyBreakpoint?: number;
+  /** The same for the player's army (tutorial and small battles can be more forgiving). */
+  playerBreakpoint?: number;
   /** Unit slots: the army must fill exactly this many (GAME_DESIGN 5). */
   maxUnits: number;
   /**
@@ -71,7 +73,8 @@ export interface CampaignBattle {
 
 export interface ArmyChoice {
   units: { type: string; level?: number }[];
-  general?: { id: string; rank: number; unitIndex: number };
+  /** The general leads from their own unit on the map. `unitIndex` is from older saves and ignored. */
+  general?: { id: string; rank: number; unitIndex?: number };
 }
 
 /** What the tutorial waits for before moving to its next step. */

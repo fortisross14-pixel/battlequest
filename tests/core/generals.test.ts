@@ -204,7 +204,7 @@ describe('generals (4.10, 6)', () => {
     expect(s.sides.blue.effects).toHaveLength(0);
   });
 
-  it('when the general’s unit breaks the general may be lost, and the army tests', () => {
+  it('when the general’s unit breaks, the general is lost and the battle is over', () => {
     let lost = 0;
     for (let seed = 0; seed < 60; seed++) {
       const s = withGeneral(
@@ -221,17 +221,13 @@ describe('generals (4.10, 6)', () => {
       const red = structuredClone(s);
       red.activeSide = 'red';
       const { state, events } = run(red, { type: 'Shoot', unitId: 'r', targetId: 'g' });
-      const gl = events.find((e) => e.type === 'GeneralLost');
-      if (gl) {
-        lost++;
-        expect(state.sides.blue.general!.lost).toBe(true);
-        expect(
-          events.filter((e) => e.type === 'CohesionTest' && (e.unitId === 'a' || e.unitId === 'b')),
-        ).toHaveLength(2);
-      }
+      // The shot drops the general's unit below 25 strength: it routs, every time.
+      expect(events.some((e) => e.type === 'GeneralLost')).toBe(true);
+      expect(state.sides.blue.general!.lost).toBe(true);
+      expect(state.result).toMatchObject({ winner: 'red', reason: 'generalFell' });
+      lost++;
     }
-    expect(lost).toBeGreaterThan(8);
-    expect(lost).toBeLessThan(30);
+    expect(lost).toBe(60);
   });
 });
 

@@ -4,14 +4,17 @@ Each battle played 40 times per army: the utility AI plays the player with the b
 
 | Battle | Age | Units | Player wins | Target | Result | Avg turns | Avg player losses |
 |---|---|---|---|---|---|---|---|
-| Megiddo | 0 | 2 test units v 2 | 95% | 80%–90% | **out** | 2.0 | 23% |
-| Kadesh | 1 | 3 test units v 3 | 73% | 50%–75% | pass | 5.0 | 18% |
-| Qarqar | 1 | 3 test units v 4 | 48% | 35%–50% | pass | 3.0 | 47% |
-| Marathon | 2 | 4 test units v 5 | 60% | 50%–75% | pass | 4.2 | 48% |
-| Thermopylae | 2 | 4 test units v 6 | 53% | 50%–75% | pass | 3.0 | 37% |
-| Leuctra | 2 | 5 test units v 5 | 28% | 35%–50% | **out** | 3.3 | 60% |
+| Megiddo | 0 | 2 test units v 2 | 100% | 80%–90% | **out** | 3.0 | 44% |
+| Kadesh | 1 | 3 test units v 3 | 100% | 50%–75% | **out** | 4.0 | 20% |
+| Qarqar | 1 | 3 test units v 4 | 33% | 35%–50% | **out** | 3.0 | 55% |
+| Marathon | 2 | 4 test units v 5 | 88% | 50%–75% | **out** | 3.9 | 43% |
+| Thermopylae | 2 | 4 test units v 6 | 65% | 50%–75% | pass | 3.3 | 34% |
+| Leuctra | 2 | 5 test units v 5 | 33% | 35%–50% | **out** | 3.5 | 56% |
 
 ## Outliers
 
-- **Megiddo**: 95% (target 80%–90%)
-- **Leuctra**: 28% (target 35%–50%)
+- **Megiddo**: 100% (target 80%–90%)
+- **Kadesh**: 100% (target 50%–75%)
+- **Qarqar**: 33% (target 35%–50%)
+- **Marathon**: 88% (target 50%–75%)
+- **Leuctra**: 33% (target 35%–50%)

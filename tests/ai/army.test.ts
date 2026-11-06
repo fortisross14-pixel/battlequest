@@ -200,3 +200,44 @@ describe('robustness', () => {
     );
   });
 });
+
+describe('owner feedback: the whole army fights, generals stay back', () => {
+  it('a far defensive unit joins in once any friend is locked in melee', () => {
+    const s = friendInMelee();
+    // Move the horseman far away from the fight.
+    const far = structuredClone(s);
+    unit(far, 'n').x = 11;
+    unit(far, 'n').y = 0;
+    const ai = new AiPlayer('red', { posture: 'defensive' });
+    expect(ai.postureOf(far, 'n')).toBe('aggressive');
+  });
+
+  it('the AI general keeps behind its line instead of advancing into the enemy', () => {
+    const s = structuredClone(
+      battle({
+        units: [
+          ['b', 'blue', 'spearmen', 3, 3, E],
+          ['b2', 'blue', 'spearmen', 3, 4, E],
+          ['r1', 'red', 'spearmen', 7, 3, W],
+          ['r2', 'red', 'spearmen', 7, 4, W],
+          ['rg', 'red', 'generalGuard', 8, 1, W],
+        ],
+      }),
+    );
+    s.sides.red.general = {
+      generalId: 'captain',
+      name: 'Captain',
+      unitId: 'rg',
+      commandRadius: 3,
+      rallyBonus: 0,
+      lost: false,
+      skills: [],
+    };
+    s.activeSide = 'red';
+    const { state } = redTurn(s, new AiPlayer('red', { posture: 'aggressive' }));
+    const g = unit(state, 'rg');
+    // Behind (east of) its own line and not next to an enemy.
+    expect(g.x).toBeGreaterThanOrEqual(8);
+    expect(Math.abs(g.y - 3.5)).toBeLessThanOrEqual(1.5);
+  });
+});

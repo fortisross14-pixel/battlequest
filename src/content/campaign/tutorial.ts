@@ -3,7 +3,7 @@ import type { TutorialStep } from './types';
 /** Guided steps for the Prologue (Megiddo). `until` is what the player has to do next. */
 export const MEGIDDO_TUTORIAL: TutorialStep[] = [
   {
-    text: 'Tap your chariots (the round badge with the wheel, under the pennant) to select them.',
+    text: 'Tap your chariots (the round badge with the wheel) to select them. Thutmose stands behind your line with his banner: keep him safe — if your general falls, the battle is lost.',
     until: 'select',
   },
   {
@@ -11,7 +11,7 @@ export const MEGIDDO_TUTORIAL: TutorialStep[] = [
     until: 'move',
   },
   {
-    text: 'Pick a facing on the ring, or tap elsewhere to keep the current one. The thick edge of a block is its front.',
+    text: 'Pick a facing on the ring (any turn costs 1 MP), or tap elsewhere to keep it. The thick edge of a block is its front. Later, select a unit and press ↻ Turn to turn it.',
     until: 'facing',
   },
   {

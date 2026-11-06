@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeDamage,
+  validateCommand,
   evadeChance,
   Cohesion,
   isRejection,
@@ -158,7 +159,9 @@ describe('ranged combat', () => {
     });
 
   it('uses Ranged vs armor, x0.7 beyond half range', () => {
-    expect(dmg(range(2), 'a', 'd', 'ranged')).toBeCloseTo((30 * 6) / 11);
+    // Archers reach 3 squares; beyond half of that (1.5) is long range.
+    expect(dmg(range(1), 'a', 'd', 'ranged')).toBeCloseTo((30 * 6) / 11);
+    expect(dmg(range(2), 'a', 'd', 'ranged')).toBeCloseTo(((30 * 6) / 11) * 0.7);
     expect(dmg(range(3), 'a', 'd', 'ranged')).toBeCloseTo(((30 * 6) / 11) * 0.7);
   });
 
@@ -173,11 +176,11 @@ describe('ranged combat', () => {
       '............',
       '............',
     ];
-    expect(dmg(range(2, rows), 'a', 'd', 'ranged')).toBeCloseTo(((30 * 6) / 11) * 0.6);
+    expect(dmg(range(2, rows), 'a', 'd', 'ranged')).toBeCloseTo(((30 * 6) / 11) * 0.6 * 0.7);
   });
 
   it('flank and rear bonuses do not apply to shooting', () => {
-    expect(dmg(withUnit(range(2), 'd', { facing: E }), 'a', 'd', 'ranged')).toBeCloseTo(
+    expect(dmg(withUnit(range(1), 'd', { facing: E }), 'a', 'd', 'ranged')).toBeCloseTo(
       (30 * 6) / 11,
     );
   });
@@ -214,8 +217,9 @@ describe('ranged combat', () => {
           (e) => e.type === 'DamageDealt',
         ) as { amount: number }
       ).amount;
-      expect(amount).toBeGreaterThanOrEqual(Math.round(16.36 * 0.85));
-      expect(amount).toBeLessThanOrEqual(Math.round(16.37 * 1.15));
+      // Distance 2 is long range for archers (×0.7): 16.36 × 0.7 ≈ 11.45 expected.
+      expect(amount).toBeGreaterThanOrEqual(Math.round(11.45 * 0.85));
+      expect(amount).toBeLessThanOrEqual(Math.round(11.46 * 1.15));
     }
   });
 
@@ -231,7 +235,7 @@ describe('ranged combat', () => {
     expect(rejected(duel(), { type: 'Shoot', unitId: 'a', targetId: 'd' })).toBe('CANNOT_SHOOT');
   });
 
-  it('forest and units block line of sight; a shooter on higher ground sees over units', () => {
+  it('forest blocks line of sight; units do not (missiles go over them)', () => {
     const forest = [
       '............',
       '............',
@@ -249,7 +253,7 @@ describe('ranged combat', () => {
     const s = battle({
       units: [['a', 'blue', 'archers', 2, 3, E], ['d', 'red', 'spearmen', 4, 3, W], blocker],
     });
-    expect(rejected(s, { type: 'Shoot', unitId: 'a', targetId: 'd' })).toBe('NO_LINE_OF_SIGHT');
+    expect(validateCommand(s, { type: 'Shoot', unitId: 'a', targetId: 'd' })).toBeNull();
     const elev = [
       '000000000000',
       '000000000000',
@@ -570,7 +574,7 @@ describe('combat preview', () => {
       ],
     });
     const shot = previewCombat(s, { type: 'Shoot', unitId: 'a', targetId: 'd' });
-    expect(!isRejection(shot) && shot.defender.expectedLoss).toBeCloseTo((30 * 6) / 11);
+    expect(!isRejection(shot) && shot.defender.expectedLoss).toBeCloseTo(((30 * 6) / 11) * 0.7);
     const ev = previewCombat(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
     if (isRejection(ev)) throw new Error(ev.message);
     expect(ev.outcome).toBe('mayEvade');

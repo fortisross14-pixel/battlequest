@@ -204,6 +204,7 @@ export function lostCost(state: BattleState, side: Side): number {
 }
 
 export function isArmyBroken(state: BattleState, side: Side): boolean {
+  if (state.sides[side].general?.lost) return true;
   const total = armyCost(state, side);
   return total > 0 && lostCost(state, side) / total >= state.sides[side].breakpoint;
 }

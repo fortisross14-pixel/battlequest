@@ -16,6 +16,8 @@ export interface Highlights {
   shoot: Pos[];
   /** Valid targets for a general's skill. */
   skill?: Pos[];
+  /** Squares a selected missile unit can shoot at from where it stands (its range). */
+  range?: Pos[];
 }
 
 export interface RingHandle {
@@ -235,6 +237,16 @@ export class BattleView {
           alpha: 0.7,
         });
       }
+    }
+    // Missile range: a dotted border and a centre dot on every square the unit can shoot.
+    for (const p of h.range ?? []) {
+      const c = centre(p);
+      g.rect(p.x * CELL + 2, p.y * CELL + 2, CELL - 4, CELL - 4).stroke({
+        width: 1.5,
+        color: THEME.shoot,
+        alpha: 0.55,
+      });
+      g.circle(c.x, c.y, 3.5).fill({ color: THEME.shoot, alpha: 0.45 });
     }
     for (const p of h.charge) {
       // Thick red frame with corner brackets: shape, not only colour, marks a charge target.

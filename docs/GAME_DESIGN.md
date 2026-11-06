@@ -72,7 +72,7 @@ The look is a **living historical battle map**: the same red-and-blue blocks, ar
 
 - **Costs:** orthogonal step = 2 MP, diagonal step = 3 MP (this approximates real distance). Terrain multiplies the cost (see 4.7).
 - **Facing:** 8 directions. A unit's **front arc** is the 3 squares ahead of it, its **flanks** are the 2 side squares, and its **rear** is the 3 squares behind it.
-- **Turning:** each 45° costs 1 MP. A 180° about-face costs 3 MP. Light units (skirmishers, light cavalry) turn for free.
+- **Turning:** any change of facing costs **1 MP**, whatever the angle, so a unit can spend all but 1 MP moving and still turn. Light units (skirmishers, light cavalry) turn for free. A selected unit has a **Turn** button that opens the facing ring.
 - **Facing after a move:** a unit keeps the facing it started with if it can afford the turns; otherwise it faces the way it walked. The player can pick another facing.
 - **Sidestep / backstep:** as its first move of the turn, a unit outside any enemy zone of control may shift one square left, right or back without turning, for 3 MP (scaled by terrain like a normal step).
 - **Zone of control (ZOC):** a unit that enters a square inside an enemy's front arc must stop. It can't walk past enemies. It can leave only by:
@@ -91,7 +91,7 @@ Every unit type has:
 | **MP** | Movement points per turn. |
 | **Melee** | Damage dealt in ongoing melee. |
 | **Impact** | Damage dealt on the charge (first clash). |
-| **Ranged / Range** | Shooting damage and range in squares (0 = can't shoot). |
+| **Ranged / Range** | Shooting damage, and the farthest square it can hit (0 = can't shoot). Basic missile troops have range **3**: from A1 they reach A2, A3 and A4, two empty squares away. Elite or later-age shooters (and some generals) reach one more. Skirmishers' javelins reach 2. |
 | **Armor** | Reduces incoming damage. |
 | **Morale** | Base resistance to cohesion loss. |
 | **Cost** | Army points. |
@@ -108,7 +108,7 @@ Costs were tuned with `balance-sim cost` in review 1 (see docs/DECISIONS.md).
 | Archetype | MP | Melee | Impact | Ranged (rng) | Armor | Morale | Cost | Tags / notes |
 |---|---|---|---|---|---|---|---|---|
 | Skirmishers (javelin/sling) | 10 | 2 | 2 | 4 (2) | 2 | 4 | 55 | Evade, LightTurn, RoughTerrainOK |
-| Archers | 8 | 2 | 1 | 6 (4) | 2 | 4 | 47 | — |
+| Archers | 8 | 2 | 1 | 6 (3) | 2 | 4 | 47 | — |
 | Crossbowmen | 8 | 3 | 1 | 7 (3) | 4 | 5 | 62 | ArmorPiercing, NoMoveAndShoot |
 | Spearmen | 8 | 5 | 5 | 0 | 5 | 6 | 87 | AntiCavalry (front) |
 | Heavy swordsmen (legion) | 8 | 7 | 6 | 3 (1)* | 6 | 7 | 97 | *Pila: one-shot volley |
@@ -213,13 +213,15 @@ p clamped to [0, 0.9]
 
 **Weather and scenario modifiers:** fog (vision limited to 3 squares, fog of war on), rain (gunpowder ranged −50%, mud spreads), heat (−1 morale after turn 8), and timed **reinforcements** (Blücher arriving at Waterloo on turn 8).
 
-**Line of sight / fog of war:** off by default (you see the full map, as on a battle diagram). Scenarios such as Trasimene, Teutoburg and Austerlitz turn it on.
+**Line of sight:** woods and higher ground block it; **units never do**, so missile troops shoot over friends and enemies alike. A missile unit in melee can't shoot: it fights with its (weak) melee instead. Selecting a missile unit shows the squares it can hit.
+
+**Fog of war:** off by default (you see the full map, as on a battle diagram). Scenarios such as Trasimene, Teutoburg and Austerlitz turn it on.
 
 ### 4.10 Generals in battle
 
-- The general is **attached to one unit**, shown with a pennant flag on that block.
-- **Command radius** (3–5 squares, set by rank and traits): units inside it get the cohesion and rally bonus.
-- If the general's unit routs or is destroyed, there is a 30% chance the general is killed or captured. If that happens, every unit makes an immediate cohesion test. In the meta game, a killed general is unavailable for the next battle only. There is no permadeath.
+- The general takes the field as **their own unit**: the general and guard, a small cavalry unit with a banner badge and the general's pennant. It deploys behind the line like any unit, and it costs nothing (it doesn't count towards the army's breakpoint).
+- **Command radius** (3–5 squares, set by rank and traits) around the general's unit: units inside it get the cohesion and rally bonus. Passive traits apply to the whole army.
+- **If the general's unit routs or is destroyed, that army loses the battle at once.** Generals are therefore conservative: the AI keeps its general about two squares behind the middle of its army, out of reach of enemy charges, and only attacks with it to run down a router or to finish a unit it is likely to break. In the meta game, a fallen general is unavailable for the next battle only. There is no permadeath.
 - **Active skills** cost one action from the general's unit and have a cooldown in turns.
 
 ### 4.11 Enemy AI
@@ -259,7 +261,9 @@ The troop dynamic is **unlock and upgrade**.
 - Every slot must be filled to deploy.
 - The screen shows an **army power** indicator against the enemy's power as a difficulty hint only. It doesn't block anything.
 - Unit point costs still exist inside the battle rules: they set when an army breaks and how stars count losses.
-- The **general picker** appears on every battle. Each option shows the general's rank, traits and skills. You also choose which unit the general rides with.
+- The **general picker** appears on every battle. Each card shows the general's name, rank, first skill, rarity and power; long-press (or hover with a mouse) for traits, skills and cooldowns. The general takes the field with their own guard unit.
+- **Slots:** tap a slot to open a picker with your troops, and tap one to place it.
+- **Cards:** troop and general cards are compact: name, type, level or rank, a coloured **rarity pill** (grey Common, blue Rare, purple Epic, gold Legendary) and a **power** number in the top-right corner. Details open on long-press or hover. Troops and generals not found yet show as a card with a large **?**.
 - The Prologue is the only battle with a fixed army, and that army is built from the player's two starting troop types.
 - Saved army presets are a later feature.
 - An optional **"Historical challenge"** gives a fixed historical army and pays bonus coins.
@@ -371,7 +375,7 @@ The inspiration is classic battle diagrams like the Waterloo and Gaugamela maps:
 
   The same badge is the troop's icon in every screen (army builder, Army screen, shop, pack reveal, unit card). Under the block sit a **strength bar** and a **cohesion pip** (green, yellow, orange, red), both large enough to read at a glance on a phone.
 - **States:** a Disrupted unit's rectangle gets a hatch pattern; Fragmented gets a heavier hatch; a Routed unit is **hollow, outline only** (like the white blocks in the Waterloo map), slightly faded, and its badge turns pale.
-- **General:** a small pennant flag with the general's name on top of the block ("NEY 1600" style).
+- **General:** the general's own unit has a banner badge with a gold ring and a small pennant with the general's name ("NEY 1600" style).
 - **Movement:** big translucent **arrows**, like the ones in battle diagrams, show planned charges and the last turn's enemy moves.
 - **Feedback:** short tweens only. A block slides; on impact it shakes; floating numbers show losses; a pulse shows a cohesion drop. Nothing heavier.
 - **Typography:** one serif for titles (map-label feel) and one clean sans for UI.

@@ -21,8 +21,8 @@ export const RULES = {
   movement: {
     orthogonalCost: 2,
     diagonalCost: 3,
-    turnCostPer45: 1,
-    aboutFaceCost: 3,
+    /** Any change of facing costs this much (light troops turn free). */
+    turnCost: 1,
     uphillMultiplier: 1.5,
     /** RoughTerrainOK units move through rough and forest at this multiplier. */
     roughTerrainOkMultiplier: 1,
@@ -105,8 +105,6 @@ export const RULES = {
     rallyChance: 0.35,
   },
   generals: {
-    /** Chance the general is killed or captured when the general's unit routs or is destroyed. */
-    lossChance: 0.3,
     /** [minimum rank, command radius] (6.1). */
     radiusByRank: [
       [1, 3],

@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AGES, BATTLE_BY_ID, CAMPAIGN } from '../../src/content/campaign/battles';
 import type { CampaignBattle } from '../../src/content/campaign/types';
-import {
-  addTroop,
-  armyPower,
-  armyProblems,
-  fixedArmyFor,
-  removeTroop,
-  startingArmy,
-} from '../../src/meta/army';
+import { addTroop, armyPower, armyProblems, fixedArmyFor, startingArmy } from '../../src/meta/army';
 import { nextBattle } from '../../src/meta/campaign';
 import {
   addUnitCard,
@@ -194,7 +187,7 @@ describe('army builder rules', () => {
 
   it('allows 3 of the same unit: slots are the only limit, points are ignored', () => {
     const p = withChariots();
-    const army = { units: [], general: { id: 'captain', rank: 1, unitIndex: 0 } };
+    const army = { units: [], general: { id: 'captain', rank: 1 } };
     for (let i = 0; i < 3; i++) expect(addTroop(p, kadesh, army, 'egyptianChariots')).toBe(true);
     expect(addTroop(p, kadesh, army, 'egyptianChariots')).toBe(false);
     expect(armyProblems(p, kadesh, army)).toEqual([]);
@@ -215,24 +208,9 @@ describe('army builder rules', () => {
       { type: 'egyptianSpearmen' },
     ];
     const codes = (id: string) =>
-      armyProblems(p, kadesh, { units, general: { id, rank: 1, unitIndex: 0 } }).map((x) => x.code);
+      armyProblems(p, kadesh, { units, general: { id, rank: 1 } }).map((x) => x.code);
     expect(codes('captain')).toEqual(['notOwned', 'generalResting']);
     expect(codes('hannibal')).toEqual(['notOwned', 'generalNotOwned']);
-  });
-
-  it('removing a unit keeps the general on the same unit', () => {
-    const army = {
-      units: [
-        { type: 'egyptianSpearmen' },
-        { type: 'egyptianArchers' },
-        { type: 'egyptianChariots' },
-      ],
-      general: { id: 'captain', rank: 1, unitIndex: 2 },
-    };
-    removeTroop(kadesh, army, 'egyptianArchers');
-    expect(army.units[army.general.unitIndex]!.type).toBe('egyptianChariots');
-    removeTroop(kadesh, army, 'egyptianChariots');
-    expect(army.general.unitIndex).toBe(0);
   });
 
   it('Megiddo: the fixed composition uses the player’s own levels and Thutmose for this battle', () => {

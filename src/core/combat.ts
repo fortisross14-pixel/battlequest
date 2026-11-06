@@ -13,7 +13,7 @@ import { flankBoost } from './generals';
 import { stepCost, turnCost } from './movement';
 import { reject, type Rejection } from './rejection';
 import { randomRange } from './rng';
-import { hasTag, inEnemyZoc, isCavalryLike, isEngaged, isOnMap, isRouted, unitAt } from './state';
+import { hasTag, inEnemyZoc, isCavalryLike, isEngaged, isOnMap, isRouted } from './state';
 import {
   Cohesion,
   type BattleState,
@@ -206,17 +206,35 @@ export function shootingRange(state: BattleState, u: Unit): number {
   return u.type.stats.range + bonus;
 }
 
-/** Forest and units block sight unless the shooter is higher; ground higher than both ends always blocks. */
+/**
+ * Woods block sight unless the shooter is higher; ground higher than both ends always
+ * blocks. Units never block: missile troops shoot over friends and enemies alike.
+ */
 export function hasLineOfSight(state: BattleState, from: Pos, to: Pos): boolean {
   const eFrom = elevationAt(state.map, from);
   const eTo = elevationAt(state.map, to);
   for (const c of cellsBetween(from, to)) {
     const e = elevationAt(state.map, c);
     if (e > Math.max(eFrom, eTo)) return false;
-    const blocker = terrainRules(state.map, c).blocksLos || !!unitAt(state, c);
-    if (blocker && !(eFrom > e)) return false;
+    if (terrainRules(state.map, c).blocksLos && !(eFrom > e)) return false;
   }
   return true;
+}
+
+/** Squares a unit could shoot at from where it stands: in range, in its front arc, in sight. */
+export function rangeSquares(state: BattleState, u: Unit): Pos[] {
+  const r = shootingRange(state, u);
+  if (u.type.stats.ranged <= 0 || r <= 0) return [];
+  const out: Pos[] = [];
+  for (let y = 0; y < state.map.height; y++) {
+    for (let x = 0; x < state.map.width; x++) {
+      const p = { x, y };
+      if (x === u.x && y === u.y) continue;
+      if (rangeDistance(u, p) > r || arcOf(u, u.facing, p) !== 'front') continue;
+      if (hasLineOfSight(state, u, p)) out.push(p);
+    }
+  }
+  return out;
 }
 
 /** Validates a shot. Assumes the shooter may act. */

@@ -178,6 +178,13 @@ for (const size of SIZES) {
   await shot(page, size, '04-facing-ring');
   await tapNear(page, 7, 3, 0, -60); // pick a handle (north-ish)
   await shot(page, size, '05-after-ring');
+  // Archers: the Turn button and the missile range area.
+  await tapCell(page, 4, 5); // b-archers
+  await shot(page, size, '05a-archer-range');
+  await page.getByRole('button', { name: 'Turn the selected unit' }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '05a2-turn-ring');
+  await tapCell(page, 0, 9);
   await longPress(page, 13, 4); // empty hill square: terrain card
   await shot(page, size, '05b-terrain-card');
   await page.getByRole('button', { name: 'Close' }).tap();
@@ -291,13 +298,22 @@ for (const size of SIZES) {
   await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
   await page.waitForTimeout(200);
   await shot(page, size, '32-builder');
-  for (let i = 0; i < 3; i++) {
-    for (const b of await page.getByRole('button', { name: /^Remove one/ }).all()) {
-      if (await b.isEnabled()) await b.tap();
-    }
+  // Slot picker: put Egyptian chariots in all three slots.
+  for (let i = 1; i <= 3; i++) {
+    await page.getByRole('button', { name: new RegExp(`^Slot ${i}:`) }).tap();
+    await page.waitForTimeout(200);
+    if (i === 1) await shot(page, size, '32b-slot-picker');
+    await page.getByRole('button', { name: `Put Egyptian chariots in slot ${i}` }).tap();
+    await page.waitForTimeout(150);
   }
-  for (let i = 0; i < 3; i++) {
-    await page.getByRole('button', { name: 'Add one Egyptian chariots' }).tap();
+  // Long-press a general card for its details.
+  const gen = page.locator('.builder .mini-card.pick').first();
+  const gb = await gen.boundingBox();
+  if (gb) {
+    await page.mouse.move(gb.x + 30, gb.y + 20);
+    await page.waitForTimeout(400);
+    await shot(page, size, '32c-general-details');
+    await page.mouse.move(2, 2);
   }
   await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
   await page.waitForTimeout(200);

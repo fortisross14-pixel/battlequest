@@ -100,6 +100,14 @@ export const AI_WEIGHTS = {
   triggerRadius: 3,
   /** …or a friend this close in melee. */
   friendEngagedRadius: 4,
+  /** A general (its own unit) only attacks for a very good charge or to catch a router. */
+  generalAttackThreshold: 15,
+  /** Generals keep this many squares behind the centre of their army. */
+  generalBehind: 2,
+  /** …and avoid squares an enemy could charge next turn. */
+  generalThreat: 8,
+  /** Each friend inside the command radius is worth this much to the general. */
+  generalInRadius: 0.6,
   /** Positional moves rank below attacks: their score gain is scaled by this. */
   moveScale: 0.1,
 };
@@ -225,12 +233,15 @@ export class AiPlayer implements CommandSource {
     const W = AI_WEIGHTS;
     const mine = state.units.filter((u) => u.side === this.side && isOnMap(u));
     const enemies = state.units.filter((e) => e.side !== this.side && isFighting(e));
+    // Once any unit of the army is locked in melee, the whole army joins the battle
+    // (owner feedback: a unit stood idle all of Megiddo while its partner fought).
+    const battleJoined = mine.some((f) => isEngaged(state, f.id));
     for (const u of mine) {
       if (this.triggered.has(u.id)) continue;
       const enemyClose = enemies.some((e) => chebyshev(e, u) <= W.triggerRadius);
-      const friendFighting = mine.some(
-        (f) => chebyshev(f, u) <= W.friendEngagedRadius && isEngaged(state, f.id),
-      );
+      const friendFighting =
+        battleJoined ||
+        mine.some((f) => chebyshev(f, u) <= W.friendEngagedRadius && isEngaged(state, f.id));
       // Units start at full strength, so any loss means it was shot or fought.
       const hurt = u.strength < 100;
       if (enemyClose || friendFighting || hurt) this.triggered.add(u.id);
@@ -246,7 +257,10 @@ export class AiPlayer implements CommandSource {
     if (skill) return { unitId: u.id, cmd: skill, value: AI_WEIGHTS.skill };
     if (isEngaged(state, u.id)) return null;
 
-    const threshold = AI_WEIGHTS.attackThreshold[stance];
+    // Generals are conservative: losing one loses the battle.
+    const threshold = this.isGeneral(state, u)
+      ? AI_WEIGHTS.generalAttackThreshold
+      : AI_WEIGHTS.attackThreshold[stance];
     let best: Option | null = null;
     const consider = (cmd: Command, value: number) => {
       if (value >= threshold && (!best || value > best.value)) best = { unitId: u.id, cmd, value };
@@ -350,6 +364,12 @@ export class AiPlayer implements CommandSource {
   ): number | null {
     const p = previewCombat(state, cmd);
     if (isRejection(p)) return null;
+    // A general attacks only when it is needed: to run down a router, or for a charge
+    // likely to break the target. No support bonus: its job is to survive.
+    if (this.isGeneral(state, u)) {
+      const decisive = p.outcome === 'catchRouter' || p.defender.routChance >= 0.6;
+      return decisive ? attackValue(p) : null;
+    }
     const W = AI_WEIGHTS;
     let v = attackValue(p);
     if (cmd.type === 'Charge' && isShooter(u) && p.outcome !== 'catchRouter') v -= W.shooterCharge;
@@ -474,8 +494,41 @@ export class AiPlayer implements CommandSource {
     return Number.isFinite(d) ? d : 99;
   }
 
+  private isGeneral(state: BattleState, u: Unit): boolean {
+    return state.sides[u.side].general?.unitId === u.id;
+  }
+
+  /**
+   * Where a general wants to stand: behind the middle of its own army, out of reach of
+   * enemy charges, with as many friends as possible inside its command radius.
+   */
+  private generalSquareScore(state: BattleState, u: Unit, p: Pos): number {
+    const W = AI_WEIGHTS;
+    const friends = state.units.filter((f) => f.side === u.side && f.id !== u.id && isFighting(f));
+    const enemies = state.units.filter((e) => e.side !== u.side && isFighting(e));
+    let score = 0;
+    if (friends.length) {
+      const cx = friends.reduce((a, f) => a + f.x, 0) / friends.length;
+      const cy = friends.reduce((a, f) => a + f.y, 0) / friends.length;
+      const edge = state.sides[u.side].edge;
+      const back = W.generalBehind;
+      const tx = edge === 'west' ? cx - back : edge === 'east' ? cx + back : cx;
+      const ty = edge === 'north' ? cy - back : edge === 'south' ? cy + back : cy;
+      score -= Math.hypot(p.x - tx, p.y - ty);
+      const radius = state.sides[u.side].general?.commandRadius ?? 3;
+      score += W.generalInRadius * friends.filter((f) => chebyshev(f, p) <= radius).length;
+    }
+    if (inEnemyZoc(state, u.side, p)) score -= W.generalThreat * 2;
+    for (const e of enemies) {
+      if (e.type.stats.impact <= 0 || isEngaged(state, e.id)) continue;
+      if (chebyshev(e, p) <= Math.ceil(e.type.stats.mp / 2) + 1) score -= W.generalThreat;
+    }
+    return score;
+  }
+
   private scoreSquare(state: BattleState, u: Unit, p: Pos, facing: Dir, stance: Stance): number {
     const W = AI_WEIGHTS;
+    if (this.isGeneral(state, u)) return this.generalSquareScore(state, u, p);
     const enemies = state.units.filter((e) => e.side !== u.side && isFighting(e));
     if (enemies.length === 0) return 0;
     let score = 0;

@@ -12,8 +12,7 @@ export type ArmyProblem =
   | { code: 'notOwned'; type: string }
   | { code: 'unknownUnit'; type: string }
   | { code: 'generalNotOwned'; id: string }
-  | { code: 'generalResting'; id: string }
-  | { code: 'generalUnit'; unitIndex: number };
+  | { code: 'generalResting'; id: string };
 
 export function armyProblems(p: Profile, b: CampaignBattle, army: ArmyChoice): ArmyProblem[] {
   const out: ArmyProblem[] = [];
@@ -33,9 +32,6 @@ export function armyProblems(p: Profile, b: CampaignBattle, army: ArmyChoice): A
     } else if (p.generals[g.id]?.resting) {
       out.push({ code: 'generalResting', id: g.id });
     }
-    if (g.unitIndex < 0 || g.unitIndex >= army.units.length) {
-      out.push({ code: 'generalUnit', unitIndex: g.unitIndex });
-    }
   }
   return out;
 }
@@ -54,8 +50,6 @@ export function problemText(p: ArmyProblem): string {
       return `You don't have ${GENERAL_BY_ID[p.id]?.name ?? p.id}.`;
     case 'generalResting':
       return `${GENERAL_BY_ID[p.id]?.name ?? p.id} is resting after the last battle.`;
-    case 'generalUnit':
-      return 'Choose the unit your general rides with.';
   }
 }
 
@@ -67,6 +61,18 @@ export function armyPower(units: { type: string; level?: number }[]): number {
       0,
     ),
   );
+}
+
+/**
+ * A rough power estimate for a general, for the cards: rarity sets the base and each rank
+ * adds a little. A hint only, like army power.
+ */
+export function generalPower(
+  rarity: 'common' | 'rare' | 'epic' | 'legendary',
+  rank: number,
+): number {
+  const base = { common: 20, rare: 35, epic: 50, legendary: 65 }[rarity];
+  return base + 5 * (Math.max(1, rank) - 1);
 }
 
 /** The fixed army of a tutorial battle, with the player's own levels and general rank. */
@@ -114,11 +120,7 @@ export function startingArmy(p: Profile, b: CampaignBattle): ArmyChoice {
   const genId = lastGen && free.includes(lastGen.id) ? lastGen.id : free[0];
   const army: ArmyChoice = { units };
   if (genId) {
-    army.general = {
-      id: genId,
-      rank: rankForXp(p.generals[genId]!.xp),
-      unitIndex: lastGen?.id === genId ? Math.min(lastGen.unitIndex, units.length - 1) : 0,
-    };
+    army.general = { id: genId, rank: rankForXp(p.generals[genId]!.xp) };
   }
   return army;
 }
@@ -130,16 +132,35 @@ export function addTroop(p: Profile, b: CampaignBattle, army: ArmyChoice, type: 
   return true;
 }
 
-/** Removes the last copy of a troop, keeping the general on a valid unit. */
+/** Removes the last copy of a troop. */
 export function removeTroop(b: CampaignBattle, army: ArmyChoice, type: string): boolean {
   if (b.fixedArmy) return false;
   const i = army.units.map((u) => u.type).lastIndexOf(type);
   if (i < 0) return false;
   army.units.splice(i, 1);
-  const g = army.general;
-  if (g) {
-    if (g.unitIndex === i) g.unitIndex = 0;
-    else if (g.unitIndex > i) g.unitIndex -= 1;
+  return true;
+}
+
+/**
+ * Puts an owned troop in slot `index` (the slot picker). An index past the end fills the
+ * next free slot; a null `type` empties the slot.
+ */
+export function setSlot(
+  p: Profile,
+  b: CampaignBattle,
+  army: ArmyChoice,
+  index: number,
+  type: string | null,
+): boolean {
+  if (b.fixedArmy || index < 0 || index >= b.maxUnits) return false;
+  if (type === null) {
+    if (index >= army.units.length) return false;
+    army.units.splice(index, 1);
+    return true;
   }
+  if (!p.units[type]) return false;
+  const unit = { type, level: p.units[type]!.level };
+  if (index < army.units.length) army.units[index] = unit;
+  else army.units.push(unit);
   return true;
 }

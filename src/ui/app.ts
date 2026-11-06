@@ -1,6 +1,6 @@
 import { AiPlayer } from '../ai/utility';
 import { BATTLES } from '../content/battles';
-import { buildScenario, deploymentSquares } from '../content/campaign/build';
+import { buildScenario, defaultPlacement, deploymentSquares } from '../content/campaign/build';
 import { MEGIDDO_TUTORIAL } from '../content/campaign/tutorial';
 import type { ArmyChoice, CampaignBattle } from '../content/campaign/types';
 import { startBattle } from '../core/engine';
@@ -118,7 +118,8 @@ export class App implements AppApi {
   deploy(b: CampaignBattle, army: ArmyChoice): void {
     const seed = randomSeed();
     const zone = deploymentSquares(b);
-    const placement: Pos[] = army.units.map((_, i) => zone[i]!);
+    // One square per unit, then the general's own unit behind the line.
+    const placement: Pos[] = defaultPlacement(b, army);
     let state = startBattle(buildScenario(b, army, seed, placement));
     const hud = this.enterBattleUi(state);
     let selected: number | null = null;
@@ -146,7 +147,7 @@ export class App implements AppApi {
       names: { blue: 'You', red: 'Enemy' },
     });
     hud.setChip(
-      'Deployment: tap one of your units, then a shaded square to move it there (or swap). Then Start battle.',
+      'Deployment: tap a unit (your general too), then a shaded square twice to move it there or swap. Then Start battle.',
     );
     hud.undoBtn.classList.add('hidden');
     hud.nextBtn.classList.add('hidden');

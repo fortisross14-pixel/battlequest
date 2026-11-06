@@ -2,44 +2,15 @@ import { AGES } from '../../content/campaign/battles';
 import type { ArmyChoice, CampaignBattle } from '../../content/campaign/types';
 import { ERA_UNIT_BY_ID, eraUnitType } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
-import { commandRadiusForRank, scaled, type GeneralDef } from '../../core/generals';
-import {
-  addTroop,
-  armyPower,
-  armyProblems,
-  problemText,
-  removeTroop,
-  startingArmy,
-} from '../../meta/army';
+import { armyPower, armyProblems, problemText, setSlot, startingArmy } from '../../meta/army';
 import { rankForXp } from '../../meta/profile';
 import { el } from '../hud';
 import { unitIcon } from '../icons';
-import { button, html, levelBadge, RARITY_LABEL, shell, type AppApi } from './common';
-
-/** Rank, trait and skills of a general, as shown in the picker. */
-function generalDetails(g: GeneralDef, rank: number): HTMLElement {
-  return el(
-    'span',
-    { class: 'gen-details' },
-    el(
-      'small',
-      {},
-      `${RARITY_LABEL[g.rarity]} · Rank ${rank} · command radius ${commandRadiusForRank(rank)}`,
-    ),
-    el('span', {}, g.traitText),
-    ...g.skills.map((s) =>
-      el(
-        'span',
-        { class: rank < s.unlockRank ? 'locked-skill' : '' },
-        el('b', {}, s.name),
-        ` (every ${Math.round(scaled(s.cooldown, rank))} turns): ${s.description}`,
-        rank < s.unlockRank ? ` Unlocks at rank ${s.unlockRank}.` : '',
-      ),
-    ),
-  );
-}
+import { generalDetails, generalHeader, troopDetails, troopHeader, withDetails } from './cards';
+import { button, html, levelBadge, shell, type AppApi } from './common';
 
 function infoSection(b: CampaignBattle, enemyPower: number): HTMLElement {
+  const enemyGen = b.enemyGeneral && GENERAL_BY_ID[b.enemyGeneral.id];
   return el(
     'section',
     { class: 'briefing' },
@@ -54,26 +25,94 @@ function infoSection(b: CampaignBattle, enemyPower: number): HTMLElement {
         {},
         b.holdOut
           ? `Objective: hold out until the end of turn ${b.turnLimit}.`
-          : `Objective: break the enemy army within ${b.turnLimit} turns.`,
+          : `Objective: break the enemy army, or bring down its general, within ${b.turnLimit} turns.`,
       ),
+      el('li', {}, 'If your general falls, the battle is lost.'),
       el('li', {}, `★★★: win losing under 30% of your army, and ${b.bonusText.toLowerCase()}`),
       el(
         'li',
         {},
-        `Enemy: ${b.enemy.length} units${b.enemyGeneral ? `, led by ${GENERAL_BY_ID[b.enemyGeneral.id]?.name}` : ''}. Power ${enemyPower}.`,
+        `Enemy: ${b.enemy.length} units${enemyGen ? `, led by ${enemyGen.name}` : ''}. Power ${enemyPower}.`,
       ),
     ),
     el(
       'div',
-      { class: 'enemy-list' },
+      { class: 'mini-grid enemy' },
       ...b.enemy.map((e) => {
-        const t = eraUnitType(e.type, e.level);
-        return html(
-          `<span class="mini">${unitIcon(t.symbol, 'red', 34, e.level ?? 1)}<span>${t.name}${e.level && e.level > 1 ? ` Lv${e.level}` : ''}</span></span>`,
-        );
+        const def = ERA_UNIT_BY_ID[e.type]!;
+        const lv = e.level ?? 1;
+        const card = el('div', { class: `mini-card ${def.rarity}` }, troopHeader(def, lv, 'red'));
+        return withDetails(card, troopDetails(def, lv));
       }),
     ),
   );
+}
+
+/** Full-screen chooser for one slot: tap a troop to put it there. */
+function slotPicker(
+  app: AppApi,
+  b: CampaignBattle,
+  army: ArmyChoice,
+  index: number,
+  done: () => void,
+): HTMLElement {
+  const p = app.profile;
+  const close = () => {
+    sheet.remove();
+    done();
+  };
+  const current = army.units[index];
+  const owned = Object.entries(p.units)
+    .filter(([id]) => ERA_UNIT_BY_ID[id])
+    .sort(
+      ([a], [c]) =>
+        ERA_UNIT_BY_ID[a]!.age - ERA_UNIT_BY_ID[c]!.age ||
+        ERA_UNIT_BY_ID[a]!.name.localeCompare(ERA_UNIT_BY_ID[c]!.name),
+    );
+  const cards = owned.map(([id, o]) => {
+    const def = ERA_UNIT_BY_ID[id]!;
+    const inArmy = army.units.filter((u) => u.type === id).length;
+    const card = el(
+      'button',
+      {
+        class: `mini-card pick ${def.rarity} ${current?.type === id ? 'on' : ''}`,
+        type: 'button',
+        'aria-label': `Put ${def.name} in slot ${index + 1}`,
+      },
+      troopHeader(def, o.level),
+      inArmy ? el('small', { class: 'in-army' }, `${inArmy} in your army`) : '',
+    );
+    card.onclick = () => {
+      setSlot(p, b, army, index, id);
+      close();
+    };
+    return withDetails(card, troopDetails(def, o.level));
+  });
+  const empty = button(
+    'Empty this slot',
+    () => {
+      setSlot(p, b, army, index, null);
+      close();
+    },
+    'btn',
+  );
+  const sheet = el(
+    'div',
+    {
+      class: 'picker-backdrop',
+      role: 'dialog',
+      'aria-label': `Choose a troop for slot ${index + 1}`,
+    },
+    el(
+      'div',
+      { class: 'picker' },
+      el('h2', {}, `Slot ${index + 1}: choose a troop`),
+      el('p', { class: 'hint' }, 'Tap a troop to place it. Long-press (or hover) for its details.'),
+      el('div', { class: 'mini-grid' }, ...cards),
+      el('div', { class: 'row' }, current ? empty : '', button('Close', close, 'btn primary')),
+    ),
+  );
+  return sheet;
 }
 
 export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
@@ -99,96 +138,53 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
     const power = armyPower(army.units);
     const problems = armyProblems(p, b, army);
 
-    // Slot row: one tile per slot. Tapping a filled tile puts the general with that unit.
-    const slots = el('div', { class: 'slots', role: 'list' });
+    // Slot row: tap a slot to choose its troop.
+    const slots = el('div', { class: 'slots' });
     for (let i = 0; i < b.maxUnits; i++) {
       const u = army.units[i];
-      if (!u) {
-        slots.append(el('div', { class: 'slot empty', role: 'listitem' }, '+'));
-        continue;
-      }
-      const t = eraUnitType(u.type, u.level);
-      const rides = army.general?.unitIndex === i;
+      const t = u && eraUnitType(u.type, u.level);
       const tile = button(
         '',
-        () => {
-          if (army.general && !fixed) army.general.unitIndex = i;
-          render();
-        },
-        `slot ${rides ? 'general' : ''}`,
+        () => builder.append(slotPicker(app, b, army, Math.min(i, army.units.length), render)),
+        `slot ${u ? '' : 'empty'}`,
       );
-      tile.setAttribute('role', 'listitem');
       tile.setAttribute(
         'aria-label',
-        `${t.name}${rides ? ', general rides here' : army.general ? ', tap to put the general here' : ''}`,
+        t
+          ? `Slot ${i + 1}: ${t.name}. Tap to change.`
+          : `Slot ${i + 1}: empty. Tap to choose a troop.`,
       );
-      tile.append(
-        html(unitIcon(t.symbol, 'blue', 40, u.level ?? 1)),
-        el('span', { class: 'slot-name' }, t.name),
-        levelBadge(u.level ?? 1),
-        rides ? el('span', { class: 'star' }, '★') : '',
-      );
-      tile.disabled = fixed || !army.general;
+      if (t) {
+        tile.append(
+          html(unitIcon(t.symbol, 'blue', 40, u!.level ?? 1)),
+          el('span', { class: 'slot-name' }, t.name),
+          levelBadge(u!.level ?? 1),
+        );
+      } else {
+        tile.append(
+          el('span', { class: 'slot-plus' }, '+'),
+          el('span', { class: 'slot-name' }, 'Choose'),
+        );
+      }
+      tile.disabled = fixed;
       slots.append(tile);
     }
 
-    // Owned troop cards with + / − buttons.
-    const full = army.units.length >= b.maxUnits;
-    const troops = fixed
-      ? []
-      : Object.entries(p.units)
-          .filter(([id]) => ERA_UNIT_BY_ID[id])
-          .sort(
-            ([a], [c]) =>
-              ERA_UNIT_BY_ID[a]!.age - ERA_UNIT_BY_ID[c]!.age ||
-              ERA_UNIT_BY_ID[a]!.name.localeCompare(ERA_UNIT_BY_ID[c]!.name),
-          )
-          .map(([id, owned]) => {
-            const t = eraUnitType(id, owned.level);
-            const count = army.units.filter((u) => u.type === id).length;
-            const minus = button('−', () => removeTroop(b, army, id) && render(), 'btn icon');
-            minus.setAttribute('aria-label', `Remove one ${t.name}`);
-            minus.disabled = count === 0;
-            const plus = button('+', () => addTroop(p, b, army, id) && render(), 'btn icon');
-            plus.setAttribute('aria-label', `Add one ${t.name}`);
-            plus.disabled = full;
-            return el(
-              'div',
-              { class: `troop-row ${count ? 'picked' : ''}` },
-              html(unitIcon(t.symbol, 'blue', 34, owned.level)),
-              el(
-                'span',
-                { class: 'troop-name' },
-                t.name,
-                ' ',
-                levelBadge(owned.level, true),
-                el(
-                  'small',
-                  {},
-                  `${ERA_UNIT_BY_ID[id]!.archetype.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-                ),
-              ),
-              el('b', { class: 'count' }, count ? `×${count}` : ''),
-              minus,
-              plus,
-            );
-          });
-
-    // General picker.
+    // General picker: compact cards; details on long-press or hover.
     let generals: HTMLElement[];
     if (fixed) {
       const g = GENERAL_BY_ID[army.general!.id]!;
+      const card = el(
+        'div',
+        { class: `mini-card ${g.rarity} on` },
+        generalHeader(g, army.general!.rank),
+      );
       generals = [
-        el(
-          'div',
-          { class: 'gen-pick on fixed' },
-          el('b', {}, g.name),
-          generalDetails(g, army.general!.rank),
-        ),
+        withDetails(card, generalDetails(g, army.general!.rank)),
         el(
           'p',
           { class: 'hint' },
-          `Historical army: ${g.name} commands${p.generals[g.id] ? '' : ' for this battle only'}. Your own troop levels apply.`,
+          `Historical army: ${g.name} commands${p.generals[g.id] ? '' : ' for this battle only'}.`,
         ),
       ];
     } else {
@@ -202,25 +198,16 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
           const card = button(
             '',
             () => {
-              army.general = {
-                id,
-                rank,
-                unitIndex: Math.min(
-                  army.general?.unitIndex ?? 0,
-                  Math.max(0, army.units.length - 1),
-                ),
-              };
+              army.general = { id, rank };
               render();
             },
-            `gen-pick ${on ? 'on' : ''} ${g.rarity}`,
+            `mini-card pick ${g.rarity} ${on ? 'on' : ''}`,
           );
           card.setAttribute('aria-pressed', String(on));
-          card.append(
-            el('b', {}, g.name, owned.resting ? ' (resting)' : ''),
-            generalDetails(g, rank),
-          );
+          card.append(generalHeader(g, rank));
+          if (owned.resting) card.append(el('small', { class: 'warn' }, 'Resting this battle'));
           card.disabled = owned.resting;
-          return card;
+          return withDetails(card, generalDetails(g, rank));
         });
       generals.push(
         button(
@@ -251,16 +238,15 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
       el(
         'p',
         { class: 'hint' },
-        fixed
-          ? 'This battle has a fixed army.'
-          : army.general
-            ? 'Tap a unit in the slots to choose who your general rides with (★).'
-            : 'No general: your army fights without traits or skills.',
+        fixed ? 'This battle has a fixed army.' : 'Tap a slot to choose its troop.',
       ),
-      troops.length ? el('h3', {}, 'Your troops') : '',
-      troops.length ? el('div', { class: 'troops' }, ...troops) : '',
       el('h3', {}, 'General'),
-      el('div', { class: 'gen-list' }, ...generals),
+      el(
+        'p',
+        { class: 'hint' },
+        'Your general takes the field with a guard and stays behind your line. Units near the general fight better. Long-press a card for details.',
+      ),
+      el('div', { class: 'mini-grid' }, ...generals),
       problems.length ? el('p', { class: 'warn' }, problems.map(problemText).join(' ')) : '',
       el('div', { class: 'row' }, deployBtn),
     );

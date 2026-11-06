@@ -63,15 +63,17 @@ const megiddo: CampaignBattle = {
   enemyGeneral: { id: 'kingOfKadesh', rank: 2 },
   posture: 'defensive',
   turnLimit: 10,
+  // The tutorial forgives one lost unit.
+  playerBreakpoint: 0.75,
   maxUnits: 2,
   fixedArmy: {
     units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
-    general: { id: 'thutmose', rank: 1, unitIndex: 0 },
+    general: { id: 'thutmose', rank: 1 },
   },
   firstWinUnlocks: { units: ['egyptianArchers'], generals: ['thutmose'] },
   testArmy: {
     units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
-    general: { id: 'thutmose', rank: 1, unitIndex: 0 },
+    general: { id: 'thutmose', rank: 1 },
   },
   bonus: { kind: 'winByTurn', turn: 6 },
   bonusText: 'Win by turn 6.',
@@ -115,8 +117,8 @@ const kadesh: CampaignBattle = {
     '............',
   ],
   enemy: [
-    { type: 'hittiteChariots', x: 10, y: 2, facing: W, general: true },
-    { type: 'canaaniteChariots', x: 10, y: 6, facing: W },
+    { type: 'hittiteChariots', x: 10, y: 2, facing: W, general: true, level: 2 },
+    { type: 'canaaniteChariots', x: 10, y: 6, facing: W, level: 2 },
     { type: 'hittiteSpearmen', x: 10, y: 4, facing: W },
   ],
   enemyGeneral: { id: 'muwatalli', rank: 1 },
@@ -130,10 +132,10 @@ const kadesh: CampaignBattle = {
       { type: 'egyptianSpearmen' },
       { type: 'hittiteSpearmen' },
     ],
-    general: { id: 'captain', rank: 1, unitIndex: 0 },
+    general: { id: 'captain', rank: 1 },
   },
-  bonus: { kind: 'generalAlive' },
-  bonusText: 'Keep your general alive.',
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
 };
 
 /*
@@ -193,7 +195,7 @@ const qarqar: CampaignBattle = {
       { type: 'hittiteSpearmen' },
       { type: 'egyptianSpearmen' },
     ],
-    general: { id: 'captain', rank: 2, unitIndex: 1 },
+    general: { id: 'captain', rank: 2 },
   },
   bonus: { kind: 'noUnitLost' },
   bonusText: 'Lose no unit (none routed or destroyed).',
@@ -252,11 +254,11 @@ const marathon: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'sparabara', x: 11, y: 2, facing: W, level: 2 },
+    { type: 'sparabara', x: 11, y: 2, facing: W, level: 3 },
     { type: 'immortals', x: 11, y: 4, facing: W, general: true, level: 2 },
-    { type: 'sparabara', x: 11, y: 6, facing: W, level: 2 },
+    { type: 'sparabara', x: 11, y: 6, facing: W, level: 3 },
     { type: 'persianCavalry', x: 13, y: 8, facing: W, level: 3 },
-    { type: 'sparabara', x: 12, y: 5, facing: W, level: 2 },
+    { type: 'sparabara', x: 12, y: 5, facing: W, level: 3 },
   ],
   enemyGeneral: { id: 'datis', rank: 3 },
   posture: 'timed',
@@ -266,7 +268,7 @@ const marathon: CampaignBattle = {
   maxUnits: 4,
   testArmy: {
     units: [{ type: 'hoplites' }, { type: 'hoplites' }, { type: 'peltasts' }, { type: 'hoplites' }],
-    general: { id: 'captain', rank: 2, unitIndex: 0 },
+    general: { id: 'captain', rank: 2 },
   },
   bonus: { kind: 'winByTurn', turn: 9 },
   bonusText: 'Win by turn 9.',
@@ -327,10 +329,10 @@ const thermopylae: CampaignBattle = {
   maxUnits: 4,
   testArmy: {
     units: [{ type: 'hoplites' }, { type: 'hoplites' }, { type: 'hoplites' }, { type: 'hoplites' }],
-    general: { id: 'leonidas', rank: 1, unitIndex: 1 },
+    general: { id: 'leonidas', rank: 1 },
   },
-  bonus: { kind: 'generalAlive' },
-  bonusText: 'Keep your general alive.',
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
 };
 
 /*
@@ -396,6 +398,7 @@ const leuctra: CampaignBattle = {
   enemyGeneral: { id: 'cleombrotus', rank: 1 },
   posture: 'aggressive',
   turnLimit: 12,
+  playerBreakpoint: 0.6,
   maxUnits: 5,
   testArmy: {
     units: [
@@ -405,10 +408,10 @@ const leuctra: CampaignBattle = {
       { type: 'hoplites' },
       { type: 'peltasts' },
     ],
-    general: { id: 'leonidas', rank: 2, unitIndex: 0 },
+    general: { id: 'leonidas', rank: 2 },
   },
   bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Kill or capture Cleombrotus.',
+  bonusText: 'Win by killing or capturing Cleombrotus.',
 };
 
 export const CAMPAIGN: CampaignBattle[] = [megiddo, kadesh, qarqar, marathon, thermopylae, leuctra];

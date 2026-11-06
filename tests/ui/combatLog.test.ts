@@ -96,11 +96,11 @@ describe('objective chip', () => {
     expect(objectiveText(b, s)).toBe('Break the enemy · 4 turns left');
     expect(bonusStatus(b, s)).toBe('failed');
 
-    const k = BATTLE_BY_ID.kadesh!; // hold out; bonus: keep the general alive
+    const k = BATTLE_BY_ID.kadesh!; // hold out; bonus: lose no unit
     const ks = structuredClone(startBattle(buildScenario(k, k.testArmy, 1)));
     expect(objectiveText(k, ks)).toBe('Hold out · 5 turns left');
     expect(bonusStatus(k, ks)).toBe('met');
-    ks.sides.blue.general!.lost = true;
+    unit(ks, 'p0').cohesion = 3; // a routed unit counts as lost
     expect(bonusStatus(k, ks)).toBe('failed');
   });
 });

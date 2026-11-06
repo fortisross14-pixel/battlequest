@@ -1,6 +1,5 @@
 import { ERA_UNITS, eraUnitType, type EraUnitDef } from '../../content/eraUnits';
 import { GENERALS } from '../../content/generals';
-import { commandRadiusForRank, scaled } from '../../core/generals';
 import type { UnitStats } from '../../core/types';
 import {
   canUpgrade,
@@ -11,9 +10,16 @@ import {
   xpForRank,
   type Profile,
 } from '../../meta/profile';
-import { el, TAG_TEXT } from '../hud';
-import { unitIcon } from '../icons';
-import { button, html, initials, levelBadge, RARITY_LABEL, shell, type AppApi } from './common';
+import { el } from '../hud';
+import {
+  generalDetails,
+  generalHeader,
+  lockedCard,
+  troopDetails,
+  troopHeader,
+  withDetails,
+} from './cards';
+import { button, shell, type AppApi } from './common';
 
 const fmt = (v: number) => String(+v.toFixed(1));
 
@@ -24,23 +30,6 @@ const LEVELLED: [keyof UnitStats, string][] = [
   ['ranged', 'Rng'],
   ['morale', 'Mor'],
 ];
-
-function statRow(s: UnitStats): HTMLElement {
-  const cells: [string, string][] = [
-    ['MP', fmt(s.mp)],
-    ['Mel', fmt(s.melee)],
-    ['Imp', fmt(s.impact)],
-    ['Rng', s.range > 0 ? `${fmt(s.ranged)}(${s.range})` : '—'],
-    ['Arm', fmt(s.armor)],
-    ['Mor', fmt(s.morale)],
-    ['Pts', fmt(s.cost)],
-  ];
-  return el(
-    'div',
-    { class: 'stat-row' },
-    ...cells.map(([k, v]) => el('span', {}, el('small', {}, k), v)),
-  );
-}
 
 /** Upgradable first, then owned, then locked; inside each group by age and name. */
 function troopOrder(p: Profile, a: EraUnitDef, c: EraUnitDef): number {
@@ -105,82 +94,38 @@ function upgradeParts(app: AppApi, def: EraUnitDef): HTMLElement[] {
 function troopCard(app: AppApi, def: EraUnitDef): HTMLElement {
   const p = app.profile;
   const owned = p.units[def.id];
-  const t = eraUnitType(def.id, owned?.level ?? 1);
-  const head = el(
+  if (!owned) return lockedCard('Troop not found yet', 'Find it in packs or battle rewards.');
+  const ready = canUpgrade(p, def.id).ok;
+  const card = el(
     'div',
-    { class: 'unit-head' },
-    html(unitIcon(t.symbol, 'blue', 48, owned?.level ?? 1)),
-    el(
-      'div',
-      {},
-      el('b', {}, t.name),
-      el(
-        'small',
-        {},
-        `${RARITY_LABEL[def.rarity]} · Age ${def.age} · ${def.archetype.replace(/([A-Z])/g, ' $1').toLowerCase()}`,
-      ),
-    ),
-    owned ? levelBadge(owned.level, true) : '',
+    { class: `mini-card ${def.rarity} ${ready ? 'ready' : ''}` },
+    troopHeader(def, owned.level),
+    ...upgradeParts(app, def),
   );
-  const ready = !!owned && canUpgrade(p, def.id).ok;
-  return el(
-    'div',
-    { class: `unit-card ${def.rarity} ${owned ? '' : 'unowned'} ${ready ? 'ready' : ''}` },
-    head,
-    ...(owned ? upgradeParts(app, def) : [el('p', { class: 'level' }, '0 cards — find in packs')]),
-    statRow(t.stats),
-    el('p', { class: 'flavor' }, def.flavor),
-    t.tags.length
-      ? el('ul', { class: 'tags' }, ...t.tags.map((tag) => el('li', {}, TAG_TEXT[tag])))
-      : '',
-  );
+  return withDetails(card, troopDetails(def, owned.level));
 }
 
 function generalCards(p: Profile): HTMLElement[] {
   return GENERALS.filter((g) => g.inPacks).map((g) => {
     const owned = p.generals[g.id];
-    if (!owned) {
-      return el(
-        'div',
-        { class: `gen-card ${g.rarity} unowned` },
-        el('span', { class: 'medallion' }, '?'),
-        el('b', {}, '???'),
-        el('small', {}, `${RARITY_LABEL[g.rarity]} general — find in General Packs`),
-      );
-    }
+    if (!owned) return lockedCard('General not found yet', 'Find generals in General Packs.');
     const rank = rankForXp(owned.xp);
     const next = rank < ECONOMY.maxRank ? xpForRank(rank + 1) : null;
     const prev = xpForRank(rank);
     const pctTo = next ? Math.round((100 * (owned.xp - prev)) / (next - prev)) : 100;
-    return el(
+    const card = el(
       'div',
-      { class: `gen-card ${g.rarity}` },
-      el('span', { class: 'medallion' }, initials(g.name)),
-      el('b', {}, g.name),
-      el(
-        'small',
-        {},
-        `${RARITY_LABEL[g.rarity]} · ${g.era} · Rank ${rank} · command radius ${commandRadiusForRank(rank)}`,
-      ),
-      owned.resting
-        ? el('p', { class: 'warn' }, 'Resting after falling in battle: unavailable for one battle.')
-        : '',
+      { class: `mini-card ${g.rarity}` },
+      generalHeader(g, rank),
+      owned.resting ? el('small', { class: 'warn' }, 'Resting: misses the next battle.') : '',
       el('div', { class: 'bar' }, el('i', { style: `width:${pctTo}%` })),
       el(
         'small',
         {},
         next ? `${owned.xp} / ${next} XP to rank ${rank + 1}` : `${owned.xp} XP · max rank`,
       ),
-      el('p', {}, el('b', {}, 'Trait: '), g.traitText),
-      ...g.skills.map((s) =>
-        el(
-          'p',
-          {},
-          el('b', {}, `${s.name}: `),
-          `${s.description} Cooldown ${Math.round(scaled(s.cooldown, rank))} turns.${rank < s.unlockRank ? ` Unlocks at rank ${s.unlockRank}.` : ''}`,
-        ),
-      ),
     );
+    return withDetails(card, generalDetails(g, rank));
   });
 }
 
@@ -197,7 +142,7 @@ export function rosterScreen(app: AppApi, tab: 'troops' | 'generals'): HTMLEleme
   ).sort((a, c) => troopOrder(p, a, c));
   const body =
     tab === 'troops'
-      ? el('div', { class: 'card-grid' }, ...troops.map((def) => troopCard(app, def)))
-      : el('div', { class: 'card-grid' }, ...generalCards(p));
+      ? el('div', { class: 'mini-grid wide' }, ...troops.map((def) => troopCard(app, def)))
+      : el('div', { class: 'mini-grid wide' }, ...generalCards(p));
   return shell(app, 'Army', () => app.menu(), tabs, body);
 }

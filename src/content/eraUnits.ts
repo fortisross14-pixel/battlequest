@@ -156,8 +156,8 @@ export const ERA_UNITS: EraUnitDef[] = [
     age: 2,
     archetype: 'archers',
     rarity: 'rare',
-    flavor: 'Famous mercenary bowmen.',
-    mods: { ranged: 1 },
+    flavor: 'Famous mercenary bowmen: they shoot a square further.',
+    mods: { ranged: 1, range: 1 },
   },
   {
     id: 'sparabara',

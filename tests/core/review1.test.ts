@@ -104,13 +104,13 @@ describe('facing after a move', () => {
         ['r', 'red', 'spearmen', 11, 7, W],
       ],
     });
-    // Two squares south: turn, walk, turn back = 2 + 4 + 2 = 8 MP, all of it.
+    // Two squares south: turn, walk, turn back = 1 + 4 + 1 = 6 MP.
     expect(unit(run(s, { type: 'Move', unitId: 'b', to: { x: 2, y: 4 } }).state, 'b').facing).toBe(
       E,
     );
-    // Too far to turn back: it faces the way it walked.
-    const far = run(s, { type: 'Move', unitId: 'b', to: { x: 2, y: 5 } }).state;
-    expect(unit(far, 'b').facing).toBe(S);
+    // East, east, then a diagonal step uses all 8 MP: no MP left to turn back east.
+    const far = run(s, { type: 'Move', unitId: 'b', to: { x: 5, y: 3 } }).state;
+    expect(unit(far, 'b').facing).toBe(3);
   });
 });
 

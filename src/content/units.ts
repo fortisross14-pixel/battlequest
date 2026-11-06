@@ -19,7 +19,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'archer',
-    stats: { mp: 8, melee: 2, impact: 1, ranged: 6, range: 4, armor: 2, morale: 4, cost: 47 },
+    stats: { mp: 8, melee: 2, impact: 1, ranged: 6, range: 3, armor: 2, morale: 4, cost: 47 },
     tags: [],
   },
   crossbowmen: {
@@ -131,6 +131,20 @@ export const ARCHETYPES = {
     symbol: 'artillery',
     stats: { mp: 4, melee: 1, impact: 0, ranged: 9, range: 6, armor: 2, morale: 5, cost: 100 },
     tags: ['NoMoveAndShoot', 'HelplessInMelee', 'Bounce'],
+  },
+  /**
+   * A general's own bodyguard, placed on the map like any unit. It costs nothing (it
+   * doesn't count towards the army's breakpoint), but if it routs or dies the battle is lost.
+   */
+  generalGuard: {
+    id: 'generalGuard',
+    name: 'General and guard',
+    archetype: 'generalGuard',
+    category: 'cavalry',
+    light: false,
+    symbol: 'general',
+    stats: { mp: 12, melee: 5, impact: 6, ranged: 0, range: 0, armor: 6, morale: 8, cost: 0 },
+    tags: ['Commander'],
   },
 } satisfies Record<string, UnitType>;
 

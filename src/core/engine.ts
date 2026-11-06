@@ -504,7 +504,7 @@ export function checkVictory(state: BattleState, events: GameEvent[]): void {
   if (broken.length === 0) return;
   state.result = {
     winner: broken.length === 1 ? otherSide(broken[0]!) : null,
-    reason: 'armyBroken',
+    reason: broken.some((s) => state.sides[s].general?.lost) ? 'generalFell' : 'armyBroken',
     turn: state.turn,
     broken,
   };

@@ -42,10 +42,10 @@ describe('movement costs', () => {
     expect(costTo(solo(), 'b', 3, 4, E)).toBe(5);
   });
 
-  it('each 45° costs 1 MP and an about-face costs 3', () => {
+  it('any turn costs 1 MP, even an about-face', () => {
     const s = solo();
-    expect(unit(run(s, { type: 'Rotate', unitId: 'b', facing: N }).state, 'b').mpLeft).toBe(6);
-    expect(unit(run(s, { type: 'Rotate', unitId: 'b', facing: W }).state, 'b').mpLeft).toBe(5);
+    expect(unit(run(s, { type: 'Rotate', unitId: 'b', facing: N }).state, 'b').mpLeft).toBe(7);
+    expect(unit(run(s, { type: 'Rotate', unitId: 'b', facing: W }).state, 'b').mpLeft).toBe(7);
   });
 
   it('light units turn for free', () => {

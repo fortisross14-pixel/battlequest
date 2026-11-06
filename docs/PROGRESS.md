@@ -31,6 +31,14 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] WP5 — Balance and campaign difficulty: utility-AI cost tuning (7 of 12 within ±15%, spread −22% to +35%), Charge and HitAndRun tags, enemy levels and breakpoints (4 of 6 battles in band), stronger general traits, Alexander’s Companion Charge and his rank-5 second skill
 - [x] WP7 — Code health: screens split per screen, tap state machine and tutorial guide in tested pure code, combat log module, isSpent in core, new tests
 
+## Owner feedback after review 1
+- [x] Compact cards with rarity pill, power and details on long-press or hover; "?" cards for locked troops and generals
+- [x] Slot picker in the army builder
+- [x] Generals as their own unit on the map; losing the general loses the battle; conservative AI generals
+- [x] Missile range 3 (shoot over units), range shown on selection
+- [x] Turning costs 1 MP; Turn button
+- [x] Whole army joins once any unit is in melee (idle Megiddo unit)
+
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
 - [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills

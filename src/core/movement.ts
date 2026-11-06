@@ -1,5 +1,5 @@
 import { RULES } from './config';
-import { DIRS, isDiagonal, opposite, samePos, step, turnSteps } from './geometry';
+import { DIRS, isDiagonal, opposite, samePos, step } from './geometry';
 import { cellAt, connects, cutsCorner, elevationAt, inBounds, isPassable } from './map';
 import { reject, type Rejection } from './rejection';
 import { hasTag, inEnemyZoc, isEngaged, unitAt } from './state';
@@ -10,9 +10,8 @@ const EPS = 1e-9;
 
 /** MP needed to turn from one facing to another. Light units turn for free. */
 export function turnCost(u: Unit, from: Dir, to: Dir): number {
-  if (hasTag(u, 'LightTurn')) return 0;
-  const steps = turnSteps(from, to);
-  return steps === 4 ? M.aboutFaceCost : steps * M.turnCostPer45;
+  if (from === to || hasTag(u, 'LightTurn')) return 0;
+  return M.turnCost;
 }
 
 /** Terrain move multiplier for this unit entering `p` (before the uphill factor). */

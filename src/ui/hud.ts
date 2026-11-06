@@ -59,6 +59,8 @@ export const TAG_TEXT: Record<UnitTag, string> = {
   FrontOnly: 'Can only charge straight ahead.',
   FlankVulnerable: 'Takes extra damage on the flank and rear.',
   OneShot: 'Pila: one volley per battle.',
+  Commander:
+    'The general and guard: inspires units in the command radius. If it routs or dies, the battle is lost.',
   Charge: 'Shock: hits 1.2× harder at impact after a run-up of 2+ squares.',
   HitAndRun: 'Hit and run: falls back a square after the impact instead of staying in melee.',
   Pursue: 'Pursues routed enemies 1–2 squares.',
@@ -110,6 +112,11 @@ export class Hud {
     { class: 'btn gold hidden', type: 'button', 'aria-label': 'General skill' },
     '★ General',
   );
+  readonly turnBtn = el(
+    'button',
+    { class: 'btn hidden', type: 'button', 'aria-label': 'Turn the selected unit' },
+    '↻ Turn',
+  );
   readonly speedBtn = el(
     'button',
     { class: 'btn hidden', type: 'button', 'aria-label': 'Playback speed' },
@@ -125,7 +132,14 @@ export class Hud {
   private toastTimer: number | undefined;
 
   constructor(host: HTMLElement) {
-    const left = el('div', { class: 'corner left' }, this.undoBtn, this.nextBtn, this.skillBtn);
+    const left = el(
+      'div',
+      { class: 'corner left' },
+      this.undoBtn,
+      this.nextBtn,
+      this.turnBtn,
+      this.skillBtn,
+    );
     const right = el('div', { class: 'corner right' }, this.speedBtn, this.endBtn);
     this.root.append(
       this.top,
@@ -187,7 +201,10 @@ export class Hud {
     end: boolean;
     skill?: 'none' | 'ready' | 'waiting';
     menu?: boolean;
+    /** The selected unit can turn: show the Turn button. */
+    turn?: boolean;
   }): void {
+    this.turnBtn.classList.toggle('hidden', !b.turn);
     this.undoBtn.disabled = !b.undo;
     this.nextBtn.disabled = !b.next;
     this.endBtn.disabled = !b.end;

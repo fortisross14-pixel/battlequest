@@ -117,20 +117,15 @@ export function destroyUnit(
 }
 
 /**
- * If the general's unit breaks, the general may be killed or captured (4.10).
- * Then every unit of that army tests at once.
+ * If the general's unit routs or is destroyed, the general is lost and that army has lost
+ * the battle (owner feedback: generals are units on the map; if one falls, the battle is
+ * over). The victory check ends the battle.
  */
 function checkGeneralLoss(state: BattleState, u: Unit, events: GameEvent[]): void {
   const g = state.sides[u.side].general;
   if (!g || g.lost || g.unitId !== u.id) return;
-  if (nextRandom(state) >= RULES.generals.lossChance) return;
   g.lost = true;
   events.push({ type: 'GeneralLost', side: u.side, generalId: g.generalId, name: g.name });
-  for (const f of state.units) {
-    if (f.side === u.side && f.id !== u.id && isFighting(f)) {
-      cohesionTest(state, f, { damage: 0, arc: 'front', adjacentRout: false }, events);
-    }
-  }
 }
 
 /** Friendly units next to a unit that just broke take a test with no damage. */
