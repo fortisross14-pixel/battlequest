@@ -112,6 +112,8 @@ export interface Unit {
   x: number;
   y: number;
   facing: Dir;
+  /** Facing at the start of its side turn: "straight back" for pull-backs is measured from it. */
+  turnStartFacing: Dir;
   /** 0-100. */
   strength: number;
   cohesion: Cohesion;
@@ -188,7 +190,7 @@ export interface Engagement {
   b: string;
 }
 
-export type BattleEndReason = 'armyBroken' | 'turnLimit' | 'heldOut';
+export type BattleEndReason = 'armyBroken' | 'turnLimit' | 'heldOut' | 'conceded';
 
 export interface BattleResult {
   /** null = draw. */

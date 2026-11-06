@@ -28,7 +28,15 @@ import {
   requireUnit,
   type Scenario,
 } from './state';
-import { SIDES, otherSide, type BattleState, type Dir, type Pos, type Unit } from './types';
+import {
+  SIDES,
+  otherSide,
+  type BattleState,
+  type Dir,
+  type Pos,
+  type Side,
+  type Unit,
+} from './types';
 
 export type Command =
   | { type: 'Move'; unitId: string; to: Pos; facing?: Dir }
@@ -37,6 +45,8 @@ export type Command =
   | { type: 'Shoot'; unitId: string; targetId: string }
   | { type: 'Hold'; unitId: string }
   | { type: 'UseSkill'; unitId: string; skillId: string; targetId?: string }
+  /** A side gives up the battle (retreat). Allowed on either side's turn. */
+  | { type: 'Concede'; side: Side }
   | { type: 'EndTurn' };
 
 export type CommandResult =
@@ -75,12 +85,18 @@ type Plan =
   | { type: 'Shoot'; unit: Unit; target: Unit }
   | { type: 'Hold'; unit: Unit }
   | { type: 'UseSkill'; unit: Unit; plan: SkillPlan }
+  | { type: 'Concede'; side: Side }
   | { type: 'EndTurn' };
 
 /** Checks a command against the rules. Never changes state. */
 export function planCommand(state: BattleState, cmd: Command): Plan | Rejection {
   if (cmd.type === 'EndTurn') {
     return state.result ? reject('BATTLE_OVER', 'The battle is over.') : { type: 'EndTurn' };
+  }
+  if (cmd.type === 'Concede') {
+    return state.result
+      ? reject('BATTLE_OVER', 'The battle is over.')
+      : { type: 'Concede', side: cmd.side };
   }
   const u = controllable(state, cmd.unitId);
   if (isRejection(u)) return u;
@@ -146,6 +162,7 @@ export function applyCommand(state: BattleState, cmd: Command): CommandResult {
       unit!.x = dest.x;
       unit!.y = dest.y;
       unit!.facing = plan.facing;
+      // A pull-back ends the unit's movement; a sidestep or a normal move spends its cost.
       unit!.mpLeft = plan.kind === 'pullBack' ? 0 : unit!.mpLeft - plan.cost;
       unit!.hasMoved = true;
       events.push({
@@ -178,6 +195,15 @@ export function applyCommand(state: BattleState, cmd: Command): CommandResult {
       break;
     case 'UseSkill':
       resolveSkill(draft, unit!, checked.plan, events);
+      break;
+    case 'Concede':
+      draft.result = {
+        winner: otherSide(checked.side),
+        reason: 'conceded',
+        turn: draft.turn,
+        broken: [checked.side],
+      };
+      events.push({ type: 'BattleEnded', result: draft.result });
       break;
     case 'EndTurn':
       endSideTurn(draft, events);
@@ -331,6 +357,12 @@ function pruneEngagements(state: BattleState): void {
   });
 }
 
+/** The opponent a unit strikes in melee: one to its front if any, else the first one. */
+export function meleeTargetOf(state: BattleState, u: Unit): Unit | undefined {
+  const opps = opponentsOf(state, u.id);
+  return opps.find((o) => arcOf(u, u.facing, o) === 'front') ?? opps[0];
+}
+
 /** Each engaged unit strikes one opponent (preferring one to its front); damage lands simultaneously. */
 export function meleePhase(state: BattleState, events: GameEvent[]): void {
   pruneEngagements(state);
@@ -342,7 +374,7 @@ export function meleePhase(state: BattleState, events: GameEvent[]): void {
     if (!isFighting(u)) continue;
     const opps = opponentsOf(state, u.id);
     if (opps.length === 0) continue;
-    const target = opps.find((o) => arcOf(u, u.facing, o) === 'front') ?? opps[0]!;
+    const target = meleeTargetOf(state, u)!;
     const calc = computeDamage(state, u, target, 'melee');
     const already = hits.get(target.id)?.damage ?? 0;
     const amount = rollDamage(state, calc, Math.max(0, target.strength - already));
@@ -413,6 +445,7 @@ function startSideTurn(state: BattleState, events: GameEvent[]): void {
   for (const u of state.units) {
     if (u.side !== state.activeSide) continue;
     u.mpLeft = u.type.stats.mp;
+    u.turnStartFacing = u.facing;
     u.hasActed = false;
     u.hasMoved = false;
     u.bracing = false;

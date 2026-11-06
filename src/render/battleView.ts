@@ -10,7 +10,7 @@ import { facingRotation, lookOf, UnitView } from './unitView';
 
 export interface Highlights {
   selected: Pos | null;
-  reach: { pos: Pos; kind: 'move' | 'pullBack' }[];
+  reach: { pos: Pos; kind: 'move' | 'pullBack' | 'sidestep' }[];
   charge: Pos[];
   shoot: Pos[];
   /** Valid targets for a general's skill. */

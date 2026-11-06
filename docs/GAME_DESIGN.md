@@ -73,9 +73,11 @@ The look is a **living historical battle map**: the same red-and-blue blocks, ar
 - **Costs:** orthogonal step = 2 MP, diagonal step = 3 MP (this approximates real distance). Terrain multiplies the cost (see 4.7).
 - **Facing:** 8 directions. A unit's **front arc** is the 3 squares ahead of it, its **flanks** are the 2 side squares, and its **rear** is the 3 squares behind it.
 - **Turning:** each 45° costs 1 MP. A 180° about-face costs 3 MP. Light units (skirmishers, light cavalry) turn for free.
+- **Facing after a move:** a unit keeps the facing it started with if it can afford the turns; otherwise it faces the way it walked. The player can pick another facing.
+- **Sidestep / backstep:** as its first move of the turn, a unit outside any enemy zone of control may shift one square left, right or back without turning, for 3 MP (scaled by terrain like a normal step).
 - **Zone of control (ZOC):** a unit that enters a square inside an enemy's front arc must stop. It can't walk past enemies. It can leave only by:
   - charging, or
-  - **pulling back** one square straight backwards (only if it is not in melee), or
+  - **pulling back** one square straight backwards (only if it is not in melee). "Backwards" is measured from the facing it had at the start of the turn, and pulling back ends its movement, or
   - **evading**, for units with the Evade ability (see 4.5).
 - **Units in melee** can't move except to rout.
 
@@ -153,7 +155,9 @@ Situational multipliers (they stack multiplicatively):
 
 **Impact (charge)** happens once, when the charger makes contact. Both sides deal damage: the charger uses Impact; the defender uses Impact if it is AntiCavalry and is charged from the front by cavalry, otherwise Melee × 0.5. A charge that wins clearly can push the defender back 1 square.
 
-**Melee** goes on at the end of each side's turn while units stay in contact. Both sides use Melee.
+**Melee** goes on at the end of each side's turn while units stay in contact. Both sides use Melee. A unit strikes an opponent to its front if it has one; a unit with enemies only on its flank or rear strikes back at **×0.5**, both at impact and in melee.
+
+The **charge preview** shows the impact plus the expected first melee round, since that round is fought at the end of the same side turn.
 
 ### 4.7 Cohesion and morale
 

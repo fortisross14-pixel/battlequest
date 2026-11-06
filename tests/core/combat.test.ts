@@ -321,7 +321,8 @@ describe('charges and impact', () => {
     expect(toKnight).toBeGreaterThan(toSpear);
     const flank = withUnit(front, 'd', { facing: N });
     expect(dmg(flank, 'k', 'd', 'charge')).toBeCloseTo(((30 * 9) / 14) * 1.5);
-    expect(dmg(flank, 'd', 'k', 'counter')).toBeCloseTo((30 * 2.5) / 9.5);
+    // Struck in the flank, the spearmen strike back at half strength (review 1).
+    expect(dmg(flank, 'd', 'k', 'counter')).toBeCloseTo(((30 * 2.5) / 9.5) * 0.5);
   });
 
   it('pikes hit cavalry even harder; pikes are flank-vulnerable', () => {
@@ -449,9 +450,9 @@ describe('charges and impact', () => {
       ],
     });
     const u = (id: string) => unit(s, id);
-    expect(evadeChance(u('k'), u('sk'))).toBeCloseTo(0.65); // 10 MP vs 12 MP
-    expect(evadeChance(u('sp'), u('sk'))).toBeCloseTo(0.85); // 10 vs 8
-    expect(evadeChance(u('lc'), u('sk'))).toBeCloseTo(0.45); // 10 vs 16
+    expect(evadeChance(u('k'), u('sk'))).toBeCloseTo(0.5); // 10 MP vs 12 MP
+    expect(evadeChance(u('sp'), u('sk'))).toBeCloseTo(0.7); // 10 vs 8
+    expect(evadeChance(u('lc'), u('sk'))).toBeCloseTo(0.3); // 10 vs 16
     expect(evadeChance(u('sp'), u('rlc'))).toBeCloseTo(0.95); // clamped
   });
 
@@ -478,8 +479,8 @@ describe('charges and impact', () => {
         expect(events.some((e) => e.type === 'DamageDealt' && e.kind === 'impact')).toBe(true);
       }
     }
-    expect(evaded / n).toBeGreaterThan(0.55);
-    expect(evaded / n).toBeLessThan(0.75);
+    expect(evaded / n).toBeGreaterThan(0.4);
+    expect(evaded / n).toBeLessThan(0.6);
   });
 
   it('an evader with no room to fall back is caught', () => {
@@ -550,8 +551,10 @@ describe('combat preview', () => {
     expect(isRejection(p)).toBe(false);
     if (isRejection(p)) return;
     expect(p.outcome).toBe('fight');
-    expect(p.defender.expectedLoss).toBeCloseTo((30 * 9) / 11);
-    expect(p.attacker.expectedLoss).toBeCloseTo(30 / 8);
+    expect(p.defender.impactLoss).toBeCloseTo((30 * 9) / 11);
+    expect(p.attacker.impactLoss).toBeCloseTo(30 / 8);
+    // The charge's first melee round comes on top of the impact.
+    expect(p.defender.expectedLoss).toBeGreaterThan(p.defender.impactLoss);
     expect(p.defender.cohesionDropChance).toBeGreaterThan(0);
     expect(JSON.stringify(s)).toBe(before);
   });
@@ -570,9 +573,9 @@ describe('combat preview', () => {
     const ev = previewCombat(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
     if (isRejection(ev)) throw new Error(ev.message);
     expect(ev.outcome).toBe('mayEvade');
-    expect(ev.evadeChance).toBeCloseTo(0.65);
-    // If it is caught, the expected losses are those of a normal impact.
-    expect(ev.defender.expectedLoss).toBeCloseTo((30 * 9) / 11);
+    expect(ev.evadeChance).toBeCloseTo(0.5);
+    // If it is caught, the expected losses are those of a normal impact (plus melee).
+    expect(ev.defender.impactLoss).toBeCloseTo((30 * 9) / 11);
     const bad = previewCombat(s, { type: 'Charge', unitId: 'a', targetId: 'sk' });
     expect(isRejection(bad)).toBe(true);
   });
@@ -594,7 +597,7 @@ describe('combat preview', () => {
 });
 
 describe('preview and real outcome agree', () => {
-  it('average real damage over many seeds matches the preview expectation', () => {
+  it('average real impact damage over many seeds matches the preview expectation', () => {
     const setup = (seed: number) =>
       battle({
         seed,
@@ -616,8 +619,8 @@ describe('preview and real outcome agree', () => {
       toDef += hits.find((h) => h.targetId === 'd')!.amount;
       toAtt += hits.find((h) => h.targetId === 'k')!.amount;
     }
-    expect(toDef / n).toBeCloseTo(p.defender.expectedLoss, 0);
-    expect(toAtt / n).toBeCloseTo(p.attacker.expectedLoss, 0);
+    expect(toDef / n).toBeCloseTo(p.defender.impactLoss, 0);
+    expect(toAtt / n).toBeCloseTo(p.attacker.impactLoss, 0);
   });
 });
 

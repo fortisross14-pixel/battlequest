@@ -25,7 +25,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 ## Review 1 fixes (docs/reviews/2026-11-06-review-1.md)
 - [x] WP1 — Army choice, troop cards and upgrades: profile v2 + migration, upgrade with cards and coins, reward cards, slot-based army builder, general picker, Army screen upgrades
 - [x] WP2 — Enemy AI that fights as an army: one best action at a time, move + charge, posture triggers, support, path-aware approach; beats the M3 AI 65% (`balance-sim aivsai`)
-- [ ] WP4 — Rule bugs and movement feel
+- [x] WP4 — Rule bugs and movement feel: evade pull-back, turn-start facing, preview includes melee, ×0.5 flank strike-back, Concede, sidestep, default facing, evade 0.6, end-turn confirm
 - [ ] WP3 — Unit graphics and icons (icon sheet needs owner approval)
 - [ ] WP6 — Battle readability
 - [ ] WP5 — Balance and campaign difficulty

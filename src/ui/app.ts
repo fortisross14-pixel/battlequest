@@ -197,10 +197,9 @@ export class App implements AppApi {
       tutorial: b.tutorial ? MEGIDDO_TUTORIAL : undefined,
       onEnd: (final) => window.setTimeout(() => finish(final), 900),
       onExit: () => {
-        // Retreating is a defeat.
-        const final = structuredClone(session.state);
-        final.result = { winner: 'red', reason: 'armyBroken', turn: final.turn, broken: ['blue'] };
-        finish(final);
+        // Retreating is a defeat, through the rules like any other command.
+        if (!session.state.result) session.apply({ type: 'Concede', side: 'blue' });
+        finish(session.state);
       },
     });
     this.gestures = {

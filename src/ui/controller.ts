@@ -445,9 +445,27 @@ export class Controller {
     );
   }
 
+  /** Whether the unit could still charge or shoot something right now. */
+  private canAttack(u: Unit): boolean {
+    if (u.hasActed) return false;
+    return this.state.units.some(
+      (e) =>
+        e.side !== u.side &&
+        isOnMap(e) &&
+        (!validateCommand(this.state, { type: 'Charge', unitId: u.id, targetId: e.id }) ||
+          !validateCommand(this.state, { type: 'Shoot', unitId: u.id, targetId: e.id })),
+    );
+  }
+
+  /** Units that haven't done anything yet this turn (and could). */
+  private untouched(): Unit[] {
+    return this.actionable().filter((u) => !u.hasMoved && !u.hasActed);
+  }
+
   private nextUnit(): void {
     if (this.mode.kind === 'busy' || !this.isHumanTurn()) return;
-    const list = this.actionable();
+    // Skip units that have moved and could only brace now.
+    const list = this.actionable().filter((u) => !u.hasMoved || this.canAttack(u));
     if (list.length === 0) return;
     const cur =
       'unitId' in this.mode
@@ -459,8 +477,18 @@ export class Controller {
     this.view.centreOn(next);
   }
 
-  private async endTurn(): Promise<void> {
+  private async endTurn(confirmed = false): Promise<void> {
     if (this.mode.kind === 'busy' || this.state.result || !this.isHumanTurn()) return;
+    const idle = this.untouched().length;
+    if (!confirmed && idle > 0) {
+      this.hud.showConfirm(
+        'End turn?',
+        `${idle} unit${idle === 1 ? " hasn't" : "s haven't"} moved yet.`,
+        'End turn',
+        () => void this.endTurn(true),
+      );
+      return;
+    }
     const ending = this.state.activeSide;
     this.deselect();
     const ok = await this.run({ type: 'EndTurn' }, null);
@@ -549,7 +577,9 @@ export class Controller {
           : 'Both armies broke at once.'
         : r.reason === 'heldOut'
           ? `${this.names[r.winner!]} held out until the end of turn ${r.turn}.`
-          : `The turn limit (${this.state.turnLimit}) was reached with neither army broken.`;
+          : r.reason === 'conceded'
+            ? `${this.names[r.broken[0] ?? 'blue']} retreated from the field.`
+            : `The turn limit (${this.state.turnLimit}) was reached with neither army broken.`;
     this.hud.showOverlay(
       title,
       body,

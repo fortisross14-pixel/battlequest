@@ -30,10 +30,12 @@ describe('movement costs', () => {
     expect(unit(state, 'b')).toMatchObject({ x: 4, y: 3, facing: E, mpLeft: 4 });
   });
 
-  it('diagonal steps cost 3 MP plus turning, default facing is the move direction', () => {
+  it('diagonal steps cost 3 MP plus turning; by default the unit keeps its facing', () => {
     const s = solo();
+    // Turn to SE (1), step (3), turn back to E (1).
     const { state } = run(s, { type: 'Move', unitId: 'b', to: { x: 3, y: 4 } });
-    expect(unit(state, 'b')).toMatchObject({ facing: SE, mpLeft: 8 - 4 });
+    expect(unit(state, 'b')).toMatchObject({ facing: E, mpLeft: 8 - 5 });
+    expect(costTo(s, 'b', 3, 4, SE)).toBe(4);
   });
 
   it('a requested final facing adds its turning cost', () => {

@@ -1,7 +1,8 @@
 import type { Arc } from './geometry';
 import type { BattleResult, Cohesion, Dir, Pos, Side } from './types';
 
-export type MoveKind = 'move' | 'pullBack' | 'evade' | 'rout' | 'pursuit' | 'pushBack' | 'followUp';
+export type MoveKind =
+  'move' | 'pullBack' | 'sidestep' | 'evade' | 'rout' | 'pursuit' | 'pushBack' | 'followUp';
 export type DamageKind = 'ranged' | 'impact' | 'melee';
 
 /** Everything the renderer needs to animate a state change. */

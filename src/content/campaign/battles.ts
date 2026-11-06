@@ -25,7 +25,7 @@ const megiddo: CampaignBattle = {
   tutorial: true,
   problem: 'Strike the Canaanite line from the flank before it can turn to face you.',
   briefing:
-    'Thutmose III has led his army through the narrow Aruna pass and out onto the plain before Megiddo, where the Canaanite kings did not expect him. Their warriors are still forming up. Turn your chariots against the side of their line, where a unit cannot strike back — and keep your spearmen facing the enemy.',
+    'Thutmose III has led his army through the narrow Aruna pass and out onto the plain before Megiddo, where the Canaanite kings did not expect him. Their warriors are still forming up. Turn your chariots against the side of their line, where a unit can only strike back at half strength — and keep your spearmen facing the enemy.',
   terrain: [
     '............',
     '.......,,...',

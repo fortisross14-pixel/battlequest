@@ -55,6 +55,7 @@ export function createUnit(u: ScenarioUnit): Unit {
     x: u.x,
     y: u.y,
     facing: u.facing,
+    turnStartFacing: u.facing,
     strength: u.strength ?? 100,
     cohesion: u.cohesion ?? Cohesion.Steady,
     status: 'active',

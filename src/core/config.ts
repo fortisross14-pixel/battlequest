@@ -31,10 +31,12 @@ export const RULES = {
     /** Squares an evading unit falls back when charged. */
     evadeSquares: 2,
     /** Evade chance = base + perMp x (evader MP - charger MP), clamped to [min, max]. */
-    evadeBase: 0.75,
+    evadeBase: 0.6,
     evadePerMp: 0.05,
     evadeMin: 0.25,
     evadeMax: 0.95,
+    /** A one-square step sideways or back that keeps the facing (not inside a zone of control). */
+    sidestepCost: 3,
     /** Squares a Pursue unit follows its routed opponent. */
     pursuitSquares: 2,
   },
@@ -44,6 +46,8 @@ export const RULES = {
     randomMax: 1.15,
     flank: 1.5,
     rear: 2.0,
+    /** A unit striking back at an enemy on its flank or rear (no enemy to its front) does this much. */
+    flankedStrikeBack: 0.5,
     /** Extra flank/rear multiplier against FlankVulnerable units. */
     flankVulnerable: 1.25,
     uphill: 1.2,

@@ -7,7 +7,8 @@ import {
   type DamageCalc,
   type Modifier,
 } from './combat';
-import { planCommand } from './engine';
+import { meleeTargetOf, planCommand } from './engine';
+import type { Arc } from './geometry';
 import { cohesionDropChance, friendRoutedNearby } from './morale';
 import { isRejection, reject, type Rejection } from './rejection';
 import { isRouted, requireUnit } from './state';
@@ -15,8 +16,12 @@ import { Cohesion, type BattleState, type Unit } from './types';
 
 export interface SidePreview {
   unitId: string;
-  /** Expected strength loss (before the ±15% random factor). */
+  /** Expected strength loss (before the ±15% random factor): impact or shot, plus melee. */
   expectedLoss: number;
+  /** Loss from the shot, or from the charge's impact. */
+  impactLoss: number;
+  /** Loss in the first melee round, which follows a charge in the same side turn. */
+  meleeLoss: number;
   /** Chance to drop at least one cohesion level (1 if the loss forces a rout). */
   cohesionDropChance: number;
   /** Chance to rout from this exchange. */
@@ -34,38 +39,77 @@ export interface CombatPreview {
   defender: SidePreview;
 }
 
-function sidePreview(state: BattleState, victim: Unit, calc: DamageCalc | null): SidePreview {
-  const expected = calc ? Math.min(victim.strength, calc.expected) : 0;
-  const after = victim.strength - expected;
-  let drop = 0;
+/** One cohesion test after `damage` lands on a unit that had `before` strength. */
+function testChance(
+  state: BattleState,
+  victim: Unit,
+  before: number,
+  damage: number,
+  arc: Arc,
+): number {
+  if (damage <= 0) return 0;
+  const after = before - damage;
+  if (after <= RULES.morale.autoRoutStrength) return 1;
+  // The test happens after the damage, so use the reduced strength.
+  return cohesionDropChance(
+    state,
+    { ...victim, strength: after },
+    {
+      damage,
+      arc,
+      adjacentRout: friendRoutedNearby(state, victim),
+    },
+  );
+}
+
+/** Expected damage multiplier after a cohesion test that drops a level with chance `p`. */
+function cohesionFactor(u: Unit, p: number): number {
+  const C = RULES.combat;
+  if (u.cohesion === Cohesion.Steady) return 1 - p * (1 - C.disrupted);
+  if (u.cohesion === Cohesion.Disrupted) return 1 - p * (1 - C.fragmented / C.disrupted);
+  return 1;
+}
+
+/** Combines up to two cohesion tests (impact, then melee) into drop and rout chances. */
+function outcome(
+  victim: Unit,
+  before: number,
+  impact: number,
+  melee: number,
+  p1: number,
+  p2: number,
+  modifiers: Modifier[],
+): SidePreview {
+  const total = impact + melee;
+  const autoRout = total > 0 && before - total <= RULES.morale.autoRoutStrength;
+  const drop = autoRout ? 1 : 1 - (1 - p1) * (1 - p2);
+  // Routing takes one failed test from Fragmented, two from Disrupted.
   let rout = 0;
-  if (expected > 0) {
-    if (after <= RULES.morale.autoRoutStrength) {
-      drop = 1;
-      rout = 1;
-    } else {
-      // The test happens after the damage, so use the reduced strength.
-      const hurt = { ...victim, strength: after };
-      drop = cohesionDropChance(state, hurt, {
-        damage: expected,
-        arc: calc!.arc,
-        adjacentRout: friendRoutedNearby(state, victim),
-      });
-      rout = victim.cohesion === Cohesion.Fragmented ? drop : 0;
-    }
-  }
+  if (autoRout || p1 >= 1) rout = 1;
+  else if (victim.cohesion === Cohesion.Fragmented) rout = drop;
+  else if (victim.cohesion === Cohesion.Disrupted) rout = p1 * p2;
   return {
     unitId: victim.id,
-    expectedLoss: expected,
+    expectedLoss: total,
+    impactLoss: impact,
+    meleeLoss: melee,
     cohesionDropChance: drop,
     routChance: rout,
-    modifiers: calc?.situational ?? [],
+    modifiers,
   };
+}
+
+function shotPreview(state: BattleState, victim: Unit, calc: DamageCalc | null): SidePreview {
+  const dmg = calc ? Math.min(victim.strength, calc.expected) : 0;
+  const p = calc ? testChance(state, victim, victim.strength, dmg, calc.arc) : 0;
+  return outcome(victim, victim.strength, dmg, 0, p, 0, calc?.situational ?? []);
 }
 
 /**
  * Expected-value preview of a Charge or Shoot. It runs the real validation and the real
  * damage and cohesion functions on a copy of the state, so it always matches the rules.
+ * A charge also includes the first melee round, which is fought at the end of the same
+ * side turn.
  */
 export function previewCombat(
   state: BattleState,
@@ -85,8 +129,8 @@ export function previewCombat(
       kind: 'shoot',
       outcome: 'fight',
       evadeChance: 0,
-      attacker: sidePreview(sim, att, null),
-      defender: sidePreview(sim, def, calc),
+      attacker: shotPreview(sim, att, null),
+      defender: shotPreview(sim, def, calc),
     };
   }
 
@@ -99,18 +143,48 @@ export function previewCombat(
       kind: 'charge',
       outcome: 'catchRouter',
       evadeChance: 0,
-      attacker: sidePreview(sim, att, null),
-      defender: { ...sidePreview(sim, def, null), expectedLoss: def.strength, routChance: 1 },
+      attacker: shotPreview(sim, att, null),
+      defender: { ...shotPreview(sim, def, null), expectedLoss: def.strength, routChance: 1 },
     };
   }
   const mayEvade = canEvade(sim, def) && evadePath(sim, def, plan.plan.dir).length > 1;
+
+  // Impact: both strike at once.
   const hit = computeDamage(sim, att, def, 'charge');
   const back = computeDamage(sim, def, att, 'counter');
+  const defStart = def.strength;
+  const attStart = att.strength;
+  const impactDef = Math.min(defStart, hit.expected);
+  const impactAtt = Math.min(attStart, back.expected);
+  const p1Def = testChance(sim, def, defStart, impactDef, hit.arc);
+  const p1Att = testChance(sim, att, attStart, impactAtt, back.arc);
+
+  // First melee round, if neither side routs at impact. The defender strikes the
+  // charger only if it is the opponent the real melee phase would pick.
+  const fights = (1 - (p1Def >= 1 ? 1 : 0)) * (1 - (p1Att >= 1 ? 1 : 0));
+  def.strength = defStart - impactDef;
+  att.strength = attStart - impactAtt;
+  sim.engagements.push({ a: att.id, b: def.id });
+  const attMelee = computeDamage(sim, att, def, 'melee');
+  const defStrikes = meleeTargetOf(sim, def)?.id === att.id;
+  const defMelee = defStrikes ? computeDamage(sim, def, att, 'melee') : null;
+  const keepAtt = fights * (1 - (att.cohesion === Cohesion.Fragmented ? p1Att : 0));
+  const keepDef = fights * (1 - (def.cohesion === Cohesion.Fragmented ? p1Def : 0));
+  const meleeDef =
+    Math.min(def.strength, attMelee.expected * cohesionFactor(att, p1Att)) * keepAtt * keepDef;
+  const meleeAtt = defMelee
+    ? Math.min(att.strength, defMelee.expected * cohesionFactor(def, p1Def)) * keepAtt * keepDef
+    : 0;
+  const p2Def = testChance(sim, def, def.strength, meleeDef, attMelee.arc);
+  const p2Att = defMelee ? testChance(sim, att, att.strength, meleeAtt, defMelee.arc) : 0;
+  def.strength = defStart;
+  att.strength = attStart;
+
   return {
     kind: 'charge',
     outcome: mayEvade ? 'mayEvade' : 'fight',
     evadeChance: mayEvade ? evadeChance(att, def) : 0,
-    attacker: sidePreview(sim, att, back),
-    defender: sidePreview(sim, def, hit),
+    attacker: outcome(att, attStart, impactAtt, meleeAtt, p1Att, p2Att, back.situational),
+    defender: outcome(def, defStart, impactDef, meleeDef, p1Def, p2Def, hit.situational),
   };
 }

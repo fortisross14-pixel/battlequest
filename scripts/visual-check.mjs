@@ -56,6 +56,17 @@ async function longPress(page, x, y) {
   await page.waitForTimeout(200);
 }
 
+/** Taps End turn, and confirms if the game asks about units that haven't moved. */
+async function endTurn(page, size, label) {
+  await page.locator('.hud .corner.right .btn.primary').tap();
+  await page.waitForTimeout(300);
+  const sheet = page.locator('.overlay:not(.hidden) .sheet');
+  if (await sheet.isVisible()) {
+    if (label) await shot(page, size, label);
+    await sheet.getByRole('button', { name: 'End turn' }).tap();
+  }
+}
+
 async function shot(page, size, name) {
   const file = join(outDir, `${size.name}-${name}.png`);
   await page.screenshot({ path: file });
@@ -142,7 +153,7 @@ for (const size of SIZES) {
   await longPress(page, 9, 4); // elephants
   await shot(page, size, '11-unit-card');
   await page.getByRole('button', { name: 'Close' }).tap();
-  await page.getByRole('button', { name: 'End turn' }).tap();
+  await endTurn(page, size, '11b-end-turn-confirm');
   await page.waitForTimeout(2500);
   await shot(page, size, '12-handoff');
   await page.getByRole('button', { name: 'Start turn' }).tap();
@@ -179,7 +190,7 @@ for (const size of SIZES) {
   const cs = await smallTargets(page);
   if (cs.length) problems.push(`${size.name} (battle): small buttons ${JSON.stringify(cs)}`);
   // Let the enemy AI play a turn, with the speed control visible.
-  await page.getByRole('button', { name: 'End turn' }).tap();
+  await endTurn(page, size, '23a-end-turn-confirm');
   await page.waitForTimeout(700);
   await shot(page, size, '23b-enemy-turn');
   await page.waitForFunction(

@@ -154,6 +154,11 @@ export function computeDamage(
     const boost = flankBoost(state, att.side);
     if (boost !== 1) sit.push({ label: 'General: flank attack', value: boost });
   }
+  // Striking back at an enemy on your own flank or rear (impact counter, or melee with no
+  // enemy to the front) is half as effective.
+  if ((role === 'counter' || role === 'melee') && arcOf(att, att.facing, def) !== 'front') {
+    sit.push({ label: 'Struck in the flank', value: C.flankedStrikeBack });
+  }
   if (elevationAt(state.map, att) > elevationAt(state.map, def))
     sit.push({ label: 'Uphill', value: C.uphill });
   if (role === 'ranged' && terrainRules(state.map, def).cover)

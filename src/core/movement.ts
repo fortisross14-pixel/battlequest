@@ -196,17 +196,24 @@ export function reconstruct(r: Reachability, p: Pos, arrival: Dir): Pos[] {
 }
 
 export interface MovePlan {
-  kind: 'move' | 'pullBack';
+  /** pullBack: one square straight back out of a zone of control (ends movement).
+   *  sidestep: one square sideways or back that keeps the facing. */
+  kind: 'move' | 'pullBack' | 'sidestep';
   /** Squares from the start square to the destination, inclusive. */
   path: Pos[];
   cost: number;
   facing: Dir;
 }
 
-/** The square directly behind the unit, if it may pull back there. */
+/**
+ * The square directly behind the unit, if it may pull back there. "Behind" is measured
+ * from the facing it had at the start of the turn, so turning first can't turn the
+ * pull-back into a sideways exit. Evade units leave zones of control by normal moves.
+ */
 export function pullBackPlan(state: BattleState, u: Unit): MovePlan | null {
+  if (hasTag(u, 'Evade')) return null;
   if (isEngaged(state, u.id) || !inEnemyZoc(state, u.side, u)) return null;
-  const back = opposite(u.facing);
+  const back = opposite(u.turnStartFacing);
   const sc = stepCost(state, u, u, back);
   if (sc === null || sc > u.mpLeft + EPS) return null;
   return {
@@ -217,8 +224,42 @@ export function pullBackPlan(state: BattleState, u: Unit): MovePlan | null {
   };
 }
 
+/**
+ * One-square steps to the left, right or back that keep the facing, for a few MP
+ * (FoG2-style shift). Only as the unit's first move of the turn, and not from inside an
+ * enemy zone of control.
+ */
+export function sidestepPlans(state: BattleState, u: Unit): MovePlan[] {
+  if (u.hasMoved || isEngaged(state, u.id) || inEnemyZoc(state, u.side, u)) return [];
+  const out: MovePlan[] = [];
+  for (const d of [((u.facing + 6) % 8) as Dir, ((u.facing + 2) % 8) as Dir, opposite(u.facing)]) {
+    const sc = stepCost(state, u, u, d);
+    if (sc === null) continue;
+    // Same terrain and slope factors as a normal step, on the sidestep's base cost.
+    const base = isDiagonal(d) ? M.diagonalCost : M.orthogonalCost;
+    const cost = (M.sidestepCost * sc) / base;
+    if (cost > u.mpLeft + EPS) continue;
+    out.push({ kind: 'sidestep', path: [{ x: u.x, y: u.y }, step(u, d)], cost, facing: u.facing });
+  }
+  return out;
+}
+
 export function searchFor(state: BattleState, u: Unit): Reachability {
   return searchMoves(state, u, { mp: u.mpLeft, zoc: true, turning: true });
+}
+
+/**
+ * Cheapest arrival at `to`. With no facing asked for, the unit keeps its current facing
+ * if it can afford to; otherwise it faces the way it arrived.
+ */
+function arrival(
+  r: Reachability,
+  u: Unit,
+  to: Pos,
+  facing: Dir | undefined,
+): { cost: number; arrival: Dir; facing: Dir } | null {
+  if (facing !== undefined) return bestArrival(r, u, to, facing);
+  return bestArrival(r, u, to, u.facing) ?? bestArrival(r, u, to, undefined);
 }
 
 /** Validates and plans a move. Assumes the unit may act (checked by the command layer). */
@@ -235,7 +276,11 @@ export function planMove(
   const pb = pullBackPlan(state, u);
   if (pb && samePos(pb.path[1]!, to) && (facing === undefined || facing === u.facing)) return pb;
   const r = reach ?? searchFor(state, u);
-  const best = bestArrival(r, u, to, facing);
+  const best = arrival(r, u, to, facing);
+  if (facing === undefined || facing === u.facing) {
+    const side = sidestepPlans(state, u).find((p) => samePos(p.path[1]!, to));
+    if (side && (!best || best.facing !== u.facing || side.cost < best.cost - EPS)) return side;
+  }
   if (!best) {
     if (inEnemyZoc(state, u.side, u) && !hasTag(u, 'Evade')) {
       return reject(
@@ -264,9 +309,9 @@ export function planMove(
 export interface ReachableSquare {
   pos: Pos;
   cost: number;
-  /** Facing after arriving by the cheapest path. */
+  /** Facing after arriving (the current facing when affordable). */
   facing: Dir;
-  kind: 'move' | 'pullBack';
+  kind: 'move' | 'pullBack' | 'sidestep';
 }
 
 /** All squares the unit can move to this turn (for highlights). */
@@ -278,9 +323,18 @@ export function reachableSquares(state: BattleState, u: Unit): ReachableSquare[]
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (x === u.x && y === u.y) continue;
-      const best = bestArrival(r, u, { x, y }, undefined);
+      const best = arrival(r, u, { x, y }, undefined);
       if (best) out.push({ pos: { x, y }, cost: best.cost, facing: best.facing, kind: 'move' });
     }
+  }
+  for (const sp of sidestepPlans(state, u)) {
+    const to = sp.path[1]!;
+    const i = out.findIndex((s) => samePos(s.pos, to));
+    const cur = out[i];
+    if (cur && cur.facing === u.facing && cur.cost <= sp.cost + EPS) continue;
+    const entry = { pos: to, cost: sp.cost, facing: sp.facing, kind: 'sidestep' as const };
+    if (i >= 0) out[i] = entry;
+    else out.push(entry);
   }
   const pb = pullBackPlan(state, u);
   if (pb && !out.some((s) => samePos(s.pos, pb.path[1]!))) {
