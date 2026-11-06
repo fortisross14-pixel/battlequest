@@ -18,6 +18,8 @@ import {
   inEnemyZoc,
   isCavalryLike,
   hasTag,
+  inCommandRadius,
+  Cohesion,
   type BattleState,
   type Command,
   type CombatPreview,
@@ -135,6 +137,8 @@ export class AiPlayer {
       return null;
     }
     if (!u.hasActed) {
+      const skill = this.bestSkill(state, u);
+      if (skill) return skill;
       const attack = this.bestAttack(state, u, posture);
       if (attack) {
         this.stage.set(u.id, 'done');
@@ -152,6 +156,47 @@ export class AiPlayer {
       return { type: 'Hold', unitId: u.id };
     }
     this.stage.set(u.id, 'done');
+    return null;
+  }
+
+  /** Simple rules for when a general's skill is worth the general unit's action. */
+  private bestSkill(state: BattleState, u: Unit): Command | null {
+    const g = state.sides[this.side].general;
+    if (!g || g.lost || g.unitId !== u.id) return null;
+    const mine = state.units.filter(
+      (x) => x.side === this.side && isOnMap(x) && inCommandRadius(state, x),
+    );
+    const enemyNear = (x: Unit) =>
+      state.units.some((e) => e.side !== this.side && isFighting(e) && chebyshev(e, x) <= 3);
+    for (const sk of g.skills) {
+      if (state.turn < sk.readyTurn) continue;
+      const e = sk.effect;
+      const cmd = (targetId?: string): Command => ({
+        type: 'UseSkill',
+        unitId: u.id,
+        skillId: sk.id,
+        ...(targetId ? { targetId } : {}),
+      });
+      if (e.kind === 'rally') {
+        const t = mine.find((x) => x.cohesion === Cohesion.Routed);
+        if (t) return cmd(t.id);
+      } else if (e.kind === 'heal') {
+        const missing = mine
+          .filter(isFighting)
+          .reduce((sum, x) => sum + Math.min(e.amount, 100 - x.strength), 0);
+        if (missing >= 2 * e.amount) return cmd();
+      } else if (e.kind === 'cohesionUp') {
+        if (mine.filter((x) => isFighting(x) && x.cohesion >= Cohesion.Disrupted).length >= 2)
+          return cmd();
+      } else if (e.kind === 'holdTheLine') {
+        if (mine.filter((x) => isEngaged(state, x.id)).length >= 2) return cmd();
+      } else if (e.kind === 'flankBoost') {
+        if (mine.filter((x) => isFighting(x) && enemyNear(x)).length >= 2) return cmd();
+      } else if (e.kind === 'holdFast') {
+        const t = mine.find((x) => isFighting(x) && isEngaged(state, x.id));
+        if (t) return cmd(t.id);
+      }
+    }
     return null;
   }
 

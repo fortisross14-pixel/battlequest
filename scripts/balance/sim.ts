@@ -1,4 +1,7 @@
 import { playGreedyBattle } from '../../src/ai/greedy';
+import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
+import { buildScenario } from '../../src/content/campaign/build';
+import type { CampaignBattle } from '../../src/content/campaign/types';
 import { ARCHETYPES, unitType, type ArchetypeId } from '../../src/content/units';
 import {
   applyCommand,
@@ -114,4 +117,36 @@ export function costBattle(
   place(b, sideA === 'blue' ? 'red' : 'blue');
   const session = playGreedyBattle(new BattleSession(makeState(units, seed, 16, 10, 15)));
   return outcome(session.state, sideA);
+}
+
+/** One campaign battle: AI with the battle's test army vs the enemy AI with its posture. */
+export function scenarioBattle(
+  b: CampaignBattle,
+  seed: number,
+): { won: boolean; turns: number; lostPct: number } {
+  const session = new BattleSession(startBattle(buildScenario(b, b.testArmy, seed)));
+  const ais = {
+    // A sensible player holds when the objective is to hold out.
+    blue: new AiPlayer('blue', {
+      posture: b.testPosture ?? (b.holdOut === 'player' ? 'defensive' : 'aggressive'),
+    }),
+    red: new AiPlayer('red', { posture: b.posture, attackTurn: b.attackTurn }),
+  };
+  for (let i = 0; i < 80 && !session.state.result; i++) {
+    playAiSideTurn(
+      ais[session.state.activeSide],
+      (c) => session.apply(c),
+      () => session.state,
+    );
+  }
+  const s = session.state;
+  const total = s.units.filter((u) => u.side === 'blue').reduce((a, u) => a + u.type.stats.cost, 0);
+  const lost = s.units
+    .filter((u) => u.side === 'blue' && (u.status !== 'active' || u.cohesion === 3))
+    .reduce((a, u) => a + u.type.stats.cost, 0);
+  return {
+    won: s.result?.winner === 'blue',
+    turns: s.result?.turn ?? s.turn,
+    lostPct: lost / total,
+  };
 }

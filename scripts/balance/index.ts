@@ -1,11 +1,19 @@
 /**
- * Balance simulator. Usage: npm run balance -- <duel|cost> [--seeds N] [--points P] [--out dir]
+ * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]> [--seeds N] [--points P] [--out dir]
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ARCHETYPES, type ArchetypeId } from '../../src/content/units';
-import { ARCHETYPE_IDS, costBattle, duel, DUEL_SETUPS, type DuelSetup } from './sim';
+import {
+  ARCHETYPE_IDS,
+  costBattle,
+  duel,
+  DUEL_SETUPS,
+  scenarioBattle,
+  type DuelSetup,
+} from './sim';
+import { BATTLE_BY_ID, CAMPAIGN, finalBattleOfAge } from '../../src/content/campaign/battles';
 
 const args = process.argv.slice(2);
 const mode = args[0];
@@ -189,6 +197,64 @@ function runCost(seeds: number[], points: number): string {
   return out.join('\n') + '\n';
 }
 
+function runScenario(id: string, seeds: number[]): string {
+  const battles = id === 'all' ? CAMPAIGN : [BATTLE_BY_ID[id]!].filter(Boolean);
+  const rows: string[][] = [];
+  const outliers: string[] = [];
+  for (const b of battles) {
+    let wins = 0;
+    let turns = 0;
+    let lost = 0;
+    for (const seed of seeds) {
+      const r = scenarioBattle(b, seed);
+      wins += r.won ? 1 : 0;
+      turns += r.turns;
+      lost += r.lostPct;
+    }
+    const rate = wins / seeds.length;
+    const final = finalBattleOfAge(b.age)?.id === b.id && b.age > 0;
+    const band: [number, number] = b.tutorial ? [0.6, 1] : final ? [0.3, 0.5] : [0.6, 0.8];
+    const ok = rate >= band[0] && rate <= band[1];
+    const target = `${pct(band[0])}–${pct(band[1])}`;
+    if (!ok) outliers.push(`- **${b.name}**: ${pct(rate)} (target ${target})`);
+    rows.push([
+      b.name,
+      String(b.age),
+      `${b.testArmy.units.length} v ${b.enemy.length}`,
+      pct(rate),
+      target,
+      ok ? 'pass' : '**out**',
+      (turns / seeds.length).toFixed(1),
+      pct(lost / seeds.length),
+    ]);
+  }
+  return (
+    [
+      `# Balance: scenario (${today})`,
+      '',
+      `Each battle played ${seeds.length} times: the utility AI plays the player with the battle's test army (aggressive), and the enemy AI plays its scenario posture. Targets: early battles 60–80% player wins, age-final battles 30–50%.`,
+      '',
+      table(
+        [
+          'Battle',
+          'Age',
+          'Units',
+          'Player wins',
+          'Target',
+          'Result',
+          'Avg turns',
+          'Avg player losses',
+        ],
+        rows,
+      ),
+      '',
+      '## Outliers',
+      '',
+      outliers.length ? outliers.join('\n') : 'None.',
+    ].join('\n') + '\n'
+  );
+}
+
 function write(name: string, body: string): void {
   mkdirSync(outDir, { recursive: true });
   const file = join(outDir, `${today}-${name}.md`);
@@ -199,10 +265,14 @@ function write(name: string, body: string): void {
 
 const started = Date.now();
 if (mode === 'duel') write('duel', runDuel(seedList(opt('seeds', 40))));
-else if (mode === 'cost') write('cost', runCost(seedList(opt('seeds', 4)), opt('points', 600)));
+else if (mode === 'scenario') {
+  const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
+  write(`scenario-${id}`, runScenario(id, seedList(opt('seeds', 30))));
+} else if (mode === 'cost') write('cost', runCost(seedList(opt('seeds', 4)), opt('points', 600)));
 else {
-  console.error('Usage: npm run balance -- <duel|cost> [--seeds N] [--points P] [--out dir]');
-  console.error('Modes terrain, scenario and general arrive with M3/M4.');
+  console.error(
+    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]> [--seeds N] [--points P] [--out dir]',
+  );
   process.exit(1);
 }
 console.log(`Done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
