@@ -1,6 +1,5 @@
 import type { Age, CampaignBattle } from './types';
 
-const E = 2 as const;
 const W = 6 as const;
 const SW = 5 as const;
 
