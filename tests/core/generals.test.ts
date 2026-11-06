@@ -69,7 +69,7 @@ describe('generals (4.10, 6)', () => {
       U('k', 'blue', 'heavyCavalry', 2, 5),
       U('r', 'red', 'spearmen', 10, 3),
     ]);
-    expect(unit(s, 'g').type.stats.melee).toBeCloseTo(5.5);
+    expect(unit(s, 'g').type.stats.melee).toBeCloseTo(5.75);
     expect(unit(s, 'k').type.stats.melee).toBe(6);
     expect(unit(s, 'r').type.stats.melee).toBe(5);
     // The shared archetype data is untouched.
@@ -101,7 +101,7 @@ describe('generals (4.10, 6)', () => {
       unit(hannibal, 'd'),
       'melee',
     ).expected;
-    expect(boosted / base).toBeCloseTo(1.15);
+    expect(boosted / base).toBeCloseTo(1.25);
     const p = previewCombat(hannibal, { type: 'Charge', unitId: 'g', targetId: 'd' });
     expect(!isRejection(p) && p.defender.modifiers.some((m) => m.label.startsWith('General'))).toBe(
       true,
@@ -192,7 +192,7 @@ describe('generals (4.10, 6)', () => {
   });
 
   it('effects expire at the start of their side’s turn', () => {
-    let s = withGeneral(G.alexander!, 1, [
+    let s = withGeneral(G.alexander!, 5, [
       U('g', 'blue', 'heavyCavalry', 2, 3),
       U('r', 'red', 'spearmen', 11, 0),
     ]);
@@ -232,5 +232,25 @@ describe('generals (4.10, 6)', () => {
     }
     expect(lost).toBeGreaterThan(8);
     expect(lost).toBeLessThan(30);
+  });
+});
+
+describe('generals: second skill and distinct skills (review 1 WP5)', () => {
+  const units = (): ScenarioUnit[] => [
+    { id: 'g', side: 'blue', type: unitType('heavyCavalry'), x: 2, y: 3, facing: 2 },
+    { id: 'r', side: 'red', type: unitType('spearmen'), x: 9, y: 3, facing: 6 },
+  ];
+
+  it('Alexander gets his second skill (Hammer and Anvil) at rank 5', () => {
+    const at = (rank: number) =>
+      withGeneral(G.alexander!, rank, units()).sides.blue.general!.skills.map((s) => s.id);
+    expect(at(1)).toEqual(['companionCharge']);
+    expect(at(4)).toEqual(['companionCharge']);
+    expect(at(5)).toEqual(['companionCharge', 'hammerAndAnvil']);
+  });
+
+  it('Alexander and Hannibal have different first skills', () => {
+    expect(G.alexander!.skills[0]!.effect.kind).toBe('chargeAgain');
+    expect(G.hannibal!.skills[0]!.effect.kind).toBe('flankBoost');
   });
 });

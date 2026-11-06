@@ -68,6 +68,7 @@ export function buildScenario(
       red: {
         name: 'Enemy',
         edge: 'east',
+        breakpoint: b.enemyBreakpoint,
         general:
           enemyGen && enemyGenIdx >= 0
             ? { def: enemyGen, rank: b.enemyGeneral!.rank, unitId: `e${enemyGenIdx}` }

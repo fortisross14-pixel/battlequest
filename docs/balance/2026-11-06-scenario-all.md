@@ -1,19 +1,17 @@
-# Balance: scenario (2026-11-06)
+# Balance: scenario (2026-11-06, army: test, level 1)
 
-Each battle played 30 times: the utility AI plays the player with the battle's test army (aggressive), and the enemy AI plays its scenario posture. Targets: early battles 60–80% player wins, age-final battles 30–50%.
+Each battle played 40 times per army: the utility AI plays the player with the battle's test army at level 1, and the enemy AI plays its scenario posture. Targets: Prologue 80–90% player wins, other battles 50–75%, age finals 35–50%.
 
 | Battle | Age | Units | Player wins | Target | Result | Avg turns | Avg player losses |
 |---|---|---|---|---|---|---|---|
-| Megiddo | 0 | 2 v 2 | 100% | 60%–100% | pass | 2.0 | 0% |
-| Kadesh | 1 | 3 v 3 | 100% | 60%–80% | **out** | 3.3 | 0% |
-| Qarqar | 1 | 3 v 4 | 100% | 30%–50% | **out** | 3.0 | 40% |
-| Marathon | 2 | 4 v 4 | 100% | 60%–80% | **out** | 3.0 | 0% |
-| Thermopylae | 2 | 4 v 6 | 93% | 60%–80% | **out** | 3.1 | 24% |
-| Leuctra | 2 | 5 v 5 | 50% | 30%–50% | pass | 4.6 | 50% |
+| Megiddo | 0 | 2 test units v 2 | 95% | 80%–90% | **out** | 2.0 | 23% |
+| Kadesh | 1 | 3 test units v 3 | 73% | 50%–75% | pass | 5.0 | 18% |
+| Qarqar | 1 | 3 test units v 4 | 48% | 35%–50% | pass | 3.0 | 47% |
+| Marathon | 2 | 4 test units v 5 | 60% | 50%–75% | pass | 4.2 | 48% |
+| Thermopylae | 2 | 4 test units v 6 | 53% | 50%–75% | pass | 3.0 | 37% |
+| Leuctra | 2 | 5 test units v 5 | 28% | 35%–50% | **out** | 3.3 | 60% |
 
 ## Outliers
 
-- **Kadesh**: 100% (target 60%–80%)
-- **Qarqar**: 100% (target 30%–50%)
-- **Marathon**: 100% (target 60%–80%)
-- **Thermopylae**: 93% (target 60%–80%)
+- **Megiddo**: 95% (target 80%–90%)
+- **Leuctra**: 28% (target 35%–50%)

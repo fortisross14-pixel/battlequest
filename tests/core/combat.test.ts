@@ -551,7 +551,8 @@ describe('combat preview', () => {
     expect(isRejection(p)).toBe(false);
     if (isRejection(p)) return;
     expect(p.outcome).toBe('fight');
-    expect(p.defender.impactLoss).toBeCloseTo((30 * 9) / 11);
+    // A 2-square run-up: heavy cavalry (Charge tag) hits at full gallop, ×1.2.
+    expect(p.defender.impactLoss).toBeCloseTo(((30 * 9) / 11) * 1.2);
     expect(p.attacker.impactLoss).toBeCloseTo(30 / 8);
     // The charge's first melee round comes on top of the impact.
     expect(p.defender.expectedLoss).toBeGreaterThan(p.defender.impactLoss);
@@ -575,7 +576,7 @@ describe('combat preview', () => {
     expect(ev.outcome).toBe('mayEvade');
     expect(ev.evadeChance).toBeCloseTo(0.5);
     // If it is caught, the expected losses are those of a normal impact (plus melee).
-    expect(ev.defender.impactLoss).toBeCloseTo((30 * 9) / 11);
+    expect(ev.defender.impactLoss).toBeCloseTo(((30 * 9) / 11) * 1.2);
     const bad = previewCombat(s, { type: 'Charge', unitId: 'a', targetId: 'sk' });
     expect(isRejection(bad)).toBe(true);
   });

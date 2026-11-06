@@ -1,8 +1,10 @@
 import { RULES } from './config';
 import type { GameEvent } from './events';
+import { isAdjacent } from './geometry';
 import { reject, type Rejection } from './rejection';
 import {
   getUnit,
+  isEngaged,
   inCommandRadius,
   isCavalryLike,
   isFighting,
@@ -178,11 +180,12 @@ export function planSkill(
   if (!g || g.lost || g.unitId !== unit.id) {
     return reject('NO_GENERAL', 'Only the unit with the general can use a general skill.');
   }
-  if (unit.hasActed)
-    return reject('ALREADY_ACTED', 'This unit has already used its action this turn.');
   const idx = g.skills.findIndex((s) => s.id === skillId);
   const skill = g.skills[idx];
   if (!skill) return reject('NO_GENERAL', 'This general does not have that skill.');
+  // Companion Charge is meant to be used after charging.
+  if (unit.hasActed && skill.effect.kind !== 'chargeAgain')
+    return reject('ALREADY_ACTED', 'This unit has already used its action this turn.');
   if (state.turn < skill.readyTurn) {
     return reject('SKILL_COOLDOWN', `${skill.name} is ready on turn ${skill.readyTurn}.`);
   }
@@ -245,6 +248,15 @@ export function resolveSkill(
       break;
     case 'holdTheLine':
       state.sides[plan.side].effects.push({ kind: 'holdTheLine', untilTurn: state.turn + e.turns });
+      break;
+    case 'chargeAgain':
+      for (const u of state.units) {
+        if (u.side !== plan.side || !isFighting(u) || isEngaged(state, u.id)) continue;
+        if (u.id !== unit.id && !(isCavalryLike(u.type) && isAdjacent(u, unit))) continue;
+        u.hasActed = false;
+        u.bracing = false;
+        u.mpLeft = Math.max(u.mpLeft, u.type.stats.mp * e.mpFraction);
+      }
       break;
     case 'flankBoost':
       state.sides[plan.side].effects.push({

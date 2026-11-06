@@ -190,6 +190,13 @@ export class AiPlayer implements CommandSource {
     }
     this.updateTriggers(state);
 
+    // Companion Charge: once riders have charged and are free again, give them another go.
+    const again = this.chargeAgain(state);
+    if (again) {
+      for (const id of again.riders) this.stage.set(id, 'fresh');
+      return again.cmd;
+    }
+
     const mine = state.units
       .filter((u) => u.side === this.side && isFighting(u))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -260,6 +267,38 @@ export class AiPlayer implements CommandSource {
     if (!u.hasActed && this.threatened(state, u))
       return { unitId: u.id, cmd: { type: 'Hold', unitId: u.id }, value: 0 };
     return null;
+  }
+
+  /**
+   * A ready "charge again" skill (Alexander) is worth using once the general's unit or an
+   * adjacent cavalry unit has charged, is not stuck in melee, and has an enemy close by.
+   */
+  private chargeAgain(state: BattleState): { cmd: Command; riders: string[] } | null {
+    const g = state.sides[this.side].general;
+    if (!g || g.lost) return null;
+    const sk = g.skills.find((s) => s.effect.kind === 'chargeAgain' && state.turn >= s.readyTurn);
+    const gu = state.units.find((u) => u.id === g.unitId);
+    if (!sk || !gu || !isFighting(gu)) return null;
+    const riders = state.units.filter(
+      (u) =>
+        u.side === this.side &&
+        isFighting(u) &&
+        !isEngaged(state, u.id) &&
+        (u.id === gu.id || (isCavalryLike(u.type) && chebyshev(u, gu) === 1)),
+    );
+    const spent = riders.filter(
+      (u) =>
+        u.hasActed &&
+        state.units.some(
+          (e) =>
+            e.side !== this.side &&
+            isOnMap(e) &&
+            chebyshev(e, u) <= Math.ceil(u.type.stats.mp / 4) + 1,
+        ),
+    );
+    if (spent.length === 0) return null;
+    const cmd: Command = { type: 'UseSkill', unitId: gu.id, skillId: sk.id };
+    return validateCommand(state, cmd) ? null : { cmd, riders: riders.map((u) => u.id) };
   }
 
   /** Simple rules for when a general's skill is worth the general unit's action. */

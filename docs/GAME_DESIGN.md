@@ -103,20 +103,22 @@ Stats use a 1–10 scale so they stay readable on the unit card.
 
 Each age re-skins these archetypes: a "Hoplite", a "Legionary" and a "Landsknecht" share a base archetype with era modifiers. That keeps cross-era mixing balanced and readable.
 
+Costs were tuned with `balance-sim cost` in review 1 (see docs/DECISIONS.md).
+
 | Archetype | MP | Melee | Impact | Ranged (rng) | Armor | Morale | Cost | Tags / notes |
 |---|---|---|---|---|---|---|---|---|
-| Skirmishers (javelin/sling) | 10 | 2 | 2 | 4 (2) | 2 | 4 | 35 | Evade, LightTurn, RoughTerrainOK |
-| Archers | 8 | 2 | 1 | 6 (4) | 2 | 4 | 55 | — |
-| Crossbowmen | 8 | 3 | 1 | 7 (3) | 4 | 5 | 60 | ArmorPiercing, NoMoveAndShoot |
-| Spearmen | 8 | 5 | 5 | 0 | 5 | 6 | 65 | AntiCavalry (front) |
-| Heavy swordsmen (legion) | 8 | 7 | 6 | 3 (1)* | 6 | 7 | 85 | *Pila: one-shot volley |
-| Pikemen | 6 | 7 | 7 | 0 | 5 | 6 | 75 | AntiCavalry (strong, front), FrontOnly, FlankVulnerable |
+| Skirmishers (javelin/sling) | 10 | 2 | 2 | 4 (2) | 2 | 4 | 55 | Evade, LightTurn, RoughTerrainOK |
+| Archers | 8 | 2 | 1 | 6 (4) | 2 | 4 | 47 | — |
+| Crossbowmen | 8 | 3 | 1 | 7 (3) | 4 | 5 | 62 | ArmorPiercing, NoMoveAndShoot |
+| Spearmen | 8 | 5 | 5 | 0 | 5 | 6 | 87 | AntiCavalry (front) |
+| Heavy swordsmen (legion) | 8 | 7 | 6 | 3 (1)* | 6 | 7 | 97 | *Pila: one-shot volley |
+| Pikemen | 6 | 7 | 7 | 0 | 5 | 6 | 83 | AntiCavalry (strong, front), FrontOnly, FlankVulnerable |
 | Light cavalry / horse archers | 16 | 3 | 3 | 4 (3) | 2 | 5 | 70 | Evade, LightTurn |
-| Heavy cavalry / knights | 12 | 6 | 9 | 0 | 7 | 7 | 115 | Charge, Pursue, RoughTerrainBad |
-| Chariots | 12 | 3 | 8 | 3 (2) | 4 | 5 | 90 | Charge, RoughTerrainVeryBad |
-| War elephants | 8 | 7 | 9 | 0 | 6 | 6 | 120 | ScaresHorses, Stampede (routed elephants damage adjacent friends) |
-| Arquebusiers / musketeers | 8 | 3 | 1 | 8 (3) | 3 | 5 | 75 | ArmorPiercing, Reload (fire every other turn until Age 8), RainPenalty |
-| Line infantry | 8 | 5 | 4 | 7 (3) | 3 | 7 | 90 | Formations: Line / Column / Square |
+| Heavy cavalry / knights | 12 | 6 | 9 | 0 | 7 | 7 | 104 | Charge (×1.2 impact after a 2+ square run-up, not into a spear wall), Pursue, RoughTerrainBad |
+| Chariots | 12 | 3 | 8 | 3 (2) | 4 | 5 | 70 | Charge, HitAndRun (falls back a square after the impact instead of staying in melee), RoughTerrainVeryBad |
+| War elephants | 8 | 7 | 9 | 0 | 6 | 6 | 97 | ScaresHorses, Stampede (routed elephants damage adjacent friends) |
+| Arquebusiers / musketeers | 8 | 3 | 1 | 8 (3) | 3 | 5 | 60 | ArmorPiercing, Reload (fire every other turn until Age 8), RainPenalty |
+| Line infantry | 8 | 5 | 4 | 7 (3) | 3 | 7 | 77 | Formations: Line / Column / Square |
 | Field artillery | 4 | 1 | 0 | 9 (6) | 2 | 5 | 100 | NoMoveAndShoot, HelplessInMelee, Bounce (hits the unit behind the target for half damage) |
 
 Key matchups to protect while balancing:

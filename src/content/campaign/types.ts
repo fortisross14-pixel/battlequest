@@ -46,6 +46,11 @@ export interface CampaignBattle {
   turnLimit: number;
   /** 'player' = the player wins by holding out until the turn limit. */
   holdOut?: 'player';
+  /**
+   * Share of its army cost the enemy must lose to break (default 0.5). Small armies use a
+   * higher value so one lost unit doesn't end the battle.
+   */
+  enemyBreakpoint?: number;
   /** Unit slots: the army must fill exactly this many (GAME_DESIGN 5). */
   maxUnits: number;
   /**
@@ -67,6 +72,14 @@ export interface CampaignBattle {
 export interface ArmyChoice {
   units: { type: string; level?: number }[];
   general?: { id: string; rank: number; unitIndex: number };
+}
+
+/** What the tutorial waits for before moving to its next step. */
+export type TutorialTrigger = 'select' | 'move' | 'facing' | 'charge' | 'endTurn' | 'never';
+
+export interface TutorialStep {
+  text: string;
+  until: TutorialTrigger;
 }
 
 export interface Age {

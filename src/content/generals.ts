@@ -16,8 +16,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'common',
     era: 'Any',
     inPacks: true,
-    traitText: '+5% morale for the whole army (up to +10%).',
-    traits: [{ kind: 'statPct', stat: 'morale', filter: 'all', value: [0.05, 0.1] }],
+    traitText: '+1 morale for the whole army (up to +2).',
+    traits: [{ kind: 'statAdd', stat: 'morale', filter: 'all', value: [1, 2] }],
     skills: [
       {
         id: 'rally',
@@ -36,8 +36,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'common',
     era: 'Rome',
     inPacks: true,
-    traitText: '+5% infantry armor (up to +10%).',
-    traits: [{ kind: 'statPct', stat: 'armor', filter: 'infantry', value: [0.05, 0.1] }],
+    traitText: 'Infantry +10% armor (up to +20%).',
+    traits: [{ kind: 'statPct', stat: 'armor', filter: 'infantry', value: [0.1, 0.2] }],
     skills: [
       {
         id: 'holdFast',
@@ -56,8 +56,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'rare',
     era: 'Egypt',
     inPacks: true,
-    traitText: 'Chariots and cavalry +10% impact (up to +20%).',
-    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.1, 0.2] }],
+    traitText: 'Chariots and cavalry +20% impact (up to +35%).',
+    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.2, 0.35] }],
     skills: [
       {
         id: 'pharaohsCommand',
@@ -76,8 +76,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'rare',
     era: 'Sparta',
     inPacks: true,
-    traitText: 'Infantry +10% melee (up to +20%).',
-    traits: [{ kind: 'statPct', stat: 'melee', filter: 'infantry', value: [0.1, 0.2] }],
+    traitText: 'Infantry +15% melee (up to +25%).',
+    traits: [{ kind: 'statPct', stat: 'melee', filter: 'infantry', value: [0.15, 0.25] }],
     skills: [
       {
         id: 'holdTheLine',
@@ -96,8 +96,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'epic',
     era: 'France',
     inPacks: true,
-    traitText: '+1 morale for the whole army (up to +2).',
-    traits: [{ kind: 'statAdd', stat: 'morale', filter: 'all', value: [1, 2] }],
+    traitText: '+2 morale for the whole army (up to +3).',
+    traits: [{ kind: 'statAdd', stat: 'morale', filter: 'all', value: [2, 3] }],
     skills: [
       {
         id: 'inspire',
@@ -116,10 +116,10 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'epic',
     era: 'Rome',
     inPacks: true,
-    traitText: 'Infantry +5% melee (up to +10%), +10% rally chance.',
+    traitText: 'Infantry +10% melee (up to +15%), +15% rally chance (up to +25%).',
     traits: [
-      { kind: 'statPct', stat: 'melee', filter: 'infantry', value: [0.05, 0.1] },
-      { kind: 'rally', value: [0.1, 0.2] },
+      { kind: 'statPct', stat: 'melee', filter: 'infantry', value: [0.1, 0.15] },
+      { kind: 'rally', value: [0.15, 0.25] },
     ],
     skills: [
       {
@@ -139,16 +139,25 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'legendary',
     era: 'Macedon',
     inPacks: true,
-    traitText: 'Cavalry +10% impact (up to +20%).',
-    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.1, 0.2] }],
+    traitText: 'Cavalry +20% impact (up to +35%).',
+    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.2, 0.35] }],
     skills: [
+      {
+        id: 'companionCharge',
+        name: 'Companion Charge',
+        description:
+          "Use after charging: Alexander's unit and adjacent cavalry not in melee may charge again this turn (half their MP back).",
+        effect: { kind: 'chargeAgain', mpFraction: 0.5 },
+        cooldown: [4, 2],
+        unlockRank: 1,
+      },
       {
         id: 'hammerAndAnvil',
         name: 'Hammer and Anvil',
         description: 'Your flank and rear attacks deal +50% damage for 2 turns.',
         effect: { kind: 'flankBoost', mult: 1.5, turns: 2 },
         cooldown: [6, 4],
-        unlockRank: 1,
+        unlockRank: 5,
       },
     ],
   },
@@ -159,8 +168,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'legendary',
     era: 'Carthage',
     inPacks: true,
-    traitText: 'Flank and rear attacks +15% (up to +25%).',
-    traits: [{ kind: 'flank', value: [0.15, 0.25] }],
+    traitText: 'Flank and rear attacks +25% (up to +40%).',
+    traits: [{ kind: 'flank', value: [0.25, 0.4] }],
     skills: [
       {
         id: 'doubleEnvelopment',
@@ -180,8 +189,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'common',
     era: 'Canaan',
     inPacks: false,
-    traitText: '+5% morale for the whole army.',
-    traits: [{ kind: 'statPct', stat: 'morale', filter: 'all', value: [0.05, 0.1] }],
+    traitText: '+1 morale for the whole army.',
+    traits: [{ kind: 'statAdd', stat: 'morale', filter: 'all', value: [1, 2] }],
     skills: [],
   },
   {
@@ -191,8 +200,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'epic',
     era: 'Hatti',
     inPacks: false,
-    traitText: 'Chariots +10% impact.',
-    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.1, 0.2] }],
+    traitText: 'Chariots +20% impact.',
+    traits: [{ kind: 'statPct', stat: 'impact', filter: 'cavalry', value: [0.2, 0.35] }],
     skills: [],
   },
   {
@@ -202,8 +211,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'epic',
     era: 'Assyria',
     inPacks: false,
-    traitText: 'Shooters +10% ranged.',
-    traits: [{ kind: 'statPct', stat: 'ranged', filter: 'shooters', value: [0.1, 0.2] }],
+    traitText: 'Shooters +15% ranged.',
+    traits: [{ kind: 'statPct', stat: 'ranged', filter: 'shooters', value: [0.15, 0.25] }],
     skills: [
       {
         id: 'rally',
@@ -222,8 +231,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'rare',
     era: 'Persia',
     inPacks: false,
-    traitText: 'Shooters +10% ranged.',
-    traits: [{ kind: 'statPct', stat: 'ranged', filter: 'shooters', value: [0.1, 0.2] }],
+    traitText: 'Shooters +15% ranged.',
+    traits: [{ kind: 'statPct', stat: 'ranged', filter: 'shooters', value: [0.15, 0.25] }],
     skills: [],
   },
   {
@@ -233,8 +242,8 @@ export const GENERALS: GeneralEntry[] = [
     rarity: 'legendary',
     era: 'Persia',
     inPacks: false,
-    traitText: '+5% morale for the whole army.',
-    traits: [{ kind: 'statPct', stat: 'morale', filter: 'all', value: [0.05, 0.1] }],
+    traitText: '+1 morale for the whole army.',
+    traits: [{ kind: 'statAdd', stat: 'morale', filter: 'all', value: [1, 2] }],
     skills: [
       {
         id: 'rally',

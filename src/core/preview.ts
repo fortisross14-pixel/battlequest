@@ -11,7 +11,7 @@ import { meleeTargetOf, planCommand } from './engine';
 import type { Arc } from './geometry';
 import { cohesionDropChance, friendRoutedNearby } from './morale';
 import { isRejection, reject, type Rejection } from './rejection';
-import { isRouted, requireUnit } from './state';
+import { hasTag, isRouted, requireUnit } from './state';
 import { Cohesion, type BattleState, type Unit } from './types';
 
 export interface SidePreview {
@@ -150,7 +150,7 @@ export function previewCombat(
   const mayEvade = canEvade(sim, def) && evadePath(sim, def, plan.plan.dir).length > 1;
 
   // Impact: both strike at once.
-  const hit = computeDamage(sim, att, def, 'charge');
+  const hit = computeDamage(sim, att, def, 'charge', { runUp: plan.plan.path.length - 1 });
   const back = computeDamage(sim, def, att, 'counter');
   const defStart = def.strength;
   const attStart = att.strength;
@@ -161,7 +161,10 @@ export function previewCombat(
 
   // First melee round, if neither side routs at impact. The defender strikes the
   // charger only if it is the opponent the real melee phase would pick.
-  const fights = (1 - (p1Def >= 1 ? 1 : 0)) * (1 - (p1Att >= 1 ? 1 : 0));
+  // Chariots (HitAndRun) fall back after the impact, so there is no melee round.
+  const fights = hasTag(att, 'HitAndRun')
+    ? 0
+    : (1 - (p1Def >= 1 ? 1 : 0)) * (1 - (p1Att >= 1 ? 1 : 0));
   def.strength = defStart - impactDef;
   att.strength = attStart - impactAtt;
   sim.engagements.push({ a: att.id, b: def.id });

@@ -1,20 +1,14 @@
 /**
- * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P] [--out dir]
+ * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P[,P2]] [--out dir]
  * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit level).
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
+import { fork } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { ARCHETYPES, type ArchetypeId } from '../../src/content/units';
-import {
-  ARCHETYPE_IDS,
-  costBattle,
-  duel,
-  DUEL_SETUPS,
-  aiVsAi,
-  scenarioBattle,
-  type DuelSetup,
-} from './sim';
+import { ARCHETYPE_IDS, duel, DUEL_SETUPS, aiVsAi, scenarioBattle, type DuelSetup } from './sim';
 import { BATTLE_BY_ID, CAMPAIGN, finalBattleOfAge } from '../../src/content/campaign/battles';
 import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
 import { buildScenario } from '../../src/content/campaign/build';
@@ -136,7 +130,35 @@ function runDuel(seeds: number[]): string {
   return out.join('\n') + '\n';
 }
 
-function runCost(seeds: number[], points: number): string {
+/** Plays every archetype pair in `jobs` forked processes; returns the score of A per pair. */
+async function costScores(seeds: number[], points: number[], jobs: number) {
+  const pairs: [ArchetypeId, ArchetypeId][] = [];
+  for (let i = 0; i < ARCHETYPE_IDS.length; i++) {
+    for (let j = i + 1; j < ARCHETYPE_IDS.length; j++)
+      pairs.push([ARCHETYPE_IDS[i]!, ARCHETYPE_IDS[j]!]);
+  }
+  const shares: [ArchetypeId, ArchetypeId][][] = Array.from({ length: jobs }, () => []);
+  pairs.forEach((p, k) => shares[k % jobs]!.push(p));
+  const worker = fileURLToPath(new URL('./costWorker.ts', import.meta.url));
+  const parts = await Promise.all(
+    shares
+      .filter((sh) => sh.length)
+      .map(
+        (sh) =>
+          new Promise<{ a: ArchetypeId; b: ArchetypeId; score: number; games: number }[]>(
+            (resolve, reject) => {
+              const child = fork(worker);
+              child.once('message', (m) => resolve(m as never));
+              child.once('error', reject);
+              child.send({ pairs: sh, seeds, points });
+            },
+          ),
+      ),
+  );
+  return parts.flat();
+}
+
+async function runCost(seeds: number[], points: number[], jobs: number): Promise<string> {
   const score: Record<string, number> = {};
   const games: Record<string, number> = {};
   const matrix: Record<string, Record<string, number>> = {};
@@ -145,18 +167,8 @@ function runCost(seeds: number[], points: number): string {
     games[a] = 0;
     matrix[a] = {};
   }
-  for (let i = 0; i < ARCHETYPE_IDS.length; i++) {
-    for (let j = i + 1; j < ARCHETYPE_IDS.length; j++) {
-      const a = ARCHETYPE_IDS[i]!;
-      const b = ARCHETYPE_IDS[j]!;
-      let sa = 0;
-      let n = 0;
-      for (const seed of seeds) {
-        for (const side of ['blue', 'red'] as const) {
-          sa += costBattle(a, b, side, seed, points).score;
-          n++;
-        }
-      }
+  for (const { a, b, score: sa, games: n } of await costScores(seeds, points, jobs)) {
+    {
       matrix[a]![b] = sa / n;
       matrix[b]![a] = 1 - sa / n;
       score[a]! += sa;
@@ -173,14 +185,14 @@ function runCost(seeds: number[], points: number): string {
   const out: string[] = [
     `# Balance: cost (${today})`,
     '',
-    `Equal-points armies (${points} points) of a single archetype each, on open ground (16×10), ${seeds.length} seeds × both sides per pair, greedy script on both sides. Because the armies cost the same, the win rate is the value per point of cost. Median win rate: **${pct(median)}**. Target: within ±15% of the median.`,
+    `Equal-points armies (${points.join(' and ')} points, pooled) of a single archetype each, on open ground (16×10), ${seeds.length} seeds × both sides per pair, the utility AI (aggressive) on both sides. Because the armies cost the same, the win rate is the value per point of cost. Median win rate: **${pct(median)}**. Target: within ±15% of the median.`,
     '',
     table(
       ['Archetype', 'Cost', 'Units', 'Win rate', 'vs median'],
       sorted.map((id) => [
         short(id),
         String(ARCHETYPES[id].stats.cost),
-        String(Math.floor(points / ARCHETYPES[id].stats.cost)),
+        points.map((p) => Math.floor(p / ARCHETYPES[id].stats.cost)).join(' / '),
         pct(rate(id)),
         `${dev(id) >= 0 ? '+' : ''}${Math.round(dev(id) * 100)}%`,
       ]),
@@ -261,7 +273,8 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
     }
     const rate = best.rate;
     const final = finalBattleOfAge(b.age)?.id === b.id && b.age > 0;
-    const band: [number, number] = b.tutorial ? [0.6, 1] : final ? [0.3, 0.5] : [0.6, 0.8];
+    // Review 1 targets: Prologue 80–90%, other battles 50–75%, age finals 35–50%.
+    const band: [number, number] = b.tutorial ? [0.8, 0.9] : final ? [0.35, 0.5] : [0.5, 0.75];
     const ok = rate >= band[0] && rate <= band[1];
     const target = `${pct(band[0])}–${pct(band[1])}`;
     if (!ok) outliers.push(`- **${b.name}**: ${pct(rate)} (target ${target})`);
@@ -288,7 +301,7 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
     [
       `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level})`,
       '',
-      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: early battles 60–80% player wins, age-final battles 30–50%.`,
+      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: Prologue 80–90% player wins, other battles 50–75%, age finals 35–50%.`,
       '',
       table(
         [
@@ -418,10 +431,18 @@ else if (mode === 'scenario') {
   const level = opt('level', 1);
   const suffix = army === 'test' && level === 1 ? '' : `-${army}-lv${level}`;
   write(`scenario-${id}${suffix}`, runScenario(id, seedList(opt('seeds', 30)), { army, level }));
-} else if (mode === 'cost') write('cost', runCost(seedList(opt('seeds', 4)), opt('points', 600)));
+} else if (mode === 'cost')
+  write(
+    'cost',
+    await runCost(
+      seedList(opt('seeds', 15)),
+      optStr('points', '600,900').split(',').map(Number),
+      opt('jobs', 6),
+    ),
+  );
 else {
   console.error(
-    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P] [--out dir]',
+    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P[,P2]] [--out dir]',
   );
   process.exit(1);
 }

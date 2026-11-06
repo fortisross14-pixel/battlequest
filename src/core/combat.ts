@@ -136,6 +136,7 @@ export function computeDamage(
   att: Unit,
   def: Unit,
   role: DamageRole,
+  opts: { runUp?: number } = {},
 ): DamageCalc {
   const atkMods = effectiveAttack(state, att, def, role);
   const effAtk = product(atkMods);
@@ -158,6 +159,16 @@ export function computeDamage(
   // enemy to the front) is half as effective.
   if ((role === 'counter' || role === 'melee') && arcOf(att, att.facing, def) !== 'front') {
     sit.push({ label: 'Struck in the flank', value: C.flankedStrikeBack });
+  }
+  // Charge tag: shock troops hit harder after a run-up, except into a spear or pike wall
+  // to the front, which stops the gallop.
+  if (
+    role === 'charge' &&
+    hasTag(att, 'Charge') &&
+    (opts.runUp ?? 0) >= C.chargeMomentumRunUp &&
+    !antiCavalryFront(def, att)
+  ) {
+    sit.push({ label: 'Full gallop', value: C.chargeMomentum });
   }
   if (elevationAt(state.map, att) > elevationAt(state.map, def))
     sit.push({ label: 'Uphill', value: C.uphill });

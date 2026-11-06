@@ -46,6 +46,9 @@ export const RULES = {
     randomMax: 1.15,
     flank: 1.5,
     rear: 2.0,
+    /** Charge tag: impact multiplier for a charge with at least this many squares of run-up. */
+    chargeMomentum: 1.2,
+    chargeMomentumRunUp: 2,
     /** A unit striking back at an enemy on its flank or rear (no enemy to its front) does this much. */
     flankedStrikeBack: 0.5,
     /** Extra flank/rear multiplier against FlankVulnerable units. */

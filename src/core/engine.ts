@@ -12,13 +12,14 @@ import { RULES } from './config';
 import { expireEffects, planSkill, resolveSkill, type SkillPlan } from './generals';
 import { nextRandom } from './rng';
 import type { GameEvent } from './events';
-import { arcOf, isAdjacent, step, toDir, type Arc } from './geometry';
+import { arcOf, isAdjacent, opposite, step, toDir, type Arc } from './geometry';
 import { afterDamage, applyDamage, destroyUnit, pursue, rallyPhase, routMove } from './morale';
 import { planMove, stepCost, turnCost, type MovePlan } from './movement';
 import { isRejection, reject, type Rejection } from './rejection';
 import {
   createBattleState,
   getUnit,
+  hasTag,
   isArmyBroken,
   isEngaged,
   isFighting,
@@ -285,7 +286,7 @@ function resolveCharge(
   }
 
   // Impact: both sides strike at once.
-  const hit = computeDamage(state, u, target, 'charge');
+  const hit = computeDamage(state, u, target, 'charge', { runUp: plan.path.length - 1 });
   const back = computeDamage(state, target, u, 'counter');
   const dmgToTarget = applyDamage(target, rollDamage(state, hit, target.strength));
   const dmgToCharger = applyDamage(u, rollDamage(state, back, u.strength));
@@ -313,7 +314,11 @@ function resolveCharge(
   afterDamage(state, u, dmgToCharger, back.arc, events);
 
   // A clear win pushes the defender back one square and the charger follows up.
-  if (isFighting(u) && isFighting(target) && wonClearly(dmgToTarget, dmgToCharger)) {
+  const clear = isFighting(u) && isFighting(target) && wonClearly(dmgToTarget, dmgToCharger);
+  if (!clear && isFighting(u) && isFighting(target) && hasTag(u, 'HitAndRun')) {
+    breakOff(state, u, target, plan, events);
+  }
+  if (clear) {
     if (stepCost(state, target, target, plan.dir) !== null) {
       const from = { x: target.x, y: target.y };
       const to = step(target, plan.dir);
@@ -340,6 +345,36 @@ function resolveCharge(
       }
     }
   }
+}
+
+/**
+ * HitAndRun (chariots): after an impact that neither breaks nor pushes back the target, the
+ * charger falls back one square along its path and leaves the melee. With no room behind,
+ * it stays in melee.
+ */
+function breakOff(
+  state: BattleState,
+  u: Unit,
+  target: Unit,
+  plan: ChargePlan,
+  events: GameEvent[],
+): void {
+  const back = opposite(plan.dir);
+  if (stepCost(state, u, u, back) === null) return;
+  const from = { x: u.x, y: u.y };
+  const to = step(u, back);
+  u.x = to.x;
+  u.y = to.y;
+  state.engagements = state.engagements.filter(
+    (e) => !((e.a === u.id && e.b === target.id) || (e.a === target.id && e.b === u.id)),
+  );
+  events.push({
+    type: 'UnitMoved',
+    unitId: u.id,
+    kind: 'breakOff',
+    path: [from, to],
+    facing: u.facing,
+  });
 }
 
 export function wonClearly(dealt: number, taken: number): boolean {

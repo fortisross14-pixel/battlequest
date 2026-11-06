@@ -9,7 +9,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: true,
     symbol: 'skirmisher',
-    stats: { mp: 10, melee: 2, impact: 2, ranged: 4, range: 2, armor: 2, morale: 4, cost: 35 },
+    stats: { mp: 10, melee: 2, impact: 2, ranged: 4, range: 2, armor: 2, morale: 4, cost: 55 },
     tags: ['Evade', 'LightTurn', 'RoughTerrainOK'],
   },
   archers: {
@@ -19,7 +19,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'archer',
-    stats: { mp: 8, melee: 2, impact: 1, ranged: 6, range: 4, armor: 2, morale: 4, cost: 55 },
+    stats: { mp: 8, melee: 2, impact: 1, ranged: 6, range: 4, armor: 2, morale: 4, cost: 47 },
     tags: [],
   },
   crossbowmen: {
@@ -29,7 +29,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'crossbow',
-    stats: { mp: 8, melee: 3, impact: 1, ranged: 7, range: 3, armor: 4, morale: 5, cost: 60 },
+    stats: { mp: 8, melee: 3, impact: 1, ranged: 7, range: 3, armor: 4, morale: 5, cost: 62 },
     tags: ['ArmorPiercing', 'NoMoveAndShoot'],
   },
   spearmen: {
@@ -39,7 +39,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'spear',
-    stats: { mp: 8, melee: 5, impact: 5, ranged: 0, range: 0, armor: 5, morale: 6, cost: 65 },
+    stats: { mp: 8, melee: 5, impact: 5, ranged: 0, range: 0, armor: 5, morale: 6, cost: 87 },
     tags: ['AntiCavalry'],
   },
   heavySwordsmen: {
@@ -49,7 +49,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'infantry',
-    stats: { mp: 8, melee: 7, impact: 6, ranged: 3, range: 1, armor: 6, morale: 7, cost: 85 },
+    stats: { mp: 8, melee: 7, impact: 6, ranged: 3, range: 1, armor: 6, morale: 7, cost: 97 },
     tags: ['OneShot'],
   },
   pikemen: {
@@ -59,7 +59,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'pike',
-    stats: { mp: 6, melee: 7, impact: 7, ranged: 0, range: 0, armor: 5, morale: 6, cost: 75 },
+    stats: { mp: 6, melee: 7, impact: 7, ranged: 0, range: 0, armor: 5, morale: 6, cost: 83 },
     tags: ['AntiCavalryStrong', 'FrontOnly', 'FlankVulnerable'],
   },
   lightCavalry: {
@@ -79,7 +79,7 @@ export const ARCHETYPES = {
     category: 'cavalry',
     light: false,
     symbol: 'cavalry',
-    stats: { mp: 12, melee: 6, impact: 9, ranged: 0, range: 0, armor: 7, morale: 7, cost: 115 },
+    stats: { mp: 12, melee: 6, impact: 9, ranged: 0, range: 0, armor: 7, morale: 7, cost: 104 },
     tags: ['Charge', 'Pursue', 'RoughTerrainBad'],
   },
   chariots: {
@@ -89,8 +89,8 @@ export const ARCHETYPES = {
     category: 'chariot',
     light: false,
     symbol: 'chariot',
-    stats: { mp: 12, melee: 3, impact: 8, ranged: 3, range: 2, armor: 4, morale: 5, cost: 90 },
-    tags: ['Charge', 'RoughTerrainVeryBad'],
+    stats: { mp: 12, melee: 3, impact: 8, ranged: 3, range: 2, armor: 4, morale: 5, cost: 70 },
+    tags: ['Charge', 'HitAndRun', 'RoughTerrainVeryBad'],
   },
   warElephants: {
     id: 'warElephants',
@@ -99,7 +99,7 @@ export const ARCHETYPES = {
     category: 'elephant',
     light: false,
     symbol: 'elephant',
-    stats: { mp: 8, melee: 7, impact: 9, ranged: 0, range: 0, armor: 6, morale: 6, cost: 120 },
+    stats: { mp: 8, melee: 7, impact: 9, ranged: 0, range: 0, armor: 6, morale: 6, cost: 97 },
     tags: ['ScaresHorses', 'Stampede'],
   },
   arquebusiers: {
@@ -109,7 +109,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'gun',
-    stats: { mp: 8, melee: 3, impact: 1, ranged: 8, range: 3, armor: 3, morale: 5, cost: 75 },
+    stats: { mp: 8, melee: 3, impact: 1, ranged: 8, range: 3, armor: 3, morale: 5, cost: 60 },
     tags: ['ArmorPiercing', 'Reload', 'RainPenalty'],
   },
   lineInfantry: {
@@ -119,7 +119,7 @@ export const ARCHETYPES = {
     category: 'infantry',
     light: false,
     symbol: 'gun',
-    stats: { mp: 8, melee: 5, impact: 4, ranged: 7, range: 3, armor: 3, morale: 7, cost: 90 },
+    stats: { mp: 8, melee: 5, impact: 4, ranged: 7, range: 3, armor: 3, morale: 7, cost: 77 },
     tags: ['Formations'],
   },
   fieldArtillery: {

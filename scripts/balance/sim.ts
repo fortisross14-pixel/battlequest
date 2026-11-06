@@ -128,7 +128,19 @@ export function costBattle(
   };
   place(a, sideA);
   place(b, sideA === 'blue' ? 'red' : 'blue');
-  const session = playGreedyBattle(new BattleSession(makeState(units, seed, 16, 10, 15)));
+  const session = new BattleSession(makeState(units, seed, 16, 10, 15));
+  // The utility AI plays both sides (review 1 WP5: the greedy script misplayed shooters).
+  const ais: Record<Side, AiPlayer> = {
+    blue: new AiPlayer('blue', { posture: 'aggressive' }),
+    red: new AiPlayer('red', { posture: 'aggressive' }),
+  };
+  for (let i = 0; i < 40 && !session.state.result; i++) {
+    playAiSideTurn(
+      ais[session.state.activeSide],
+      (c) => session.apply(c),
+      () => session.state,
+    );
+  }
   return outcome(session.state, sideA);
 }
 

@@ -48,6 +48,7 @@ export type UnitTag =
   | 'FlankVulnerable'
   | 'OneShot'
   | 'Charge'
+  | 'HitAndRun'
   | 'Pursue'
   | 'ScaresHorses'
   | 'Stampede'
@@ -148,7 +149,9 @@ export type SkillEffect =
   /** Units in radius cannot drop below Disrupted from cohesion tests for N turns. */
   | { kind: 'holdTheLine'; turns: number }
   /** Your flank and rear attacks deal extra damage for N turns. */
-  | { kind: 'flankBoost'; mult: number; turns: number };
+  | { kind: 'flankBoost'; mult: number; turns: number }
+  /** The general's unit and adjacent cavalry not in melee get their action back and some MP. */
+  | { kind: 'chargeAgain'; mpFraction: number };
 
 export interface SkillState {
   id: string;
