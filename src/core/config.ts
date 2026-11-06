@@ -30,6 +30,11 @@ export const RULES = {
     roughTerrainBadMultiplier: 1.5,
     /** Squares an evading unit falls back when charged. */
     evadeSquares: 2,
+    /** Evade chance = base + perMp x (evader MP - charger MP), clamped to [min, max]. */
+    evadeBase: 0.75,
+    evadePerMp: 0.05,
+    evadeMin: 0.25,
+    evadeMax: 0.95,
     /** Squares a Pursue unit follows its routed opponent. */
     pursuitSquares: 2,
   },
@@ -56,10 +61,12 @@ export const RULES = {
       chargerPenalty: 0.5,
       chargerPenaltyStrong: 0.4,
       /** Defender impact multiplier against a frontal cavalry charge. */
-      defenderBonus: 1.5,
+      defenderBonus: 1.75,
       defenderBonusStrong: 2.0,
       /** Melee multiplier for AntiCavalry troops fighting cavalry to their front. */
-      meleeBonus: 1.25,
+      meleeBonus: 1.5,
+      /** Melee multiplier for cavalry fighting AntiCavalry troops from their front. */
+      meleeCavalryPenalty: 0.75,
     },
     terrain: {
       roughCavalryImpact: 0.75,

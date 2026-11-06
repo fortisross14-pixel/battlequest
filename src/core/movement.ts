@@ -126,6 +126,14 @@ export function searchMoves(state: BattleState, u: Unit, opts: SearchOptions): R
   heap.push(0, startIdx);
   const startInZoc = opts.zoc && inEnemyZoc(state, u.side, u);
   const canLeaveStart = !startInZoc || hasTag(u, 'Evade');
+  // Step costs and ZOC do not depend on facing: compute each once per square.
+  const cells = width * height;
+  const stepCache = new Float64Array(cells * 8).fill(NaN); // -1 = step not allowed
+  const zocCache = new Int8Array(cells).fill(-1);
+  const inZoc = (idx: number, pos: Pos): boolean => {
+    if (zocCache[idx] === -1) zocCache[idx] = inEnemyZoc(state, u.side, pos) ? 1 : 0;
+    return zocCache[idx] === 1;
+  };
 
   while (heap.size > 0) {
     const { k: cost, v: node } = heap.pop();
@@ -135,10 +143,12 @@ export function searchMoves(state: BattleState, u: Unit, opts: SearchOptions): R
     const pos = { x: cellIdx % width, y: Math.floor(cellIdx / width) };
     const isStart = pos.x === u.x && pos.y === u.y;
     if (isStart && !canLeaveStart) continue;
-    if (!isStart && opts.zoc && inEnemyZoc(state, u.side, pos)) continue; // must stop here
+    if (!isStart && opts.zoc && inZoc(cellIdx, pos)) continue; // must stop here
     for (const d of DIRS) {
-      const sc = stepCost(state, u, pos, d);
-      if (sc === null) continue;
+      const ci = cellIdx * 8 + d;
+      if (Number.isNaN(stepCache[ci])) stepCache[ci] = stepCost(state, u, pos, d) ?? -1;
+      const sc = stepCache[ci]!;
+      if (sc < 0) continue;
       const nc = cost + (opts.turning ? turnCost(u, f, d) : 0) + sc;
       if (nc > opts.mp + EPS) continue;
       const to = step(pos, d);

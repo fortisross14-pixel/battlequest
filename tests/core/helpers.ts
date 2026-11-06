@@ -11,8 +11,8 @@ import {
   type ScenarioUnit,
   type Side,
   type Unit,
-} from '../src/core';
-import { unitType, type ArchetypeId } from '../src/content/units';
+} from '../../src/core';
+import { unitType, type ArchetypeId } from '../../src/content/units';
 
 export const N: Dir = 0;
 export const NE: Dir = 1;

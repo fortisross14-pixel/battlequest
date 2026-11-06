@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeDamage,
+  evadeChance,
   Cohesion,
   isRejection,
   previewCombat,
   wonClearly,
   type BattleState,
   type GameEvent,
-} from '../src/core';
-import type { ArchetypeId } from '../src/content/units';
+} from '../../src/core';
+import type { ArchetypeId } from '../../src/content/units';
 import {
   battle,
   E,
@@ -118,7 +119,7 @@ describe('damage formula (4.6)', () => {
         ['d', 'red', 'spearmen', 5, 3, W],
       ],
     });
-    expect(dmg(s, 'k', 'd', 'melee')).toBeCloseTo((30 * 3) / 8);
+    expect(dmg(s, 'k', 'd', 'melee')).toBeCloseTo((30 * 2.25) / 7.25); // forest x0.5, spear wall x0.75;
     expect(dmg(s, 'sk', 'd', 'melee')).toBeCloseTo((30 * 2.4) / 7.4);
   });
 
@@ -315,7 +316,7 @@ describe('charges and impact', () => {
     const toSpear = dmg(front, 'k', 'd', 'charge');
     const toKnight = dmg(front, 'd', 'k', 'counter');
     expect(toSpear).toBeCloseTo((30 * 4.5) / 9.5);
-    expect(toKnight).toBeCloseTo((30 * 7.5) / 14.5);
+    expect(toKnight).toBeCloseTo((30 * 8.75) / 15.75);
     expect(toKnight).toBeGreaterThan(toSpear);
     const flank = withUnit(front, 'd', { facing: N });
     expect(dmg(flank, 'k', 'd', 'charge')).toBeCloseTo(((30 * 9) / 14) * 1.5);
@@ -331,9 +332,13 @@ describe('charges and impact', () => {
     );
   });
 
-  it('spears get a melee bonus against cavalry to their front', () => {
+  it('in melee, spears get a bonus against cavalry to their front and the cavalry fights worse', () => {
     const s = run(cav('spearmen'), { type: 'Move', unitId: 'k', to: { x: 4, y: 3 } }).state;
-    expect(dmg(s, 'd', 'k', 'melee')).toBeCloseTo((30 * 6.25) / 13.25);
+    expect(dmg(s, 'd', 'k', 'melee')).toBeCloseTo((30 * 7.5) / 14.5);
+    expect(dmg(s, 'k', 'd', 'melee')).toBeCloseTo((30 * 4.5) / 9.5);
+    // From the flank, neither applies.
+    const flank = withUnit(s, 'd', { facing: N });
+    expect(dmg(flank, 'k', 'd', 'melee')).toBeCloseTo(((30 * 6) / 11) * 1.5);
   });
 
   it('a charge moves into contact, deals impact both ways and starts a melee', () => {
@@ -432,18 +437,70 @@ describe('charges and impact', () => {
     ).not.toThrow();
   });
 
-  it('units with Evade fall back from a charge and take no damage', () => {
+  it('evade chance depends on relative speed', () => {
     const s = battle({
+      units: [
+        ['k', 'blue', 'heavyCavalry', 2, 3, E],
+        ['lc', 'blue', 'lightCavalry', 2, 5, E],
+        ['sp', 'blue', 'spearmen', 2, 7, E],
+        ['sk', 'red', 'skirmishers', 5, 3, W],
+        ['rlc', 'red', 'lightCavalry', 5, 5, W],
+      ],
+    });
+    const u = (id: string) => unit(s, id);
+    expect(evadeChance(u('k'), u('sk'))).toBeCloseTo(0.65); // 10 MP vs 12 MP
+    expect(evadeChance(u('sp'), u('sk'))).toBeCloseTo(0.85); // 10 vs 8
+    expect(evadeChance(u('lc'), u('sk'))).toBeCloseTo(0.45); // 10 vs 16
+    expect(evadeChance(u('sp'), u('rlc'))).toBeCloseTo(0.95); // clamped
+  });
+
+  it('units with Evade usually fall back from a charge and take no damage; otherwise they are caught', () => {
+    let evaded = 0;
+    const n = 200;
+    for (let seed = 0; seed < n; seed++) {
+      const s = battle({
+        seed,
+        units: [
+          ['k', 'blue', 'heavyCavalry', 2, 3, E],
+          ['sk', 'red', 'skirmishers', 5, 3, W],
+        ],
+      });
+      const { state, events } = run(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
+      const ev = events.some((e) => e.type === 'UnitMoved' && e.kind === 'evade');
+      if (ev) {
+        evaded++;
+        expect(unit(state, 'sk')).toMatchObject({ x: 7, y: 3, strength: 100 });
+        expect(unit(state, 'k')).toMatchObject({ x: 4, hasActed: true });
+        expect(events.some((e) => e.type === 'DamageDealt')).toBe(false);
+        expect(state.engagements).toEqual([]);
+      } else {
+        expect(events.some((e) => e.type === 'DamageDealt' && e.kind === 'impact')).toBe(true);
+      }
+    }
+    expect(evaded / n).toBeGreaterThan(0.55);
+    expect(evaded / n).toBeLessThan(0.75);
+  });
+
+  it('an evader with no room to fall back is caught', () => {
+    const rows = [
+      '............',
+      '............',
+      '............',
+      '......~.....',
+      '............',
+      '............',
+      '............',
+      '............',
+    ];
+    const s = battle({
+      rows,
       units: [
         ['k', 'blue', 'heavyCavalry', 2, 3, E],
         ['sk', 'red', 'skirmishers', 5, 3, W],
       ],
     });
-    const { state, events } = run(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
-    expect(unit(state, 'sk')).toMatchObject({ x: 7, y: 3, strength: 100 });
-    expect(unit(state, 'k')).toMatchObject({ x: 4, hasActed: true });
-    expect(events.some((e) => e.type === 'DamageDealt')).toBe(false);
-    expect(state.engagements).toEqual([]);
+    const { events } = run(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
+    expect(events.some((e) => e.type === 'DamageDealt' && e.kind === 'impact')).toBe(true);
   });
 
   it('charging a routed unit destroys it', () => {
@@ -510,7 +567,11 @@ describe('combat preview', () => {
     const shot = previewCombat(s, { type: 'Shoot', unitId: 'a', targetId: 'd' });
     expect(!isRejection(shot) && shot.defender.expectedLoss).toBeCloseTo((30 * 6) / 11);
     const ev = previewCombat(s, { type: 'Charge', unitId: 'k', targetId: 'sk' });
-    expect(!isRejection(ev) && ev.outcome).toBe('evade');
+    if (isRejection(ev)) throw new Error(ev.message);
+    expect(ev.outcome).toBe('mayEvade');
+    expect(ev.evadeChance).toBeCloseTo(0.65);
+    // If it is caught, the expected losses are those of a normal impact.
+    expect(ev.defender.expectedLoss).toBeCloseTo((30 * 9) / 11);
     const bad = previewCombat(s, { type: 'Charge', unitId: 'a', targetId: 'sk' });
     expect(isRejection(bad)).toBe(true);
   });
@@ -528,5 +589,33 @@ describe('combat preview', () => {
     );
     const p = previewCombat(s, { type: 'Charge', unitId: 'k', targetId: 'd' });
     expect(!isRejection(p) && p.defender.routChance).toBe(1);
+  });
+});
+
+describe('preview and real outcome agree', () => {
+  it('average real damage over many seeds matches the preview expectation', () => {
+    const setup = (seed: number) =>
+      battle({
+        seed,
+        units: [
+          ['k', 'blue', 'heavyCavalry', 2, 3, E],
+          ['d', 'red', 'spearmen', 5, 3, N],
+        ],
+      });
+    const p = previewCombat(setup(0), { type: 'Charge', unitId: 'k', targetId: 'd' });
+    if (isRejection(p)) throw new Error(p.message);
+    let toDef = 0;
+    let toAtt = 0;
+    const n = 400;
+    for (let seed = 0; seed < n; seed++) {
+      const { events } = run(setup(seed), { type: 'Charge', unitId: 'k', targetId: 'd' });
+      const hits = events.filter(
+        (e): e is Extract<GameEvent, { type: 'DamageDealt' }> => e.type === 'DamageDealt',
+      );
+      toDef += hits.find((h) => h.targetId === 'd')!.amount;
+      toAtt += hits.find((h) => h.targetId === 'k')!.amount;
+    }
+    expect(toDef / n).toBeCloseTo(p.defender.expectedLoss, 0);
+    expect(toAtt / n).toBeCloseTo(p.attacker.expectedLoss, 0);
   });
 });

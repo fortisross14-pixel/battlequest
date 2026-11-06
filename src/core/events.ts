@@ -11,6 +11,7 @@ export type GameEvent =
   | { type: 'ChargeDeclared'; unitId: string; targetId: string; path: Pos[] }
   | { type: 'ShotFired'; unitId: string; targetId: string }
   | { type: 'HoldDeclared'; unitId: string }
+  | { type: 'EvadeRoll'; unitId: string; chance: number; roll: number; evaded: boolean }
   | {
       type: 'DamageDealt';
       attackerId: string;

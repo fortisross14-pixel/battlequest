@@ -18,6 +18,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Cohesion tests, auto-rout, rout movement, caught routers destroyed, rally (4.7)
 - [x] Army breakpoint, turn limit, victory result (4.8)
 - [x] Unit tests for every rule + reproducible headless scripted battle
+- [x] `balance-sim` v1: `npm run balance -- duel|cost`, reports in `docs/balance/`
 
 ## M2 — Playable board
 - [ ] Battle-map renderer: parchment, terrain shapes, grid, unit blocks, NATO symbols, bars, pips, hatches, hollow routers

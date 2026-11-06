@@ -1,5 +1,7 @@
 import {
   canEvade,
+  evadeChance,
+  evadePath,
   checkShot,
   computeDamage,
   planCharge,
@@ -7,6 +9,7 @@ import {
   type ChargePlan,
 } from './combat';
 import { RULES } from './config';
+import { nextRandom } from './rng';
 import type { GameEvent } from './events';
 import { arcOf, isAdjacent, step, toDir, type Arc } from './geometry';
 import { afterDamage, applyDamage, destroyUnit, pursue, rallyPhase, routMove } from './morale';
@@ -222,9 +225,13 @@ function resolveCharge(
     return;
   }
 
-  if (canEvade(state, target)) {
-    const path = evadePath(state, target, plan.dir);
-    if (path.length > 1) {
+  const path = canEvade(state, target) ? evadePath(state, target, plan.dir) : [];
+  if (path.length > 1) {
+    const chance = evadeChance(u, target);
+    const roll = nextRandom(state);
+    const evaded = roll < chance;
+    events.push({ type: 'EvadeRoll', unitId: target.id, chance, roll, evaded });
+    if (evaded) {
       const end = path[path.length - 1]!;
       target.x = end.x;
       target.y = end.y;
@@ -299,18 +306,6 @@ function resolveCharge(
 
 export function wonClearly(dealt: number, taken: number): boolean {
   return dealt >= RULES.combat.pushBackMinDamage && dealt >= RULES.combat.pushBackRatio * taken;
-}
-
-/** Evaders fall back straight away from the charger, up to `evadeSquares` squares. */
-export function evadePath(state: BattleState, u: Unit, awayDir: Dir): Pos[] {
-  const path: Pos[] = [{ x: u.x, y: u.y }];
-  let pos: Pos = { x: u.x, y: u.y };
-  for (let i = 0; i < RULES.movement.evadeSquares; i++) {
-    if (stepCost(state, u, pos, awayDir) === null) break;
-    pos = step(pos, awayDir);
-    path.push(pos);
-  }
-  return path;
 }
 
 // ---------- Turn phases ----------

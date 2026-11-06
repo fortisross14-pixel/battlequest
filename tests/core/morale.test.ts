@@ -6,7 +6,7 @@ import {
   routUnit,
   type BattleState,
   type GameEvent,
-} from '../src/core';
+} from '../../src/core';
 import { battle, E, endTurn, rejected, run, unit, W, withUnit } from './helpers';
 
 const pair = () =>

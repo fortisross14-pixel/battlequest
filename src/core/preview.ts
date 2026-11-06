@@ -1,5 +1,12 @@
 import { RULES } from './config';
-import { canEvade, computeDamage, type DamageCalc, type Modifier } from './combat';
+import {
+  canEvade,
+  computeDamage,
+  evadeChance,
+  evadePath,
+  type DamageCalc,
+  type Modifier,
+} from './combat';
 import { planCommand } from './engine';
 import { cohesionDropChance, friendRoutedNearby } from './morale';
 import { isRejection, reject, type Rejection } from './rejection';
@@ -19,7 +26,10 @@ export interface SidePreview {
 
 export interface CombatPreview {
   kind: 'charge' | 'shoot';
-  outcome: 'fight' | 'evade' | 'catchRouter';
+  /** mayEvade: the target may slip away; the losses shown are for when it is caught. */
+  outcome: 'fight' | 'mayEvade' | 'catchRouter';
+  /** Chance the target evades (0 unless outcome is mayEvade). */
+  evadeChance: number;
   attacker: SidePreview;
   defender: SidePreview;
 }
@@ -74,6 +84,7 @@ export function previewCombat(
     return {
       kind: 'shoot',
       outcome: 'fight',
+      evadeChance: 0,
       attacker: sidePreview(sim, att, null),
       defender: sidePreview(sim, def, calc),
     };
@@ -87,23 +98,18 @@ export function previewCombat(
     return {
       kind: 'charge',
       outcome: 'catchRouter',
+      evadeChance: 0,
       attacker: sidePreview(sim, att, null),
       defender: { ...sidePreview(sim, def, null), expectedLoss: def.strength, routChance: 1 },
     };
   }
-  if (canEvade(sim, def)) {
-    return {
-      kind: 'charge',
-      outcome: 'evade',
-      attacker: sidePreview(sim, att, null),
-      defender: sidePreview(sim, def, null),
-    };
-  }
+  const mayEvade = canEvade(sim, def) && evadePath(sim, def, plan.plan.dir).length > 1;
   const hit = computeDamage(sim, att, def, 'charge');
   const back = computeDamage(sim, def, att, 'counter');
   return {
     kind: 'charge',
-    outcome: 'fight',
+    outcome: mayEvade ? 'mayEvade' : 'fight',
+    evadeChance: mayEvade ? evadeChance(att, def) : 0,
     attacker: sidePreview(sim, att, back),
     defender: sidePreview(sim, def, hit),
   };

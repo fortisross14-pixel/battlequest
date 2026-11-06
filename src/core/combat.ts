@@ -106,6 +106,9 @@ function effectiveAttack(state: BattleState, att: Unit, def: Unit, role: DamageR
   if (role === 'melee' && antiCavalryFront(att, def)) {
     mods.push({ label: 'Spears vs cavalry', value: C.antiCavalry.meleeBonus });
   }
+  if (role === 'melee' && antiCavalryFront(def, att)) {
+    mods.push({ label: 'Fighting a spear wall', value: C.antiCavalry.meleeCavalryPenalty });
+  }
 
   if (role !== 'ranged') {
     const terrain = fightTerrain(state, att, def);
@@ -281,4 +284,23 @@ export function canEvade(state: BattleState, target: Unit): boolean {
     target.cohesion < Cohesion.Fragmented &&
     !isEngaged(state, target.id)
   );
+}
+
+/** Chance that an evader gets away from this charger: faster units slip away more often. */
+export function evadeChance(charger: Unit, evader: Unit): number {
+  const m = RULES.movement;
+  const p = m.evadeBase + m.evadePerMp * (evader.type.stats.mp - charger.type.stats.mp);
+  return Math.min(m.evadeMax, Math.max(m.evadeMin, p));
+}
+
+/** Evaders fall back straight away from the charger, up to `evadeSquares` squares. */
+export function evadePath(state: BattleState, u: Unit, awayDir: Dir): Pos[] {
+  const path: Pos[] = [{ x: u.x, y: u.y }];
+  let pos: Pos = { x: u.x, y: u.y };
+  for (let i = 0; i < RULES.movement.evadeSquares; i++) {
+    if (stepCost(state, u, pos, awayDir) === null) break;
+    pos = step(pos, awayDir);
+    path.push(pos);
+  }
+  return path;
 }

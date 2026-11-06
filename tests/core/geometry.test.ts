@@ -8,7 +8,7 @@ import {
   rangeDistance,
   straightLine,
   turnSteps,
-} from '../src/core';
+} from '../../src/core';
 import { E, N, NE, S, W } from './helpers';
 
 describe('seeded RNG', () => {

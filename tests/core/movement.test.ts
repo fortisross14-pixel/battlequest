@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reachableSquares, planMove, isRejection } from '../src/core';
+import { reachableSquares, planMove, isRejection } from '../../src/core';
 import { battle, E, N, NE, rejected, run, S, SE, unit, W, withUnit } from './helpers';
 
 const solo = (rows?: string[], elevation?: string[]) =>
