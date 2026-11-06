@@ -2,33 +2,28 @@
 
 Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 
-## M0 — Scaffold
-- [x] Vite + TypeScript (strict) + PixiJS + Vitest + ESLint/Prettier
-- [x] Folder layout: `src/core`, `src/ai`, `src/content`, `src/meta`, `src/render`, `src/ui`, `tests`
-- [x] npm scripts `dev`, `build`, `test`, `lint`, `typecheck`; CI workflow
-- [x] `npm run dev` shows an empty map
+## M0 — Scaffold ✔
+- [x] Vite + TypeScript (strict) + PixiJS + Vitest + ESLint/Prettier, folder layout, npm scripts, CI, Pages deploy workflow
 
-## M1 — Core simulation
-- [x] Seeded RNG, rules config, grid/direction helpers
-- [x] Content: archetypes (4.5) and terrain (4.9: open, rough, forest, hill, river, ford, bridge)
-- [x] Data model: map, units, battle state, turn and side
-- [x] Command → validation → events engine, with rejection reasons
-- [x] Movement: MP costs, terrain multipliers, pathfinding, turning, ZOC, pull back, evade
-- [x] Combat: ranged, impact, melee (4.6); flank/rear detection; `previewCombat()`
-- [x] Cohesion tests, auto-rout, rout movement, caught routers destroyed, rally (4.7)
-- [x] Army breakpoint, turn limit, victory result (4.8)
-- [x] Unit tests for every rule + reproducible headless scripted battle
-- [x] `balance-sim` v1: `npm run balance -- duel|cost`, reports in `docs/balance/`
+## M1 — Core simulation ✔
+- [x] Seeded RNG, rules config, grid, map, movement, ZOC, combat, cohesion, rout, rally, victory, preview, undo
+- [x] Unit tests for every rule + reproducible headless battle
+- [x] `balance-sim` (`npm run balance -- duel|cost|scenario`), reports in `docs/balance/`
 
-## M2 — Playable board
-- [x] Battle-map renderer: parchment, terrain shapes, grid, unit blocks, NATO symbols, bars, pips, hatches, hollow routers
-- [x] Touch controls: select, highlights, two-tap move with ghost, facing ring, combat preview, long-press card, pan/pinch, Undo / Next unit / End turn
-- [x] Event-driven animations (slide, shake, floating numbers)
-- [x] Sandbox battle (16×10, river, ford, bridge, hill, forest, ~8 units per side), hot-seat
-- [x] Layout check at 1024×768 and 812×375; screenshots
-- [x] `scripts/visual-check.mjs` (`npm run visual-check -- --url <dev url>`); debug scenarios `debug-states`, `debug-endgame`
+## M2 — Playable board ✔
+- [x] Battle-map renderer, touch controls, animations, hot-seat sandbox, `scripts/visual-check.mjs`
 
-## Next: M3 — AI + Prologue
-- [ ] Utility AI (section 4.11) replacing the greedy test script for the enemy side
-- [ ] Re-run `balance-sim cost` with the AI and retune costs (open outliers in `DECISIONS.md`)
-- [ ] Megiddo tutorial with guided steps
+## M3 — AI, campaign start and meta loop ✔ (first playable version)
+- [x] Utility AI (aggressive / defensive / timed postures, uses general skills), one command at a time
+- [x] Generals in battle: command radius by rank, passive traits, 6 skill effects, pennants, general loss
+- [x] 19 era units (ages 0–2), 8 playable + 6 enemy generals
+- [x] 6 campaign battles: Megiddo (tutorial), Kadesh, Qarqar, Marathon, Thermopylae, Leuctra — 2 v 2 growing to 5 v 5
+- [x] Profile, save (localStorage), stars, coins, general XP and ranks, age unlocks
+- [x] Shop: Recruit / Veteran / General packs (pity), daily offer
+- [x] Screens: menu, campaign, briefing + army builder, deployment, battle vs AI with speed control, results, shop, army (troops, generals)
+
+## Next
+- [ ] Human playtest of the six battles; retune with `balance-sim scenario` (current stand-in results are mostly too easy)
+- [ ] Re-run `balance-sim cost` with the AI and retune unit costs
+- [ ] Remaining Age 2 battles (Gaugamela, Hydaspes) and more generals' unique skills
+- [ ] Reinforcements, fog of war, weather; marsh, village, fieldworks, road terrain

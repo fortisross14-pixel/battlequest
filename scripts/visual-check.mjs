@@ -62,7 +62,7 @@ async function shot(page, size, name) {
   console.log(file);
 }
 
-async function checkTargets(page) {
+async function smallTargets(page) {
   // Every visible button must be at least 44x44 CSS px.
   return page.evaluate(() =>
     [...document.querySelectorAll('button')]
@@ -102,7 +102,7 @@ for (const size of SIZES) {
   await shot(page, size, '04-facing-ring');
   await tapNear(page, 7, 3, 0, -60); // pick a handle (north-ish)
   await shot(page, size, '05-after-ring');
-  const small = await checkTargets(page);
+  const small = await smallTargets(page);
   if (small.length) problems.push(`${size.name}: small buttons ${JSON.stringify(small)}`);
 
   // Debug scenario: every cohesion state, a charge preview and a shot preview.
@@ -137,9 +137,62 @@ for (const size of SIZES) {
   await page.getByRole('button', { name: /Confirm charge/ }).tap();
   await page.waitForTimeout(2500);
   await shot(page, size, '14-result');
-  if (!(await page.getByRole('button', { name: 'Play again' }).isVisible())) {
+  if (!(await page.getByRole('button', { name: 'Back to menu' }).isVisible())) {
     problems.push(`${size.name}: no result screen after the endgame charge`);
   }
+
+  // Campaign flow from a fresh profile.
+  await page.goto(`${base}/`);
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${base}/`);
+  await page.waitForFunction(() => window.__bq !== undefined);
+  await page.waitForTimeout(300);
+  await shot(page, size, '20-menu');
+  await page.getByRole('button', { name: /Continue: Megiddo/ }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '21-briefing');
+  await page.getByRole('button', { name: /Deploy/ }).tap();
+  await page.waitForTimeout(500);
+  await shot(page, size, '22-deployment');
+  await page.getByRole('button', { name: 'Start battle' }).tap();
+  await page.waitForTimeout(600);
+  await shot(page, size, '23-battle-tutorial');
+  const cs = await smallTargets(page);
+  if (cs.length) problems.push(`${size.name} (battle): small buttons ${JSON.stringify(cs)}`);
+  // Let the enemy AI play a turn, with the speed control visible.
+  await page.getByRole('button', { name: 'End turn' }).tap();
+  await page.waitForTimeout(700);
+  await shot(page, size, '23b-enemy-turn');
+  await page.waitForFunction(
+    () => window.__bq.app && !document.querySelector('.hud .btn.primary')?.disabled,
+    null,
+    { timeout: 30000 },
+  );
+  await shot(page, size, '23c-after-enemy-turn');
+  await page.getByRole('button', { name: 'Leave battle' }).tap();
+  await page.getByRole('button', { name: 'Leave', exact: true }).tap();
+  await page.waitForTimeout(1200);
+  await shot(page, size, '24-results');
+  await page.getByRole('button', { name: 'Campaign' }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '25-campaign');
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.getByRole('button', { name: 'Shop' }).tap();
+  await page.waitForTimeout(300);
+  await page
+    .getByRole('button', { name: /Buy · ● 150/ })
+    .first()
+    .tap();
+  await page.waitForTimeout(900);
+  await shot(page, size, '26-shop-reveal');
+  await page.getByRole('button', { name: 'Show in Army' }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '27-troops');
+  await page.getByRole('button', { name: 'Generals' }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '28-generals');
+  const ms = await smallTargets(page);
+  if (ms.length) problems.push(`${size.name} (screens): small buttons ${JSON.stringify(ms)}`);
   await ctx.close();
 }
 await browser.close();

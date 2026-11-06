@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { Cohesion, type Dir, type Side, type Unit, type UnitSymbol } from '../core/types';
 import { hatch } from './draw';
 import { CELL, THEME } from './theme';
@@ -16,9 +16,11 @@ export interface UnitLook {
   visible: boolean;
   /** Own unit with nothing left to do this turn. */
   spent: boolean;
+  /** General's pennant label, e.g. "LEONIDAS". */
+  pennant: string | null;
 }
 
-export function lookOf(u: Unit, spent: boolean): UnitLook {
+export function lookOf(u: Unit, spent: boolean, pennant: string | null = null): UnitLook {
   return {
     side: u.side,
     symbol: u.type.symbol,
@@ -29,6 +31,7 @@ export function lookOf(u: Unit, spent: boolean): UnitLook {
     cohesion: u.cohesion,
     visible: u.status === 'active',
     spent,
+    pennant,
   };
 }
 
@@ -111,13 +114,18 @@ export class UnitView extends Container {
   private block = new Graphics();
   private overlay = new Graphics();
   private symbolG = new Graphics();
+  private flag = new Graphics();
+  private flagText = new Text({
+    text: '',
+    style: { fontFamily: THEME.sans, fontSize: 10, fontWeight: '700', fill: 0xffffff },
+  });
   look: UnitLook;
 
   constructor(look: UnitLook) {
     super();
     this.look = look;
     this.body.addChild(this.block);
-    this.addChild(this.body, this.symbolG, this.overlay);
+    this.addChild(this.body, this.symbolG, this.overlay, this.flag, this.flagText);
     this.redraw();
     this.snap();
   }
@@ -182,6 +190,28 @@ export class UnitView extends Container {
     o.circle(barW / 2 + 7, barY + 2.5, 5.5)
       .fill(THEME.cohesion[cohesion])
       .stroke({ width: 1.5, color: THEME.ink, alpha: 0.8 });
+
+    // The general's pennant: a small flag with the name above the block (GAME_DESIGN 10).
+    const f = this.flag.clear();
+    this.flagText.visible = !!this.look.pennant;
+    if (this.look.pennant) {
+      this.flagText.text = this.look.pennant;
+      const w = this.flagText.width + 8;
+      const top = -CELL * 0.62;
+      const px = -CELL * 0.36;
+      f.moveTo(px, top)
+        .lineTo(px, -CELL * 0.18)
+        .stroke({ width: 2, color: THEME.ink });
+      f.poly([px, top, px + w, top, px + w - 4, top + 7, px + w, top + 14, px, top + 14]).fill(
+        THEME.sideDark[side],
+      );
+      f.poly([px, top, px + w, top, px + w - 4, top + 7, px + w, top + 14, px, top + 14]).stroke({
+        width: 1,
+        color: THEME.ink,
+        alpha: 0.7,
+      });
+      this.flagText.position.set(px + 3, top + 1);
+    }
 
     this.alpha = !this.look.visible ? 0 : routed ? 0.75 : spent ? 0.72 : 1;
   }

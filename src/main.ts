@@ -1,30 +1,19 @@
-import { BATTLES } from './content/battles';
-import { startBattle } from './core/engine';
-import { BattleSession } from './core/session';
+import { LocalSaveStore } from './meta/saveStore';
 import { BattleView } from './render/battleView';
-import { Controller } from './ui/controller';
-import { Hud } from './ui/hud';
+import { App } from './ui/app';
 import { attachGestures } from './ui/input';
 
 /**
- * Entry point. URL parameters:
- * - scenario: battle id (default "sandbox"; "debug-states" shows every unit state)
- * - seed: RNG seed (default random, so every game rolls differently)
+ * Entry point. Without parameters the game opens on the main menu.
+ * URL parameters (for testing and scripts/visual-check.mjs):
+ * - scenario: open a hot-seat battle directly ("sandbox", "debug-states", "debug-endgame")
+ * - seed: RNG seed for that battle
  */
 async function start(): Promise<void> {
   const host = document.getElementById('app');
   if (!host) throw new Error('#app missing');
-  const params = new URLSearchParams(window.location.search);
-  const make = BATTLES[params.get('scenario') ?? 'sandbox'] ?? BATTLES.sandbox!;
-  const seedParam = params.get('seed');
-  const seed = seedParam !== null ? Number(seedParam) : Math.floor(Math.random() * 2 ** 31);
-  const scenario = make(seed);
-
-  const session = new BattleSession(startBattle(scenario));
   const view = await BattleView.create(host);
-  view.loadMap(session.state);
-  view.sync(session.state);
-  const hud = new Hud(document.body);
+  const app = new App(new LocalSaveStore(), view);
   const layout = () => {
     const phone = window.innerHeight < 500;
     view.padding = phone
@@ -32,25 +21,25 @@ async function start(): Promise<void> {
       : { top: 56, bottom: 76, left: 12, right: 12 };
   };
   layout();
-  const firstUnit = session.state.units.find((u) => u.side === session.state.activeSide);
-  view.fit(firstUnit);
-  const controller = new Controller(session, view, hud, scenario.name);
-  attachGestures(view.canvas, {
-    tap: (x, y) => controller.tap(x, y),
-    longPress: (x, y) => controller.longPress(x, y),
-    pan: (dx, dy) => view.pan(dx, dy),
-    pinch: (f, cx, cy) => view.zoomAt(f, cx, cy),
-  });
+  attachGestures(view.canvas, app.canvasGestures);
   window.addEventListener('resize', () => {
     layout();
-    // Let Pixi pick up the new size first.
-    requestAnimationFrame(() => view.fit(firstUnit));
+    requestAnimationFrame(() => view.fit());
   });
+
+  const params = new URLSearchParams(window.location.search);
+  const scenario = params.get('scenario');
+  if (scenario) {
+    const seed = params.get('seed');
+    app.sandbox(scenario, seed !== null ? Number(seed) : undefined);
+  } else {
+    app.menu();
+  }
 
   // Hooks for scripts/visual-check.mjs (dev server only).
   if (import.meta.env.DEV) {
     (window as unknown as { __bq: unknown }).__bq = {
-      state: () => session.state,
+      app,
       cellToScreen: (x: number, y: number) => view.cellToScreen({ x, y }),
     };
   }

@@ -23,15 +23,21 @@ export function armyCost(army: ArmyChoice): number {
 }
 
 /** Builds the scenario. Player units get ids p0, p1…; enemy units e0, e1…. */
-export function buildScenario(b: CampaignBattle, army: ArmyChoice, seed: number): Scenario {
+/** `placement` (from the deployment screen) overrides the default squares, unit by unit. */
+export function buildScenario(
+  b: CampaignBattle,
+  army: ArmyChoice,
+  seed: number,
+  placement?: Pos[],
+): Scenario {
   const squares = deploymentSquares(b);
   if (army.units.length > squares.length) throw new Error(`${b.id}: not enough deployment squares`);
   const units: ScenarioUnit[] = army.units.map((u, i) => ({
     id: `p${i}`,
     side: PLAYER_SIDE,
     type: eraUnitType(u.type, u.level),
-    x: squares[i]!.x,
-    y: squares[i]!.y,
+    x: (placement?.[i] ?? squares[i]!).x,
+    y: (placement?.[i] ?? squares[i]!).y,
     facing: 2,
   }));
   b.enemy.forEach((e, i) =>

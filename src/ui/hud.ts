@@ -51,6 +51,7 @@ export interface TopInfo {
   side: Side;
   lost: Record<Side, number>;
   breakpoint: Record<Side, number>;
+  names?: Record<Side, string>;
 }
 
 export class Hud {
@@ -72,13 +73,33 @@ export class Hud {
     'Next unit ›',
   );
   readonly endBtn = el('button', { class: 'btn primary', type: 'button' }, 'End turn');
+  readonly skillBtn = el(
+    'button',
+    { class: 'btn gold hidden', type: 'button', 'aria-label': 'General skill' },
+    '★ General',
+  );
+  readonly speedBtn = el(
+    'button',
+    { class: 'btn hidden', type: 'button', 'aria-label': 'Playback speed' },
+    'Speed 1×',
+  );
+  readonly menuBtn = el(
+    'button',
+    { class: 'btn menu-btn hidden', type: 'button', 'aria-label': 'Leave battle' },
+    '☰',
+  );
+  private tutorial = el('div', { class: 'tutorial hidden', role: 'note' });
+  private skills = el('div', { class: 'panel card skills hidden' });
   private toastTimer: number | undefined;
 
   constructor(host: HTMLElement) {
-    const left = el('div', { class: 'corner left' }, this.undoBtn, this.nextBtn);
-    const right = el('div', { class: 'corner right' }, this.endBtn);
+    const left = el('div', { class: 'corner left' }, this.undoBtn, this.nextBtn, this.skillBtn);
+    const right = el('div', { class: 'corner right' }, this.speedBtn, this.endBtn);
     this.root.append(
       this.top,
+      this.menuBtn,
+      this.tutorial,
+      this.skills,
       this.chip,
       left,
       right,
@@ -91,11 +112,12 @@ export class Hud {
   }
 
   setTop(i: TopInfo): void {
+    const N = i.names ?? SIDE_NAME;
     const army = (s: Side) =>
       el(
         'span',
         { class: `army ${s}` },
-        el('b', {}, SIDE_NAME[s]),
+        el('b', {}, N[s]),
         ` lost ${pct(i.lost[s])} `,
         el('small', {}, `/ breaks at ${pct(i.breakpoint[s])}`),
       );
@@ -105,16 +127,91 @@ export class Hud {
         'span',
         { class: `turn ${i.side}` },
         `Turn ${i.turn} / ${i.turnLimit} · `,
-        el('b', {}, `${SIDE_NAME[i.side]} to move`),
+        el('b', {}, `${N[i.side]} to move`),
       ),
       el('span', { class: 'armies' }, army('blue'), army('red')),
     );
   }
 
-  setButtons(b: { undo: boolean; next: boolean; end: boolean }): void {
+  setButtons(b: {
+    undo: boolean;
+    next: boolean;
+    end: boolean;
+    skill?: 'none' | 'ready' | 'waiting';
+    menu?: boolean;
+  }): void {
     this.undoBtn.disabled = !b.undo;
     this.nextBtn.disabled = !b.next;
     this.endBtn.disabled = !b.end;
+    const skill = b.skill ?? 'none';
+    this.skillBtn.classList.toggle('hidden', skill === 'none');
+    this.skillBtn.disabled = skill !== 'ready';
+    this.menuBtn.classList.toggle('hidden', !b.menu);
+  }
+
+  showSpeed(on: boolean): void {
+    this.speedBtn.classList.toggle('hidden', !on);
+  }
+
+  setSpeed(label: string): void {
+    this.speedBtn.textContent = label;
+  }
+
+  setTutorial(text: string | null, progress: string): void {
+    this.tutorial.classList.toggle('hidden', !text);
+    if (text) this.tutorial.replaceChildren(el('small', {}, `Tutorial ${progress}`), text);
+  }
+
+  showSkills(
+    general: string,
+    list: { name: string; text: string; status: string; usable: boolean; use: () => void }[],
+  ): void {
+    const close = el('button', { class: 'btn', type: 'button' }, 'Close');
+    close.onclick = () => this.hideSkills();
+    this.skills.replaceChildren(
+      el('h2', {}, `${general}: general skills`),
+      ...list.map((s) => {
+        const b = el('button', { class: 'btn primary', type: 'button' }, 'Use');
+        b.disabled = !s.usable;
+        b.onclick = s.use;
+        return el(
+          'div',
+          { class: 'skill' },
+          el('div', {}, el('b', {}, s.name), el('p', {}, s.text), el('small', {}, s.status)),
+          b,
+        );
+      }),
+      el('div', { class: 'row' }, close),
+    );
+    this.skills.classList.remove('hidden');
+  }
+
+  hideSkills(): void {
+    this.skills.classList.add('hidden');
+  }
+
+  showConfirm(title: string, body: string, yes: string, onYes: () => void): void {
+    const y = el('button', { class: 'btn primary', type: 'button' }, yes);
+    const n = el('button', { class: 'btn', type: 'button' }, 'Stay');
+    y.onclick = () => {
+      this.overlay.classList.add('hidden');
+      onYes();
+    };
+    n.onclick = () => this.overlay.classList.add('hidden');
+    this.overlay.replaceChildren(
+      el(
+        'div',
+        { class: 'sheet' },
+        el('h1', {}, title),
+        el('p', {}, body),
+        el('div', { class: 'row center' }, n, y),
+      ),
+    );
+    this.overlay.classList.remove('hidden');
+  }
+
+  destroy(): void {
+    this.root.remove();
   }
 
   setChip(text: string | null): void {

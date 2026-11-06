@@ -13,6 +13,8 @@ export interface Highlights {
   reach: { pos: Pos; kind: 'move' | 'pullBack' }[];
   charge: Pos[];
   shoot: Pos[];
+  /** Valid targets for a general's skill. */
+  skill?: Pos[];
 }
 
 export interface RingHandle {
@@ -48,6 +50,8 @@ export class BattleView {
   /** Screen padding kept free for the HUD (top bar, bottom buttons). */
   padding = { top: 56, bottom: 72, left: 12, right: 12 };
   private reducedMotion = false;
+  /** Playback speed: 1, 2, or Infinity to skip animations. */
+  speed = 1;
 
   private constructor(app: Application) {
     this.app = app;
@@ -78,6 +82,10 @@ export class BattleView {
     this.world.removeChildren();
     this.views.clear();
     this.unitsLayer.removeChildren();
+    this.highlights.clear();
+    this.arrows.clear();
+    this.clearGhost();
+    this.clearFacingRing();
     this.grid = buildGrid(state.map);
     this.world.addChild(
       buildTerrainLayer(state.map),
@@ -95,7 +103,8 @@ export class BattleView {
   /** Snaps every unit block to the given state. */
   sync(state: BattleState): void {
     for (const u of state.units) {
-      const look = lookOf(u, isSpent(state, u));
+      const g = state.sides[u.side].general;
+      const look = lookOf(u, isSpent(state, u), g && !g.lost && g.unitId === u.id ? g.name : null);
       let v = this.views.get(u.id);
       if (!v) {
         v = new UnitView(look);
@@ -235,6 +244,16 @@ export class BattleView {
       g.moveTo(c.x, c.y + r * 0.45).lineTo(c.x, c.y + r + 6);
       g.stroke({ width: 2.5, color: THEME.shoot, alpha: 0.85 });
     }
+    for (const p of h.skill ?? []) {
+      g.rect(p.x * CELL + 3, p.y * CELL + 3, CELL - 6, CELL - 6).fill({
+        color: THEME.select,
+        alpha: 0.25,
+      });
+      g.rect(p.x * CELL + 3, p.y * CELL + 3, CELL - 6, CELL - 6).stroke({
+        width: 4,
+        color: THEME.select,
+      });
+    }
     if (h.selected) {
       const p = h.selected;
       g.rect(p.x * CELL + 1, p.y * CELL + 1, CELL - 2, CELL - 2).stroke({
@@ -322,7 +341,7 @@ export class BattleView {
   // ---------- Animation ----------
 
   private tween(ms: number, fn: (t: number) => void): Promise<void> {
-    const dur = this.reducedMotion ? 0 : ms;
+    const dur = this.reducedMotion ? 0 : ms / this.speed;
     if (dur <= 0) {
       fn(1);
       return Promise.resolve();
@@ -457,6 +476,19 @@ export class BattleView {
           const a0 = v.alpha;
           await this.tween(320, (t) => (v.alpha = a0 * (1 - t)));
           v.update({ visible: false });
+          break;
+        }
+        case 'UnitHealed': {
+          const v = this.views.get(e.unitId);
+          if (!v) break;
+          v.update({ strength: Math.min(100, v.look.strength + e.amount) });
+          this.floatText(v.look, `+${e.amount}`, 0x2e7d32);
+          break;
+        }
+        case 'SkillUsed': {
+          const v = this.views.get(e.unitId);
+          if (v) this.floatText(v.look, e.name, THEME.select);
+          await this.tween(500, () => {});
           break;
         }
         case 'MeleePhase':
