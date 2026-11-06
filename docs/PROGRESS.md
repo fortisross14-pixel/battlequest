@@ -21,8 +21,14 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] `balance-sim` v1: `npm run balance -- duel|cost`, reports in `docs/balance/`
 
 ## M2 — Playable board
-- [ ] Battle-map renderer: parchment, terrain shapes, grid, unit blocks, NATO symbols, bars, pips, hatches, hollow routers
-- [ ] Touch controls: select, highlights, two-tap move with ghost, facing ring, combat preview, long-press card, pan/pinch, Undo / Next unit / End turn
-- [ ] Event-driven animations (slide, shake, floating numbers)
-- [ ] Sandbox battle (16×10, river, ford, bridge, hill, forest, ~8 units per side), hot-seat
-- [ ] Layout check at 1024×768 and 812×375; screenshots
+- [x] Battle-map renderer: parchment, terrain shapes, grid, unit blocks, NATO symbols, bars, pips, hatches, hollow routers
+- [x] Touch controls: select, highlights, two-tap move with ghost, facing ring, combat preview, long-press card, pan/pinch, Undo / Next unit / End turn
+- [x] Event-driven animations (slide, shake, floating numbers)
+- [x] Sandbox battle (16×10, river, ford, bridge, hill, forest, ~8 units per side), hot-seat
+- [x] Layout check at 1024×768 and 812×375; screenshots
+- [x] `scripts/visual-check.mjs` (`npm run visual-check -- --url <dev url>`); debug scenarios `debug-states`, `debug-endgame`
+
+## Next: M3 — AI + Prologue
+- [ ] Utility AI (section 4.11) replacing the greedy test script for the enemy side
+- [ ] Re-run `balance-sim cost` with the AI and retune costs (open outliers in `DECISIONS.md`)
+- [ ] Megiddo tutorial with guided steps

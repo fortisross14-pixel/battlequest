@@ -15,6 +15,10 @@ export default tseslint.config(
     },
   },
   {
+    files: ['scripts/**'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  {
     // Keep the simulation core pure: no DOM, no Pixi, no randomness, no timers.
     files: ['src/core/**/*.ts', 'src/content/**/*.ts', 'src/ai/**/*.ts'],
     languageOptions: { globals: {} },
