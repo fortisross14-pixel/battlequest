@@ -281,23 +281,111 @@
   background: var(--blue);
 }
 
-.army-row {
+/* Slot row: one tile per unit slot. */
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.slot {
+  position: relative;
+  width: 104px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: 600 13px var(--sans);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.slot:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.slot.empty {
+  border: 2px dashed var(--line);
+  color: var(--ink-soft);
+  font-size: 28px;
+}
+
+.slot.general {
+  border-color: #8a6a12;
+  box-shadow: inset 0 0 0 3px rgba(217, 162, 27, 0.45);
+}
+
+.slot .star {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  color: #b8860b;
+  font-size: 18px;
+}
+
+.slot-name {
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.lv {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 700 12px var(--sans);
+  vertical-align: middle;
+}
+
+/* Owned troop cards with + / − buttons. */
+.troops {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 6px;
+}
+
+.troop-row {
   display: grid;
   grid-template-columns: auto 1fr auto auto auto;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 4px 6px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
 }
 
-.army-row small {
+.troop-row.picked {
+  border-color: var(--blue);
+  background: rgba(47, 93, 158, 0.06);
+}
+
+.troop-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.troop-name small {
+  display: block;
+  font-weight: 400;
   color: var(--ink-soft);
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.troop-row .count {
+  min-width: 28px;
+  text-align: center;
+  font: 700 18px var(--serif);
+  color: var(--blue);
 }
 
 .chip-btn {
@@ -317,24 +405,78 @@
   color: var(--paper);
 }
 
-.chip-btn:disabled {
-  opacity: 0.45;
-}
-
-.troops {
+/* General picker. */
+.gen-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 8px;
+  align-items: start;
 }
 
-.btn.troop {
+.gen-pick {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-start;
-  font-size: 14px;
-  padding: 0 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 8px 10px;
   text-align: left;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font: 13px var(--sans);
+  cursor: pointer;
+}
+
+.gen-pick b {
+  font: italic 17px var(--serif);
+}
+
+.gen-pick.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  background: #fffaf0;
+}
+
+.gen-pick:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.gen-pick.fixed {
+  cursor: default;
+}
+
+.gen-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.gen-details small {
+  color: var(--ink-soft);
+}
+
+.gen-details .locked-skill {
+  color: var(--ink-soft);
+}
+
+.gen-list .chip-btn {
+  align-self: center;
+  justify-self: start;
+}
+
+/* Menu badge. */
+.btn .badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 12px;
+  vertical-align: middle;
 }
 
 /* ---------- Results ---------- */
@@ -553,6 +695,45 @@
   margin: 8px 0 6px;
 }
 
+.unit-head > div {
+  flex: 1;
+}
+
+.unit-head .lv {
+  font-size: 15px;
+  padding: 3px 8px;
+}
+
+.unit-card.ready {
+  box-shadow: 0 0 0 3px rgba(217, 162, 27, 0.55);
+}
+
+.cards-line {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.cards-line .cost {
+  color: #8a6a12;
+}
+
+.bar.full i {
+  background: var(--gold);
+}
+
+.upgrade-preview {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.btn.upgrade {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .stat-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -591,6 +772,16 @@
 .gen-card p {
   margin: 4px 0;
   line-height: 1.35;
+}
+
+.warn {
+  color: #9a4b12;
+  font-weight: 600;
+}
+
+.good {
+  color: #2e6b2e;
+  font-weight: 600;
 }
 
 .gen-card .warn {

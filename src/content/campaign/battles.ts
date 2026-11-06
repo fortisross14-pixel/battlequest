@@ -4,8 +4,8 @@ const W = 6 as const;
 const SW = 5 as const;
 
 export const AGES: Age[] = [
-  { id: 0, name: 'Prologue', starterUnits: ['egyptianSpearmen', 'egyptianArchers'] },
-  { id: 1, name: 'Bronze & Iron', starterUnits: ['egyptianChariots', 'hittiteSpearmen'] },
+  { id: 0, name: 'Prologue', starterUnits: ['egyptianSpearmen', 'egyptianChariots'] },
+  { id: 1, name: 'Bronze & Iron', starterUnits: ['hittiteSpearmen'] },
   { id: 2, name: 'Greece & Persia', starterUnits: ['hoplites', 'peltasts'] },
 ];
 
@@ -63,12 +63,12 @@ const megiddo: CampaignBattle = {
   enemyGeneral: { id: 'kingOfKadesh', rank: 1 },
   posture: 'defensive',
   turnLimit: 10,
-  budget: 300,
   maxUnits: 2,
   fixedArmy: {
     units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
     general: { id: 'thutmose', rank: 1, unitIndex: 0 },
   },
+  firstWinUnlocks: { units: ['egyptianArchers'], generals: ['thutmose'] },
   testArmy: {
     units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
     general: { id: 'thutmose', rank: 1, unitIndex: 0 },
@@ -123,7 +123,6 @@ const kadesh: CampaignBattle = {
   posture: 'aggressive',
   turnLimit: 5,
   holdOut: 'player',
-  budget: 250,
   maxUnits: 3,
   testArmy: {
     units: [
@@ -186,7 +185,6 @@ const qarqar: CampaignBattle = {
   enemyGeneral: { id: 'shalmaneser', rank: 2 },
   posture: 'defensive',
   turnLimit: 12,
-  budget: 260,
   maxUnits: 3,
   testArmy: {
     units: [
@@ -262,7 +260,6 @@ const marathon: CampaignBattle = {
   posture: 'timed',
   attackTurn: 2,
   turnLimit: 12,
-  budget: 340,
   maxUnits: 4,
   testArmy: {
     units: [{ type: 'hoplites' }, { type: 'hoplites' }, { type: 'peltasts' }, { type: 'hoplites' }],
@@ -324,7 +321,6 @@ const thermopylae: CampaignBattle = {
   posture: 'aggressive',
   turnLimit: 10,
   holdOut: 'player',
-  budget: 360,
   maxUnits: 4,
   testArmy: {
     units: [{ type: 'hoplites' }, { type: 'hoplites' }, { type: 'hoplites' }, { type: 'hoplites' }],
@@ -397,7 +393,6 @@ const leuctra: CampaignBattle = {
   enemyGeneral: { id: 'cleombrotus', rank: 3 },
   posture: 'aggressive',
   turnLimit: 12,
-  budget: 440,
   maxUnits: 5,
   testArmy: {
     units: [

@@ -61,7 +61,8 @@ export class App implements AppApi {
     this.endBattleUi();
     this.screenHost.replaceChildren(screen);
     this.screenHost.classList.remove('hidden');
-    screen.querySelector<HTMLElement>('.screen-body, .menu')?.scrollTo?.(0, 0);
+    // The host is the element that scrolls (screens.css), so a new screen opens at the top.
+    this.screenHost.scrollTop = 0;
   }
 
   menu(): void {
@@ -179,7 +180,10 @@ export class App implements AppApi {
     const hud = this.enterBattleUi(state);
     const finish = (final: BattleState) => {
       const outcome = evaluate(b, final);
-      const rewards = applyOutcome(this.profile, b, outcome, army.general?.id ?? null);
+      const rewards = applyOutcome(this.profile, b, outcome, army.general?.id ?? null, {
+        seed,
+        fielded: army.units.map((u) => u.type),
+      });
       this.save();
       this.show(resultsScreen(this, b, outcome, rewards, () => this.briefing(b)));
     };

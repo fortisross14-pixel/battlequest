@@ -1,5 +1,6 @@
 /**
  * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]> [--seeds N] [--points P] [--out dir]
+ * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit level).
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -14,12 +15,18 @@ import {
   type DuelSetup,
 } from './sim';
 import { BATTLE_BY_ID, CAMPAIGN, finalBattleOfAge } from '../../src/content/campaign/battles';
+import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
+import { ERA_UNITS, ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
 
 const args = process.argv.slice(2);
 const mode = args[0];
 const opt = (name: string, def: number) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? Number(args[i + 1]) : def;
+};
+const optStr = (name: string, def: string) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 ? args[i + 1]! : def;
 };
 const outIdx = args.indexOf('--out');
 const outDir = outIdx >= 0 ? args[outIdx + 1]! : 'docs/balance';
@@ -197,42 +204,86 @@ function runCost(seeds: number[], points: number): string {
   return out.join('\n') + '\n';
 }
 
-function runScenario(id: string, seeds: number[]): string {
+interface ScenarioOptions {
+  /** 'test': the battle's test army. 'identical': the best army of N copies of one troop type. */
+  army: 'test' | 'identical';
+  level: number;
+}
+
+function playScenario(b: CampaignBattle, seeds: number[], army: ArmyChoice) {
+  let wins = 0;
+  let turns = 0;
+  let lost = 0;
+  for (const seed of seeds) {
+    const r = scenarioBattle(b, seed, army);
+    wins += r.won ? 1 : 0;
+    turns += r.turns;
+    lost += r.lostPct;
+  }
+  return { rate: wins / seeds.length, turns: turns / seeds.length, lost: lost / seeds.length };
+}
+
+/** Armies of N identical units, one per troop type a player could own by this battle's age. */
+function identicalArmies(b: CampaignBattle, level: number): ArmyChoice[] {
+  return ERA_UNITS.filter((u) => !u.enemyOnly && u.age <= Math.max(b.age, 0)).map((u) => ({
+    units: Array.from({ length: b.maxUnits }, () => ({ type: u.id, level })),
+    general: b.testArmy.general,
+  }));
+}
+
+function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string {
   const battles = id === 'all' ? CAMPAIGN : [BATTLE_BY_ID[id]!].filter(Boolean);
   const rows: string[][] = [];
   const outliers: string[] = [];
   for (const b of battles) {
-    let wins = 0;
-    let turns = 0;
-    let lost = 0;
-    for (const seed of seeds) {
-      const r = scenarioBattle(b, seed);
-      wins += r.won ? 1 : 0;
-      turns += r.turns;
-      lost += r.lostPct;
+    const candidates =
+      opts.army === 'identical'
+        ? identicalArmies(b, opts.level)
+        : [
+            {
+              ...b.testArmy,
+              units: b.testArmy.units.map((u) => ({ ...u, level: opts.level })),
+            },
+          ];
+    let best = { rate: -1, turns: 0, lost: 0 };
+    let bestArmy = candidates[0]!;
+    for (const army of candidates) {
+      const r = playScenario(b, seeds, army);
+      if (r.rate > best.rate) {
+        best = r;
+        bestArmy = army;
+      }
     }
-    const rate = wins / seeds.length;
+    const rate = best.rate;
     const final = finalBattleOfAge(b.age)?.id === b.id && b.age > 0;
     const band: [number, number] = b.tutorial ? [0.6, 1] : final ? [0.3, 0.5] : [0.6, 0.8];
     const ok = rate >= band[0] && rate <= band[1];
     const target = `${pct(band[0])}–${pct(band[1])}`;
     if (!ok) outliers.push(`- **${b.name}**: ${pct(rate)} (target ${target})`);
+    const armyText =
+      opts.army === 'identical'
+        ? `${b.maxUnits}× ${ERA_UNIT_BY_ID[bestArmy.units[0]!.type]?.name}`
+        : `${bestArmy.units.length} test units`;
     rows.push([
       b.name,
       String(b.age),
-      `${b.testArmy.units.length} v ${b.enemy.length}`,
+      `${armyText} v ${b.enemy.length}`,
       pct(rate),
       target,
       ok ? 'pass' : '**out**',
-      (turns / seeds.length).toFixed(1),
-      pct(lost / seeds.length),
+      best.turns.toFixed(1),
+      pct(best.lost),
     ]);
   }
+  const armyDesc =
+    opts.army === 'identical'
+      ? 'the best army of N identical units (every troop type a player could own by that age is tried; the best one is shown)'
+      : "the battle's test army";
   return (
     [
-      `# Balance: scenario (${today})`,
+      `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level})`,
       '',
-      `Each battle played ${seeds.length} times: the utility AI plays the player with the battle's test army (aggressive), and the enemy AI plays its scenario posture. Targets: early battles 60–80% player wins, age-final battles 30–50%.`,
+      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: early battles 60–80% player wins, age-final battles 30–50%.`,
       '',
       table(
         [
@@ -267,7 +318,10 @@ const started = Date.now();
 if (mode === 'duel') write('duel', runDuel(seedList(opt('seeds', 40))));
 else if (mode === 'scenario') {
   const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
-  write(`scenario-${id}`, runScenario(id, seedList(opt('seeds', 30))));
+  const army = optStr('army', 'test') === 'identical' ? 'identical' : 'test';
+  const level = opt('level', 1);
+  const suffix = army === 'test' && level === 1 ? '' : `-${army}-lv${level}`;
+  write(`scenario-${id}${suffix}`, runScenario(id, seedList(opt('seeds', 30)), { army, level }));
 } else if (mode === 'cost') write('cost', runCost(seedList(opt('seeds', 4)), opt('points', 600)));
 else {
   console.error(

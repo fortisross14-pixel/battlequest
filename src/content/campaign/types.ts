@@ -46,10 +46,15 @@ export interface CampaignBattle {
   turnLimit: number;
   /** 'player' = the player wins by holding out until the turn limit. */
   holdOut?: 'player';
-  budget: number;
+  /** Unit slots: the army must fill exactly this many (GAME_DESIGN 5). */
   maxUnits: number;
-  /** Tutorial / historical challenge: the army is fixed. */
+  /**
+   * Tutorial / historical challenge: the composition is fixed. Unit levels come from the
+   * player's roster; the general may be one the player doesn't own (for this battle only).
+   */
   fixedArmy?: ArmyChoice;
+  /** Granted the first time this battle is won. */
+  firstWinUnlocks?: { units?: string[]; generals?: string[] };
   bonus: BonusCondition;
   bonusText: string;
   /** Army used by tests and balance-sim to stand in for the player. */
@@ -67,6 +72,6 @@ export interface ArmyChoice {
 export interface Age {
   id: number;
   name: string;
-  /** Free units granted when the age unlocks (GAME_DESIGN 5). */
+  /** Prologue: the new player's troops. Later ages: free troops granted when the age unlocks. */
   starterUnits: string[];
 }

@@ -75,6 +75,25 @@ async function smallTargets(page) {
   );
 }
 
+/** A save from version 1 of the game, after winning Megiddo. */
+const V1_SAVE = {
+  version: 1,
+  coins: 400,
+  units: {
+    egyptianSpearmen: { level: 1, dupes: 2 },
+    egyptianArchers: { level: 1, dupes: 0 },
+    egyptianChariots: { level: 1, dupes: 1 },
+    hittiteSpearmen: { level: 1, dupes: 0 },
+  },
+  generals: { captain: { xp: 140, resting: false } },
+  battles: { megiddo: { stars: 2, wins: 1, plays: 1 } },
+  unlockedAge: 1,
+  generalPity: 0,
+  rng: 99,
+  dailyBought: null,
+  lastArmy: {},
+};
+
 const browser = await chromium.launch();
 const problems = [];
 for (const size of SIZES) {
@@ -180,7 +199,7 @@ for (const size of SIZES) {
   await page.getByRole('button', { name: 'Shop' }).tap();
   await page.waitForTimeout(300);
   await page
-    .getByRole('button', { name: /Buy · ● 150/ })
+    .getByRole('button', { name: /Buy · ● 120/ })
     .first()
     .tap();
   await page.waitForTimeout(900);
@@ -193,6 +212,48 @@ for (const size of SIZES) {
   await shot(page, size, '28-generals');
   const ms = await smallTargets(page);
   if (ms.length) problems.push(`${size.name} (screens): small buttons ${JSON.stringify(ms)}`);
+
+  // Army builder after Megiddo, loaded from an old v1 save (checks the migration too).
+  await page.evaluate((save) => {
+    localStorage.setItem('battlequest.profile.v1', JSON.stringify(save));
+  }, V1_SAVE);
+  await page.goto(`${base}/`);
+  await page.waitForFunction(() => window.__bq !== undefined);
+  await page.waitForTimeout(300);
+  await shot(page, size, '30-menu-old-save');
+  await page.getByRole('button', { name: /Continue: Kadesh/ }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '31-kadesh-briefing');
+  await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
+  await page.waitForTimeout(200);
+  await shot(page, size, '32-builder');
+  for (let i = 0; i < 3; i++) {
+    for (const b of await page.getByRole('button', { name: /^Remove one/ }).all()) {
+      if (await b.isEnabled()) await b.tap();
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: 'Add one Egyptian chariots' }).tap();
+  }
+  await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
+  await page.waitForTimeout(200);
+  await shot(page, size, '33-three-chariots');
+  if (!(await page.getByRole('button', { name: /Deploy/ }).isEnabled())) {
+    problems.push(`${size.name}: 3 chariots at Kadesh can't deploy`);
+  }
+  const bs = await smallTargets(page);
+  if (bs.length) problems.push(`${size.name} (builder): small buttons ${JSON.stringify(bs)}`);
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.getByRole('button', { name: /^Army/ }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '34-troops-upgrade');
+  await page
+    .getByRole('button', { name: /^Upgrade to Lv2/ })
+    .first()
+    .tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '35-after-upgrade');
   await ctx.close();
 }
 await browser.close();

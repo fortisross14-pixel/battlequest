@@ -2,7 +2,8 @@ import { PLAYER_SIDE } from '../content/campaign/build';
 import type { CampaignBattle } from '../content/campaign/types';
 import { isRouted, lostCost, armyCost } from '../core/state';
 import type { BattleState } from '../core/types';
-import { unlockAfterWin } from './campaign';
+import { drawTroop, giveTroop, type TroopCard } from './cards';
+import { grantFirstWinUnlocks, unlockAfterWin } from './campaign';
 import { rankForXp, type Profile } from './profile';
 
 export const REWARDS = {
@@ -16,6 +17,9 @@ export const REWARDS = {
   xpPerKill: 10,
   /** ★★ needs losses under this fraction of the army's cost. */
   lowLosses: 0.3,
+  /** Troop cards for a win (GAME_DESIGN 8). A loss gives none. */
+  cardsFirstWin: 2,
+  cardsReplayWin: 1,
 };
 
 export interface BattleOutcome {
@@ -73,6 +77,17 @@ export interface Rewards {
   newStars: number;
   unlockedAge: number | null;
   firstWin: boolean;
+  /** Troop cards earned. */
+  cards: TroopCard[];
+  /** Troops and generals the first win unlocked. */
+  unlocks: { units: string[]; generals: string[] };
+}
+
+export interface OutcomeContext {
+  /** The battle seed: reward cards are drawn from it, so the same battle gives the same cards. */
+  seed: number;
+  /** Troop types the player fielded. */
+  fielded?: string[];
 }
 
 /** Applies a finished battle to the profile and returns what was earned. */
@@ -81,6 +96,7 @@ export function applyOutcome(
   b: CampaignBattle,
   o: BattleOutcome,
   generalId: string | null,
+  ctx: OutcomeContext = { seed: 0 },
 ): Rewards {
   const rec = (p.battles[b.id] ??= { stars: 0, wins: 0, plays: 0 });
   const firstWin = o.won && rec.wins === 0;
@@ -96,6 +112,16 @@ export function applyOutcome(
   if (o.won) rec.wins += 1;
   rec.stars = Math.max(rec.stars, o.stars);
   p.coins += coins;
+
+  // First-win unlocks come before XP, so a general who joins after this battle earns it too.
+  const unlocks = firstWin ? grantFirstWinUnlocks(p, b) : { units: [], generals: [] };
+  const unlockedAge = o.won ? unlockAfterWin(p, b) : null;
+  const cards: TroopCard[] = [];
+  const n = !o.won ? 0 : firstWin ? REWARDS.cardsFirstWin : REWARDS.cardsReplayWin;
+  const rng = { rng: (ctx.seed ^ 0x5eed) >>> 0 };
+  for (let i = 0; i < n; i++) {
+    cards.push(giveTroop(p, drawTroop(p, rng, { fielded: ctx.fielded }).id));
+  }
 
   // Generals who rested this battle are available again; the one who fell rests next time.
   for (const g of Object.values(p.generals)) g.resting = false;
@@ -113,7 +139,6 @@ export function applyOutcome(
     rankAfter = rankForXp(g.xp);
     if (o.generalLost) g.resting = true;
   }
-  const unlockedAge = o.won ? unlockAfterWin(p, b) : null;
   return {
     coins,
     xp,
@@ -123,5 +148,7 @@ export function applyOutcome(
     newStars,
     unlockedAge,
     firstWin,
+    cards,
+    unlocks,
   };
 }

@@ -1,7 +1,7 @@
 import { playGreedyBattle } from '../../src/ai/greedy';
 import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
 import { buildScenario } from '../../src/content/campaign/build';
-import type { CampaignBattle } from '../../src/content/campaign/types';
+import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
 import { ARCHETYPES, unitType, type ArchetypeId } from '../../src/content/units';
 import {
   applyCommand,
@@ -123,8 +123,9 @@ export function costBattle(
 export function scenarioBattle(
   b: CampaignBattle,
   seed: number,
+  army: ArmyChoice = b.testArmy,
 ): { won: boolean; turns: number; lostPct: number } {
-  const session = new BattleSession(startBattle(buildScenario(b, b.testArmy, seed)));
+  const session = new BattleSession(startBattle(buildScenario(b, army, seed)));
   const ais = {
     // A sensible player holds when the objective is to hold out.
     blue: new AiPlayer('blue', {

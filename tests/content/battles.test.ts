@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
 import { AGES, CAMPAIGN } from '../../src/content/campaign/battles';
-import { armyCost, buildScenario, deploymentSquares } from '../../src/content/campaign/build';
+import { buildScenario, deploymentSquares } from '../../src/content/campaign/build';
 import { ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
 import { GENERAL_BY_ID } from '../../src/content/generals';
 import {
@@ -93,10 +93,9 @@ describe.each(CAMPAIGN)('battle $id', (b) => {
     for (const e of b.enemy) expect(reachable(b, start, e)).toBe(true);
   });
 
-  it('the test and fixed armies fit the budget and unit limit', () => {
+  it('the test and fixed armies fill exactly the unit slots', () => {
     for (const army of [b.testArmy, b.fixedArmy].filter(Boolean)) {
-      expect(army!.units.length).toBeLessThanOrEqual(b.maxUnits);
-      expect(armyCost(army!)).toBeLessThanOrEqual(b.budget);
+      expect(army!.units).toHaveLength(b.maxUnits);
     }
   });
 

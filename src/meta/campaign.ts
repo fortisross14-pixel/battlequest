@@ -1,6 +1,6 @@
 import { AGES, CAMPAIGN, battlesOfAge, finalBattleOfAge } from '../content/campaign/battles';
 import type { CampaignBattle } from '../content/campaign/types';
-import { addUnitCard, type Profile } from './profile';
+import { addGeneral, addUnitCard, type Profile } from './profile';
 
 /** A battle is open if its age is unlocked and the previous battle of that age is won. */
 export function isBattleUnlocked(p: Profile, b: CampaignBattle): boolean {
@@ -24,4 +24,16 @@ export function unlockAfterWin(p: Profile, b: CampaignBattle): number | null {
   p.unlockedAge = next.id;
   for (const id of next.starterUnits) if (!p.units[id]) addUnitCard(p, id);
   return next.id;
+}
+
+/** Grants a battle's first-win troops and generals that the player doesn't have yet. */
+export function grantFirstWinUnlocks(
+  p: Profile,
+  b: CampaignBattle,
+): { units: string[]; generals: string[] } {
+  const units = (b.firstWinUnlocks?.units ?? []).filter((id) => !p.units[id]);
+  const generals = (b.firstWinUnlocks?.generals ?? []).filter((id) => !p.generals[id]);
+  for (const id of units) addUnitCard(p, id);
+  for (const id of generals) addGeneral(p, id);
+  return { units, generals };
 }

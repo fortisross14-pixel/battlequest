@@ -22,6 +22,15 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Shop: Recruit / Veteran / General packs (pity), daily offer
 - [x] Screens: menu, campaign, briefing + army builder, deployment, battle vs AI with speed control, results, shop, army (troops, generals)
 
+## Review 1 fixes (docs/reviews/2026-11-06-review-1.md)
+- [x] WP1 — Army choice, troop cards and upgrades: profile v2 + migration, upgrade with cards and coins, reward cards, slot-based army builder, general picker, Army screen upgrades
+- [ ] WP2 — Enemy AI that fights as an army
+- [ ] WP4 — Rule bugs and movement feel
+- [ ] WP3 — Unit graphics and icons (icon sheet needs owner approval)
+- [ ] WP6 — Battle readability
+- [ ] WP5 — Balance and campaign difficulty
+- [ ] WP7 — Code health (screens.ts split done in WP1)
+
 ## Next
 - [ ] Human playtest of the six battles; retune with `balance-sim scenario` (current stand-in results are mostly too easy)
 - [ ] Re-run `balance-sim cost` with the AI and retune unit costs

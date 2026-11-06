@@ -22,26 +22,22 @@ const win = (stars: number, extra: Partial<BattleOutcome> = {}): BattleOutcome =
 });
 
 describe('profile', () => {
-  it('starts with the Prologue starter units, a Captain and some coins', () => {
+  it('starts with the two Megiddo troops, the Captain and the Centurion, and 300 coins', () => {
     const p = newProfile();
-    expect(Object.keys(p.units).sort()).toEqual(['egyptianArchers', 'egyptianSpearmen']);
-    expect(Object.keys(p.generals)).toEqual(['captain']);
+    expect(Object.keys(p.units).sort()).toEqual(['egyptianChariots', 'egyptianSpearmen']);
+    expect(p.units.egyptianSpearmen).toEqual({ level: 1, cards: 0 });
+    expect(Object.keys(p.generals).sort()).toEqual(['captain', 'centurion']);
     expect(p.coins).toBe(300);
     expect(p.unlockedAge).toBe(0);
+    expect(p.version).toBe(2);
   });
 
-  it('duplicates raise unit levels: Lv2 needs 1, Lv3 2, Lv4 4, Lv5 8', () => {
+  it('extra cards are kept as spares and never level a unit up', () => {
     const p = newProfile();
-    const levels: number[] = [];
-    for (let i = 0; i < 1 + 2 + 4 + 8 + 3; i++) {
-      addUnitCard(p, 'egyptianSpearmen');
-      levels.push(p.units.egyptianSpearmen!.level);
-    }
-    expect(levels[0]).toBe(2);
-    expect(levels[2]).toBe(3);
-    expect(levels[6]).toBe(4);
-    expect(levels[14]).toBe(5);
-    expect(levels.at(-1)).toBe(5);
+    for (let i = 0; i < 20; i++) addUnitCard(p, 'egyptianSpearmen');
+    expect(p.units.egyptianSpearmen).toEqual({ level: 1, cards: 20 });
+    expect(addUnitCard(p, 'egyptianArchers', 3)).toEqual({ isNew: true, spare: 2, coins: 0 });
+    expect(p.units.egyptianArchers).toEqual({ level: 1, cards: 2 });
   });
 
   it('a duplicate general becomes a 500 XP medal', () => {
@@ -65,7 +61,12 @@ describe('campaign progress and rewards', () => {
     expect(isBattleUnlocked(p, BATTLE_BY_ID.kadesh!)).toBe(false);
     const r = applyOutcome(p, megiddo, win(3), 'thutmose');
     expect(r.unlockedAge).toBe(1);
-    expect(p.units.egyptianChariots).toBeDefined();
+    expect(r.unlocks).toEqual({ units: ['egyptianArchers'], generals: ['thutmose'] });
+    expect(p.units.egyptianArchers).toBeDefined();
+    expect(p.generals.thutmose).toBeDefined();
+    // Age 1 starter troops no longer re-grant the chariots the player already has.
+    expect(p.units.hittiteSpearmen).toBeDefined();
+    expect(r.cards).toHaveLength(2);
     expect(isBattleUnlocked(p, BATTLE_BY_ID.kadesh!)).toBe(true);
     expect(isBattleUnlocked(p, BATTLE_BY_ID.qarqar!)).toBe(false);
     expect(nextBattle(p)?.id).toBe('kadesh');
@@ -116,10 +117,12 @@ describe('campaign progress and rewards', () => {
 });
 
 describe('shop', () => {
-  it('packs cost coins and give cards from unlocked ages only', () => {
+  it('packs cost coins and give cards from unlocked ages only, never enemy-only troops', () => {
     const p = newProfile(1);
     const cards = buyPack(p, 'recruit')!;
-    expect(cards).toHaveLength(3);
+    expect(cards).toHaveLength(4);
+    expect(SHOP.recruitPrice).toBe(120);
+    for (const c of cards) expect(ERA_UNIT_BY_ID[c.id]!.enemyOnly).toBeUndefined();
     expect(p.coins).toBe(300 - SHOP.recruitPrice);
     for (const c of cards) expect(ERA_UNIT_BY_ID[c.id]!.age).toBeLessThanOrEqual(0);
     p.coins = 0;
@@ -159,7 +162,8 @@ describe('shop', () => {
     p.coins = 2000;
     const o = dailyOffer(p, '2026-11-06');
     expect(dailyOffer(p, '2026-11-06').unit.id).toBe(o.unit.id);
-    expect(buyDaily(p, '2026-11-06')).not.toBeNull();
+    const bought = buyDaily(p, '2026-11-06');
+    expect(bought).toMatchObject({ kind: 'unit', id: o.unit.id, count: 3 });
     expect(buyDaily(p, '2026-11-06')).toBeNull();
     expect(dailyOffer(p, '2026-11-06').bought).toBe(true);
   });

@@ -15,6 +15,8 @@ export interface EraUnitDef {
   flavor: string;
   mods?: Partial<Record<keyof UnitStats, -1 | 1>>;
   extraTag?: UnitTag;
+  /** Only enemy armies field it: never in packs, rewards or the Army screen. */
+  enemyOnly?: true;
 }
 
 /** Extra points per age, so anachronistic armies cost more. */
@@ -55,6 +57,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     archetype: 'heavySwordsmen',
     rarity: 'common',
     flavor: 'City militia with sickle-swords and bronze helmets.',
+    enemyOnly: true,
     mods: { armor: -1, morale: -1 },
   },
   {
@@ -64,6 +67,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     archetype: 'chariots',
     rarity: 'rare',
     flavor: 'The pride of the city kings.',
+    enemyOnly: true,
   },
   // Age 1 – Bronze & Iron.
   {
