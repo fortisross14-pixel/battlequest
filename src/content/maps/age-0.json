@@ -1,0 +1,36 @@
+{
+  "width": 1200,
+  "height": 806,
+  "battles": {
+    "megiddo": [651.3, 450.5],
+    "kadesh": [751.4, 273]
+  },
+  "cities": [
+    {
+      "name": "Memphis",
+      "at": [356.3, 690.4]
+    },
+    {
+      "name": "Damascus",
+      "at": [734.2, 367.7]
+    },
+    {
+      "name": "Ugarit",
+      "at": [696.7, 177.4]
+    }
+  ],
+  "rivers": [
+    {
+      "name": "Jordan",
+      "at": [693.8, 475.8]
+    },
+    {
+      "name": "Orontes",
+      "at": [765, 214.2]
+    },
+    {
+      "name": "Euphrates",
+      "at": [1057.5, 241.7]
+    }
+  ]
+}

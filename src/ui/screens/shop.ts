@@ -87,5 +87,5 @@ export function shopScreen(app: AppApi, revealed: PackCard[] | null = null): HTM
         ),
       )
     : el('span', {});
-  return shell(app, 'Shop', () => app.menu(), reveal, packs);
+  return shell(app, 'Shop', () => app.back(), reveal, packs);
 }

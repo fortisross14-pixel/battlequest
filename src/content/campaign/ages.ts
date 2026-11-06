@@ -16,7 +16,7 @@ export const AGES: Age[] = [
     years: '1500–1250 BC',
     from: -1500,
     to: -1250,
-    region: { west: 28.5, east: 40.5, south: 27, north: 37.5 },
+    region: { west: 26.5, east: 42.5, south: 28.5, north: 37.5 },
     emblem: 'chariot',
     battles: ['megiddo', 'kadesh'],
     starThresholds: DEFAULT_STAR_THRESHOLDS,
@@ -29,7 +29,7 @@ export const AGES: Age[] = [
     years: '860–320 BC',
     from: -860,
     to: -320,
-    region: { west: 19, east: 77, south: 24, north: 45 },
+    region: { west: 12, east: 78, south: 20, north: 48 },
     emblem: 'laurel',
     // Plataea, Chaeronea, Granicus, Issus, Gaugamela and Hydaspes join in Phase D.
     battles: ['qarqar', 'marathon', 'thermopylae', 'leuctra'],

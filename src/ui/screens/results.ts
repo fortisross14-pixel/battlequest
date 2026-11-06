@@ -2,7 +2,7 @@ import { AGES } from '../../content/campaign/battles';
 import type { CampaignBattle } from '../../content/campaign/types';
 import { ERA_UNIT_BY_ID } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
-import { nextBattle } from '../../meta/campaign';
+import type { Unlocks } from '../../meta/campaign';
 import { anyUpgradeAvailable } from '../../meta/profile';
 import type { BattleOutcome, Rewards } from '../../meta/rewards';
 import { el } from '../hud';
@@ -52,9 +52,9 @@ export function resultsScreen(
   o: BattleOutcome,
   r: Rewards,
   summary: BattleSummary | null,
+  unlocks: Unlocks,
   retry: () => void,
 ): HTMLElement {
-  const next = nextBattle(app.profile);
   const g = r.generalId ? GENERAL_BY_ID[r.generalId] : undefined;
   const lines = [
     `Coins: +${r.coins}${r.firstWin ? ' (first victory)' : o.won ? ' (replay)' : ''}`,
@@ -94,10 +94,14 @@ export function resultsScreen(
       'div',
       { class: 'row center' },
       button('Retry', retry),
-      button('Campaign', () => app.campaign()),
-      next && next.id !== b.id
-        ? button(`Next: ${next.name} ›`, () => app.briefing(next), 'btn primary')
-        : button('Menu', () => app.menu(), 'btn primary'),
+      // Back to the age map, where newly opened battles fade in.
+      button(
+        unlocks.battles.length || unlocks.ages.length
+          ? 'Continue: new battles open ›'
+          : 'Continue ›',
+        () => app.afterBattle(b, unlocks),
+        'btn primary',
+      ),
     ),
   );
   return shell(app, b.name, null, box);

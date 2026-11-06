@@ -7,6 +7,8 @@ import { samePos } from '../core/geometry';
 import { BattleSession } from '../core/session';
 import { unitAt } from '../core/state';
 import type { BattleState, Pos } from '../core/types';
+import { newlyUnlocked, type Unlocks } from '../meta/campaign';
+import { cloneProfile } from '../meta/profile';
 import { applyOutcome, bonusStatus, evaluate, objectiveText } from '../meta/rewards';
 import { newProfile, type Profile } from '../meta/profile';
 import type { SaveStore } from '../meta/saveStore';
@@ -17,7 +19,8 @@ import { el, Hud } from './hud';
 import type { GestureHandlers } from './input';
 import {
   briefingScreen,
-  campaignScreen,
+  ageMapScreen,
+  timelineScreen,
   menuScreen,
   resultsScreen,
   rosterScreen,
@@ -38,6 +41,11 @@ export class App implements AppApi {
   private gestures: Partial<GestureHandlers> = {};
   /** The battle being played, so leaving it stops its AI and animations. */
   private controller: Controller | null = null;
+  /**
+   * Screen stack (menu → timeline → age map → briefing …). Each entry re-renders its
+   * screen, so Back always shows fresh progress.
+   */
+  private stack: { key: string; render: () => HTMLElement }[] = [];
 
   constructor(
     private store: SaveStore,
@@ -67,24 +75,53 @@ export class App implements AppApi {
     this.screenHost.scrollTop = 0;
   }
 
+  /** Pushes a screen (or replaces the top one if it is the same screen) and shows it. */
+  private go(key: string, render: () => HTMLElement, first?: HTMLElement): void {
+    const top = this.stack.at(-1);
+    if (top?.key === key) this.stack[this.stack.length - 1] = { key, render };
+    else this.stack.push({ key, render });
+    this.show(first ?? render());
+  }
+
+  back(): void {
+    if (this.stack.length > 1) this.stack.pop();
+    const top = this.stack.at(-1);
+    if (top) this.show(top.render());
+    else this.menu();
+  }
+
   menu(): void {
+    this.stack = [{ key: 'menu', render: () => menuScreen(this) }];
     this.show(menuScreen(this));
   }
 
   campaign(): void {
-    this.show(campaignScreen(this));
+    this.go('timeline', () => timelineScreen(this));
+  }
+
+  ageMap(ageId: number, unlocks?: Unlocks): void {
+    const render = () => ageMapScreen(this, ageId);
+    this.go(`age-${ageId}`, render, ageMapScreen(this, ageId, unlocks));
+  }
+
+  afterBattle(b: CampaignBattle, unlocks: Unlocks): void {
+    this.stack = [
+      { key: 'menu', render: () => menuScreen(this) },
+      { key: 'timeline', render: () => timelineScreen(this) },
+    ];
+    this.ageMap(b.age, unlocks);
   }
 
   briefing(b: CampaignBattle): void {
-    this.show(briefingScreen(this, b));
+    this.go(`briefing-${b.id}`, () => briefingScreen(this, b));
   }
 
   shop(): void {
-    this.show(shopScreen(this));
+    this.go('shop', () => shopScreen(this));
   }
 
   roster(tab: 'troops' | 'generals' = 'troops'): void {
-    this.show(rosterScreen(this, tab));
+    this.go('roster', () => rosterScreen(this, tab));
   }
 
   reset(): void {
@@ -152,7 +189,7 @@ export class App implements AppApi {
     hud.nextBtn.classList.add('hidden');
     hud.endBtn.textContent = 'Start battle';
     hud.setButtons({ undo: false, next: false, end: true, menu: true });
-    hud.menuBtn.onclick = () => this.briefing(b);
+    hud.menuBtn.onclick = () => this.back();
     hud.endBtn.onclick = () => this.fight(b, army, placement, seed);
     highlight();
     this.gestures.tap = (x, y) => {
@@ -208,12 +245,14 @@ export class App implements AppApi {
       finished = true;
       controller.dispose();
       const outcome = evaluate(b, final);
+      const before = cloneProfile(this.profile);
       const rewards = applyOutcome(this.profile, b, outcome, army.general?.id ?? null, {
         seed,
         fielded: army.units.map((u) => u.type),
       });
       this.save();
-      this.show(resultsScreen(this, b, outcome, rewards, summary, () => this.briefing(b)));
+      const unlocks = newlyUnlocked(before, this.profile);
+      this.show(resultsScreen(this, b, outcome, rewards, summary, unlocks, () => this.briefing(b)));
     };
     const controller = new Controller(session, this.view, hud, {
       title: b.name,

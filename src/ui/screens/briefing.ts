@@ -255,7 +255,7 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
   return shell(
     app,
     b.name,
-    () => app.campaign(),
+    () => app.back(),
     el('div', { class: 'two-col' }, infoSection(b, enemyPower), builder),
   );
 }

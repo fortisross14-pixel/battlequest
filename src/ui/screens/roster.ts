@@ -144,5 +144,5 @@ export function rosterScreen(app: AppApi, tab: 'troops' | 'generals'): HTMLEleme
     tab === 'troops'
       ? el('div', { class: 'mini-grid wide' }, ...troops.map((def) => troopCard(app, def)))
       : el('div', { class: 'mini-grid wide' }, ...generalCards(p));
-  return shell(app, 'Army', () => app.menu(), tabs, body);
+  return shell(app, 'Army', () => app.back(), tabs, body);
 }

@@ -1,0 +1,98 @@
+{
+  "width": 1200,
+  "height": 626,
+  "battles": {
+    "qarqar": [442.4, 299.7],
+    "marathon": [217.8, 246.8],
+    "thermopylae": [191.6, 231],
+    "leuctra": [203.3, 243.6]
+  },
+  "cities": [
+    {
+      "name": "Memphis",
+      "at": [350, 428.3]
+    },
+    {
+      "name": "Thebes",
+      "at": [375.3, 513.7]
+    },
+    {
+      "name": "Damascus",
+      "at": [441.6, 350.1]
+    },
+    {
+      "name": "Ugarit",
+      "at": [432.5, 304]
+    },
+    {
+      "name": "Athens",
+      "at": [213.3, 249.9]
+    },
+    {
+      "name": "Sparta",
+      "at": [189.6, 270.8]
+    },
+    {
+      "name": "Pella",
+      "at": [191.3, 184.5]
+    },
+    {
+      "name": "Sardis",
+      "at": [291.6, 238.1]
+    },
+    {
+      "name": "Babylon",
+      "at": [589.5, 371.2]
+    },
+    {
+      "name": "Nineveh",
+      "at": [566.4, 286.9]
+    },
+    {
+      "name": "Susa",
+      "at": [659.3, 378.7]
+    },
+    {
+      "name": "Persepolis",
+      "at": [743.5, 426.7]
+    },
+    {
+      "name": "Taxila",
+      "at": [1105.5, 344.9]
+    }
+  ],
+  "rivers": [
+    {
+      "name": "Nile",
+      "at": [345.5, 481.1]
+    },
+    {
+      "name": "Jordan",
+      "at": [431.8, 376.3]
+    },
+    {
+      "name": "Orontes",
+      "at": [449.1, 312.9]
+    },
+    {
+      "name": "Euphrates",
+      "at": [520, 319.6]
+    },
+    {
+      "name": "Tigris",
+      "at": [574.5, 308.4]
+    },
+    {
+      "name": "Halys",
+      "at": [410.9, 205.1]
+    },
+    {
+      "name": "Indus",
+      "at": [1050.9, 454.4]
+    },
+    {
+      "name": "Hydaspes",
+      "at": [1107.3, 348.2]
+    }
+  ]
+}

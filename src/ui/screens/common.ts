@@ -1,5 +1,6 @@
 import type { ArmyChoice, CampaignBattle } from '../../content/campaign/types';
 import type { Rarity } from '../../core/generals';
+import type { Unlocks } from '../../meta/campaign';
 import type { Profile } from '../../meta/profile';
 import { el } from '../hud';
 
@@ -8,8 +9,15 @@ export interface AppApi {
   profile: Profile;
   save(): void;
   show(screen: HTMLElement): void;
+  /** Back to the previous screen on the stack. */
+  back(): void;
   menu(): void;
+  /** The campaign timeline. */
   campaign(): void;
+  /** One age's map; `unlocks` fades in what a result just opened. */
+  ageMap(ageId: number, unlocks?: Unlocks): void;
+  /** After a battle: back to its age map, with the new unlocks. */
+  afterBattle(b: CampaignBattle, unlocks: Unlocks): void;
   briefing(b: CampaignBattle): void;
   deploy(b: CampaignBattle, army: ArmyChoice): void;
   shop(): void;

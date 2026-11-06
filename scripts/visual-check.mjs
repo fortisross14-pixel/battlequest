@@ -263,9 +263,13 @@ for (const size of SIZES) {
   await page.getByRole('button', { name: 'Leave', exact: true }).tap();
   await page.waitForTimeout(1200);
   await shot(page, size, '24-results');
-  await page.getByRole('button', { name: 'Campaign' }).tap();
-  await page.waitForTimeout(300);
-  await shot(page, size, '25-campaign');
+  // Results continue to the age map; Back goes to the timeline, then the menu.
+  await page.getByRole('button', { name: /^Continue/ }).tap();
+  await page.waitForTimeout(700);
+  await shot(page, size, '25-age-map');
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '25b-timeline');
   await page.getByRole('button', { name: /Back/ }).tap();
   await page.getByRole('button', { name: 'Shop' }).tap();
   await page.waitForTimeout(300);
@@ -323,7 +327,7 @@ for (const size of SIZES) {
   }
   const bs = await smallTargets(page);
   if (bs.length) problems.push(`${size.name} (builder): small buttons ${JSON.stringify(bs)}`);
-  await page.getByRole('button', { name: /Back/ }).tap();
+  // The briefing was opened from the menu: one Back returns there.
   await page.getByRole('button', { name: /Back/ }).tap();
   await page.getByRole('button', { name: /^Army/ }).tap();
   await page.waitForTimeout(300);

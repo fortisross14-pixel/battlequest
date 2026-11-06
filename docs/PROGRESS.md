@@ -41,7 +41,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 
 ## Campaign timeline (docs/prompts/04-campaign-timeline.md)
 - [x] Phase A — ages data (10 ages, 2 playable), star-gated unlocks, age unlocks on all wins, newlyUnlocked, profile v3 migration, tests
-- [ ] Phase B — timeline and age map screens, build-time maps, screen stack
+- [x] Phase B — timeline and age map screens, build-time Natural Earth maps, screen stack, results return to the age map
 - [ ] Phase C — Age 0 tutorial battles (Megiddo, Kadesh) with data-driven tutorial scripts
 - [ ] Phase D — Antiquity: 10 battles, new troops, generals and rules
 
