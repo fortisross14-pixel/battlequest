@@ -471,19 +471,47 @@ for (const size of SIZES) {
   await page.locator('.picker').getByRole('button', { name: 'Close' }).tap();
 
   // New Antiquity battlefields: scythed chariots at Gaugamela, elephants at Hydaspes.
-  for (const id of ['gaugamela', 'hydaspes']) {
+  // Classical Empires: every Antiquity main battle won opens it; some battles starred.
+  await page.evaluate(async () => {
+    const app = window.__bq.app;
+    const ages = await import('/src/content/campaign/ages.ts');
+    const won = (stars) => ({ stars, wins: 1, plays: 1 });
+    for (const id of ages.AGES[1].battles) app.profile.battles[id] ??= won(2);
+    Object.assign(app.profile.battles, { heraclea: won(3), trebia: won(2), bagradas: won(1) });
+    const mod = await import('/src/meta/campaign.ts');
+    mod.syncAgeUnlocks(app.profile);
+    app.save();
+    app.campaign();
+  });
+  await page.waitForTimeout(600);
+  await shot(page, size, '44-timeline-classical');
+  await page.getByRole('button', { name: /^Classical Empires/ }).tap();
+  await page.waitForTimeout(800);
+  await shot(page, size, '44b-classical-map');
+  const cs2 = await smallTargets(page);
+  if (cs2.length)
+    problems.push(`${size.name} (classical map): small buttons ${JSON.stringify(cs2)}`);
+
+  // New battlefields: Gaugamela, Hydaspes, Lake Trasimene and the Teutoburg Forest.
+  for (const id of ['gaugamela', 'hydaspes', 'lakeTrasimene', 'teutoburgForest']) {
     await page.evaluate(async (battleId) => {
       const mod = await import('/src/content/campaign/battles.ts');
       const b = mod.BATTLE_BY_ID[battleId];
+      window.__bq.app.menu();
       window.__bq.app.deploy(b, b.testArmy);
     }, id);
-    await page.waitForTimeout(500);
-    await page.getByRole('button', { name: 'Start battle' }).tap();
+    await page.waitForTimeout(800);
+    const start = page.getByRole('button', { name: 'Start battle' });
+    if (!(await start.isVisible())) {
+      await shot(page, size, `40-${id}-no-start`);
+      problems.push(`${size.name}: ${id} did not reach deployment`);
+      continue;
+    }
+    await start.evaluate((el) => el.click());
     await page.waitForTimeout(600);
     await shot(page, size, `40-${id}`);
-    await page.getByRole('button', { name: 'Leave battle' }).tap();
-    await page.getByRole('button', { name: 'Leave', exact: true }).tap();
-    await page.waitForTimeout(1200);
+    await page.evaluate(() => window.__bq.app.menu());
+    await page.waitForTimeout(600);
   }
   await ctx.close();
 }

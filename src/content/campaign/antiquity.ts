@@ -1,31 +1,35 @@
 import type { CampaignBattle } from './types';
 
-/**
- * Age 1, Antiquity (GAME_DESIGN 7.5): ten battles from Qarqar to Hydaspes, in historical
- * order. Each test army is what a player is likely to own by then: the Antiquity starters
- * (hoplites, peltasts), the Age 0 troops and the first-win unlocks of the earlier battles,
- * with a few upgrades later on.
+/*
+ * Age 1, Antiquity (GAME_DESIGN 7.5), generated from the history brief
+ * docs/history/age-01-antiquity.md: names, dates, coordinates, commanders, enemy
+ * cards and sources as written. Each briefing is the brief's account of what happened plus
+ * its tactical problem. Maps, unit placement, unit counts and levels are tuned with
+ * balance-sim (DECISIONS, Ages 0–2 C). The player is the historical victor, except where
+ * the brief frames an underdog defence.
  */
 
 const W = 6 as const;
+const E = 2 as const;
+void W;
+void E;
 
 /*
- * Qarqar, 853 BC (research):
- * - Shalmaneser III of Assyria marched west into Syria.
- * - Near Qarqar on the Orontes he met a coalition led by Hadadezer of Damascus and Irhuleni
- *   of Hamath, with Ahab of Israel among the allies (Kurkh Monolith).
- * - Assyria claimed victory, but its advance stopped for several years.
+ * Qarqar, 853 BC (Tell Qarqur area, Syria). lineAndFlank.
+ * Decisive factor: Break one coalition wing before its chariots turn the flank.
+ * Sources: A. K. Grayson, Assyrian Rulers of the Early First Millennium BC II, RIMA 3 (1996). Hadi Ghantous, The Politics of God in Ancient Syria-Palestine (2013).
  */
 const qarqar: CampaignBattle = {
   id: 'qarqar',
   name: 'Qarqar',
   year: '853 BC',
   age: 1,
-  lat: 35.79,
-  lon: 36.33,
-  problem: 'Close with the Assyrian archers before their volleys break your line.',
+  lat: 35.59,
+  lon: 36.39,
+  challengeType: 'lineAndFlank',
+  problem: 'Break one coalition wing before its chariots turn the flank.',
   briefing:
-    'The kings of Syria and Israel have joined forces to stop Shalmaneser III by the Orontes. The Assyrian army is the most professional of its age, its archers sheltered behind spearmen and shields. Every turn spent at a distance favours them: close in fast, and use your chariots against the archers’ open flank.',
+    'Shalmaneser claimed victory over a coalition that nonetheless survived. Break one coalition wing before its chariots turn the flank. The coalition horse waits on the southern wing: break one end of their line before it can swing round.',
   terrain: [
     '~~~~~~~=~~~~~~~~',
     '................',
@@ -47,45 +51,46 @@ const qarqar: CampaignBattle = {
     '.DDDD...........',
     '.DDDD...........',
     '.DDDD...........',
-    '................',
+    '.DDDD...........',
     '................',
   ],
   enemy: [
-    { type: 'antiquitySpearmen', x: 11, y: 4, facing: W },
-    { type: 'persianShieldArchers', x: 12, y: 4, facing: W, general: true },
-    { type: 'persianShieldArchers', x: 12, y: 5, facing: W },
+    { type: 'antiquitySpearmen', level: 1, x: 11, y: 4, facing: W, general: true },
+    { type: 'antiquityArchers', level: 1, x: 12, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 1, x: 11, y: 7, facing: W },
   ],
-  enemyGeneral: { id: 'shalmaneserIII', rank: 2 },
+  enemyGeneral: { id: 'hadadezer', rank: 3 },
   posture: 'defensive',
   turnLimit: 12,
-  enemyBreakpoint: 0.55,
   maxUnits: 3,
-  // A player fresh from Age 0: the Antiquity starters and Egyptian chariots.
   testArmy: {
-    units: [{ type: 'hoplitePhalanx' }, { type: 'hoplitePhalanx' }, { type: 'bronzeAgeChariots' }],
-    general: { id: 'antiquityCaptain', rank: 1 },
+    units: [
+      { type: 'thebanSacredBand', level: 1 },
+      { type: 'spartanHoplites', level: 1 },
+      { type: 'antiquityArchers', level: 1 },
+    ],
+    general: { id: 'antiquityScout', rank: 1 },
   },
-  bonus: { kind: 'noUnitLost' },
-  bonusText: 'Lose no unit (none routed or destroyed).',
+  bonus: { kind: 'winByTurn', turn: 8 },
+  bonusText: 'Win by turn 8.',
 };
 
 /*
- * Marathon, 490 BC (research):
- * - A Persian force under Datis and Artaphernes landed on the plain of Marathon.
- * - About 10,000 Athenians and Plataeans faced them; Miltiades thinned the centre and
- *   strengthened the wings.
- * - The Greek wings won, then turned on the Persian centre; the Persians fled to their ships.
+ * Marathon, 490 BC (Marathon plain, Greece). lineAndFlank.
+ * Decisive factor: Delay in the centre while both wings close the trap.
+ * Sources: Herodotus, Histories 6.102–117. Peter Krentz, The Battle of Marathon (2010).
  */
 const marathon: CampaignBattle = {
   id: 'marathon',
   name: 'Marathon',
   year: '490 BC',
   age: 1,
-  lat: 38.118,
-  lon: 23.978,
-  problem: 'Win on the wings while a thin centre holds, then close the trap.',
+  lat: 38.15,
+  lon: 23.97,
+  challengeType: 'lineAndFlank',
+  problem: 'Delay in the centre while both wings close the trap.',
   briefing:
-    'The Persians have landed at Marathon, a day’s march from Athens. Miltiades has stretched the Greek line to match theirs: thin in the middle, strong on the wings. The Persian centre is their best infantry — let it push, beat their flanks, and turn in on it.',
+    'Greek wings defeated the Persian wings and closed on the centre. Delay in the centre while both wings close the trap. Hold the Persians in the centre with one unit while your wings close in from both sides.',
   terrain: [
     ',,,,............',
     ',,..............',
@@ -123,48 +128,43 @@ const marathon: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'persianShieldArchers', x: 11, y: 2, facing: W, level: 3 },
-    { type: 'persianShieldArchers', x: 11, y: 4, facing: W, general: true, level: 2 },
-    { type: 'persianShieldArchers', x: 11, y: 6, facing: W, level: 3 },
-    { type: 'antiquityLightCavalry', x: 13, y: 8, facing: W, level: 3 },
-    { type: 'persianShieldArchers', x: 12, y: 5, facing: W, level: 3 },
+    { type: 'persianShieldArchers', level: 1, x: 11, y: 3, facing: W },
+    { type: 'persianShieldArchers', level: 1, x: 11, y: 5, facing: W, general: true },
+    { type: 'antiquityLightCavalry', level: 1, x: 12, y: 7, facing: W },
   ],
   enemyGeneral: { id: 'datis', rank: 3 },
   posture: 'timed',
-  attackTurn: 2,
+  attackTurn: 3,
   turnLimit: 12,
-  enemyBreakpoint: 0.67,
-  maxUnits: 4,
+  maxUnits: 3,
   testArmy: {
     units: [
-      { type: 'hoplitePhalanx' },
-      { type: 'hoplitePhalanx' },
-      { type: 'antiquitySkirmishers' },
-      { type: 'hoplitePhalanx' },
+      { type: 'thebanSacredBand', level: 2 },
+      { type: 'macedonianPhalanx', level: 2 },
+      { type: 'antiquitySpearmen', level: 2 },
     ],
-    general: { id: 'antiquityCaptain', rank: 1 },
+    general: { id: 'leonidas', rank: 1 },
   },
   bonus: { kind: 'winByTurn', turn: 9 },
   bonusText: 'Win by turn 9.',
 };
 
 /*
- * Thermopylae, 480 BC (research):
- * - Leonidas of Sparta held the narrow coastal pass of Thermopylae with a few thousand Greeks,
- *   including 300 Spartans, against the army of Xerxes.
- * - The pass ran between the mountains and the sea; the Greeks rebuilt the old Phocian wall.
- * - They held for days until Persians were guided over a mountain path behind them.
+ * Thermopylae, 480 BC (Thermopylae, Greece). desperateDefence.
+ * Decisive factor: Hold the pass until the rear route decides the fight.
+ * Sources: Herodotus, Histories 7.201–239. J. F. Lazenby, The Defence of Greece (1993).
  */
 const thermopylae: CampaignBattle = {
   id: 'thermopylae',
   name: 'Thermopylae',
   year: '480 BC',
   age: 1,
-  lat: 38.796,
-  lon: 22.536,
-  problem: 'Hold the narrow pass against a far larger army for 10 turns.',
+  lat: 38.8,
+  lon: 22.54,
+  challengeType: 'desperateDefence',
+  problem: 'Hold the pass until the rear route decides the fight.',
   briefing:
-    'Between the mountains and the sea, the road to Greece is barely wide enough for a few ranks. Xerxes’ army is enormous, but here only a few of his units can fight at once. Fill the pass with your best infantry, keep your line closed, and do not be drawn out into the open.',
+    'The Greek rearguard held a narrow pass until it was outflanked. Hold the pass until the rear route decides the fight. Between the wooded mountain and the sea the pass is three squares wide: block it and hold.',
   terrain: [
     'FFFFFFFFFFFFFFFF',
     'FFFFFFFFFFFF,,,,',
@@ -190,49 +190,43 @@ const thermopylae: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'persianShieldArchers', x: 12, y: 3, facing: W, general: true, level: 2 },
-    { type: 'persianShieldArchers', x: 11, y: 4, facing: W, level: 2 },
-    { type: 'persianShieldArchers', x: 11, y: 5, facing: W, level: 2 },
-    { type: 'persianShieldArchers', x: 12, y: 6, facing: W, level: 2 },
-    { type: 'antiquitySkirmishers', x: 13, y: 2, facing: W, level: 2 },
+    { type: 'persianShieldArchers', level: 3, x: 12, y: 3, facing: W, general: true },
+    { type: 'persianShieldArchers', level: 3, x: 11, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 12, y: 6, facing: W },
   ],
-  enemyGeneral: { id: 'xerxes', rank: 5 },
+  enemyGeneral: { id: 'xerxes', rank: 4 },
   posture: 'aggressive',
-  turnLimit: 10,
+  turnLimit: 8,
   holdOut: 'player',
-  maxUnits: 4,
+  maxUnits: 3,
   testArmy: {
     units: [
-      { type: 'hoplitePhalanx' },
-      { type: 'hoplitePhalanx' },
-      { type: 'hoplitePhalanx' },
-      { type: 'persianShieldArchers' },
+      { type: 'thebanSacredBand', level: 2 },
+      { type: 'macedonianPhalanx', level: 2 },
+      { type: 'persianShieldArchers', level: 1 },
     ],
-    general: { id: 'antiquityScout', rank: 1 },
+    general: { id: 'leonidas', rank: 2 },
   },
   bonus: { kind: 'noUnitLost' },
   bonusText: 'Lose no unit (none routed or destroyed).',
 };
 
 /*
- * Plataea, 479 BC (research):
- * - The Greek alliance under the Spartan regent Pausanias faced the Persian army of Mardonius
- *   in Boeotia, the Greeks on the foothills of Mount Cithaeron, the Persians across the Asopus.
- * - Persian cavalry harassed the Greeks for days and fouled their water.
- * - When the Greeks fell back, Mardonius attacked; the Spartans and Tegeans broke the Persian
- *   infantry, Mardonius was killed and his army fled.
+ * Plataea, 479 BC (near Plataea, Greece). holdUntilReinforcements.
+ * Decisive factor: Keep the divided line alive until allies reform.
+ * Sources: Herodotus, Histories 9.1–89. J. F. Lazenby, The Defence of Greece (1993).
  */
 const plataea: CampaignBattle = {
   id: 'plataea',
   name: 'Plataea',
   year: '479 BC',
   age: 1,
-  lat: 38.217,
-  lon: 23.272,
-  problem:
-    'Weather the Persian cavalry on the slopes, then break Mardonius when his infantry comes on.',
+  lat: 38.21,
+  lon: 23.25,
+  challengeType: 'holdUntilReinforcements',
+  problem: 'Keep the divided line alive until allies reform.',
   briefing:
-    'A year after Thermopylae, every Greek city that still resists has sent its hoplites to Plataea. Mardonius waits across the Asopus with the army Xerxes left him, and his horsemen ride up to the Greek lines every day. Keep your spears facing the cavalry on the high ground, let the Persians cross the fords to you, and strike at Mardonius when they do.',
+    'Mardonius attacked a fragmented Greek withdrawal and was killed after key infantry held. Keep the divided line alive until allies reform. Keep to the ridge west of the stream and let the Persian volleys come to you; strike Mardonius if he comes close.',
   terrain: [
     '.........~......',
     '.........=......',
@@ -266,51 +260,49 @@ const plataea: CampaignBattle = {
     '.DDDD...........',
     '.DDDD...........',
     '.DDDD...........',
-    '................',
+    '.DDDD...........',
     '................',
   ],
   enemy: [
-    { type: 'antiquityLightCavalry', x: 12, y: 1, facing: W, level: 2 },
-    { type: 'persianShieldArchers', x: 12, y: 3, facing: W, level: 2 },
-    { type: 'persianShieldArchers', x: 12, y: 4, facing: W, general: true, level: 2 },
-    { type: 'persianShieldArchers', x: 12, y: 6, facing: W, level: 2 },
+    { type: 'antiquityLightCavalry', level: 4, x: 12, y: 1, facing: W },
+    { type: 'persianShieldArchers', level: 4, x: 12, y: 3, facing: W },
+    { type: 'persianShieldArchers', level: 4, x: 12, y: 5, facing: W, general: true },
+    { type: 'antiquityLightCavalry', level: 4, x: 12, y: 2, facing: W },
   ],
-  enemyGeneral: { id: 'mardonius', rank: 2 },
-  posture: 'timed',
-  attackTurn: 2,
-  turnLimit: 12,
+  enemyGeneral: { id: 'mardonius', rank: 4 },
+  posture: 'aggressive',
+  turnLimit: 9,
+  holdOut: 'player',
   maxUnits: 4,
   testArmy: {
     units: [
-      { type: 'spartanHoplites' },
-      { type: 'hoplitePhalanx' },
-      { type: 'hoplitePhalanx' },
-      { type: 'persianShieldArchers' },
+      { type: 'thebanSacredBand', level: 2 },
+      { type: 'macedonianPhalanx', level: 2 },
+      { type: 'persianShieldArchers', level: 1 },
+      { type: 'hoplitePhalanx', level: 1 },
     ],
-    general: { id: 'leonidas', rank: 1 },
+    general: { id: 'leonidas', rank: 3 },
   },
   bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Win by killing or capturing Mardonius.',
+  bonusText: 'Bring down Mardonius.',
 };
 
 /*
- * Leuctra, 371 BC (research):
- * - Thebes under Epaminondas fought Sparta under King Cleombrotus in Boeotia.
- * - Epaminondas massed his left wing very deep against the Spartan right, where the king
- *   stood, and held back his weaker right.
- * - The Spartan right broke, Cleombrotus was killed, and Spartan dominance in Greece ended.
+ * Leuctra, 371 BC (Leuctra, Boeotia). lineAndFlank.
+ * Decisive factor: Break the king's wing before the refused right must fight.
+ * Sources: Xenophon, Hellenica 6.4. John Buckler, The Theban Hegemony (1980).
  */
 const leuctra: CampaignBattle = {
   id: 'leuctra',
   name: 'Leuctra',
   year: '371 BC',
   age: 1,
-  lat: 38.256,
-  lon: 23.18,
-  problem:
-    'Mass your strength on one wing and break the Spartan king before your weak wing gives way.',
+  lat: 38.32,
+  lon: 23.19,
+  challengeType: 'lineAndFlank',
+  problem: "Break the king's wing before the refused right must fight.",
   briefing:
-    'Sparta has not lost a pitched battle in living memory. Epaminondas of Thebes will not fight her line evenly: he stacks his left wing deep against the Spartan king and holds his right back. Put your best units opposite Cleombrotus at the north end of their line and hit hard.',
+    "Theban mass on the left broke the Spartan king's wing. Break the king's wing before the refused right must fight. Mass your strongest troops against the Spartan king’s wing, where the enemy line starts.",
   terrain: [
     '................',
     '................',
@@ -348,50 +340,43 @@ const leuctra: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'spartanHoplites', x: 11, y: 2, facing: W, general: true },
-    { type: 'hoplitePhalanx', x: 11, y: 3, facing: W },
-    { type: 'hoplitePhalanx', x: 11, y: 4, facing: W },
-    { type: 'antiquitySkirmishers', x: 11, y: 5, facing: W },
-    { type: 'persianShieldArchers', x: 11, y: 6, facing: W },
+    { type: 'spartanHoplites', level: 4, x: 11, y: 2, facing: W, general: true },
+    { type: 'spartanHoplites', level: 4, x: 11, y: 3, facing: W },
+    { type: 'antiquitySkirmishers', level: 4, x: 11, y: 5, facing: W },
   ],
-  enemyGeneral: { id: 'cleombrotus', rank: 1 },
+  enemyGeneral: { id: 'cleombrotus', rank: 5 },
   posture: 'aggressive',
   turnLimit: 12,
-  playerBreakpoint: 0.6,
-  maxUnits: 5,
+  maxUnits: 4,
   testArmy: {
     units: [
-      { type: 'spartanHoplites' },
-      { type: 'hoplitePhalanx' },
-      { type: 'antiquityLightCavalry' },
-      { type: 'hoplitePhalanx' },
-      { type: 'antiquitySkirmishers' },
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 1 },
+      { type: 'macedonianPhalanx', level: 3 },
+      { type: 'hoplitePhalanx', level: 3 },
     ],
-    general: { id: 'leonidas', rank: 1 },
+    general: { id: 'leonidas', rank: 5 },
   },
   bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Win by killing or capturing Cleombrotus.',
+  bonusText: 'Bring down King Cleombrotus.',
 };
 
 /*
- * Chaeronea, 338 BC (research):
- * - Philip II of Macedon met the allied army of Athens and Thebes in western Boeotia.
- * - The allied line ran from the Cephissus river to the hills by Chaeronea, the Theban
- *   Sacred Band on the right next to the river, the Athenians on the left.
- * - Philip's wing gave ground and the Athenians pressed forward; a gap opened and the
- *   Macedonian cavalry, led by the young Alexander, broke through and destroyed the Sacred Band.
+ * Chaeronea, 338 BC (Chaeronea, Greece). lineAndFlank.
+ * Decisive factor: Create a seam before the coalition reforms.
+ * Sources: Diodorus Siculus, Library 16.84–86. Ian Worthington, Philip II of Macedonia (2008).
  */
 const chaeronea: CampaignBattle = {
   id: 'chaeronea',
   name: 'Chaeronea',
   year: '338 BC',
   age: 1,
-  lat: 38.495,
+  lat: 38.49,
   lon: 22.85,
-  problem:
-    'Let the eager Athenians pull their line apart, then drive through the gap to the Sacred Band.',
+  challengeType: 'lineAndFlank',
+  problem: 'Create a seam before the coalition reforms.',
   briefing:
-    'Athens and Thebes have joined to stop Philip of Macedon, their line stretched from the Cephissus to the hills of Chaeronea. The Athenians are brave but impatient; the Theban Sacred Band by the river has never broken. Give ground where they press you, and when their line comes apart, send your horsemen through the gap at Theagenes and his Band.',
+    'Philip defeated the allied Greek line; detailed manoeuvres are sparse. Create a seam before the coalition reforms. The coalition line runs from the river to the hills: pull one part forward and strike the gap it leaves.',
   terrain: [
     '~~~~~~~~~~~~~~~~',
     '................',
@@ -429,47 +414,46 @@ const chaeronea: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'thebanSacredBand', x: 11, y: 2, facing: W, general: true },
-    { type: 'hoplitePhalanx', x: 11, y: 3, facing: W },
-    { type: 'hoplitePhalanx', x: 11, y: 4, facing: W },
-    { type: 'hoplitePhalanx', x: 11, y: 5, facing: W },
+    { type: 'antiquitySpearmen', level: 4, x: 11, y: 3, facing: W, general: true },
+    { type: 'antiquityArchers', level: 4, x: 12, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 4, x: 11, y: 6, facing: W },
+    { type: 'antiquitySpearmen', level: 4, x: 11, y: 4, facing: W },
+    { type: 'antiquityArchers', level: 4, x: 11, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 4, x: 12, y: 5, facing: W },
   ],
-  enemyGeneral: { id: 'antiquityCaptain', rank: 2 },
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
   posture: 'aggressive',
   turnLimit: 12,
-  maxUnits: 5,
+  maxUnits: 4,
   testArmy: {
     units: [
-      { type: 'thebanSacredBand' },
-      { type: 'spartanHoplites', level: 2 },
-      { type: 'hoplitePhalanx', level: 2 },
-      { type: 'antiquityLightCavalry' },
-      { type: 'persianShieldArchers' },
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 2 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 3 },
     ],
-    general: { id: 'leonidas', rank: 2 },
+    general: { id: 'leonidas', rank: 6 },
   },
-  bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Win by killing Theagenes, who fights beside the Sacred Band.',
+  bonus: { kind: 'winByTurn', turn: 9 },
+  bonusText: 'Win by turn 9.',
 };
 
 /*
- * Granicus, 334 BC (research):
- * - Alexander's first battle in Asia, on the river Granicus in the Troad.
- * - Persian satraps lined the steep east bank with cavalry; Greek mercenary infantry stood
- *   further back. Memnon of Rhodes fought on the Persian side.
- * - Alexander forced the crossing at the head of the Companions; after the cavalry broke,
- *   the mercenaries were surrounded and cut down.
+ * Granicus, May 334 BC (Kocabaş Çay, Turkey). riverCrossing.
+ * Decisive factor: Force a bridgehead before cavalry crushes the crossing.
+ * Sources: Arrian, Anabasis 1.12–16. A. B. Bosworth, A Historical Commentary on Arrian, vol. I (1980).
  */
 const granicus: CampaignBattle = {
   id: 'granicus',
   name: 'Granicus',
   year: '334 BC',
   age: 1,
-  lat: 40.23,
-  lon: 27.24,
-  problem: 'Force the fords against cavalry waiting on the high far bank.',
+  lat: 39.96,
+  lon: 27.45,
+  challengeType: 'riverCrossing',
+  problem: 'Force a bridgehead before cavalry crushes the crossing.',
   briefing:
-    'Alexander has crossed into Asia, and the Persian satraps wait for him behind the Granicus. Their cavalry lines the steep far bank above three fords; Greek mercenaries under Memnon stand behind. A unit in a ford fights badly, so do not trickle across: cross at two fords at once, then take the bank before the mercenaries arrive.',
+    'Alexander secured a contested riverbank and isolated Persian infantry; Persian satraps, not Darius III, commanded locally. Force a bridgehead before cavalry crushes the crossing. Cross at the fords, where the bank is easiest, and win the far side before the Persian horse arrives.',
   terrain: [
     '.......~........',
     '.......~........',
@@ -507,49 +491,44 @@ const granicus: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'antiquityLightCavalry', x: 9, y: 2, facing: W, level: 2 },
-    { type: 'antiquityLightCavalry', x: 9, y: 5, facing: W, level: 2 },
-    { type: 'antiquityLightCavalry', x: 9, y: 7, facing: W },
-    { type: 'hoplitePhalanx', x: 13, y: 4, facing: W, general: true, level: 2 },
-    { type: 'hoplitePhalanx', x: 13, y: 6, facing: W, level: 2 },
+    { type: 'antiquityLightCavalry', level: 3, x: 9, y: 2, facing: W },
+    { type: 'persianShieldArchers', level: 3, x: 12, y: 4, facing: W, general: true },
+    { type: 'persianShieldArchers', level: 3, x: 12, y: 6, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 4, facing: W },
   ],
-  enemyGeneral: { id: 'antiquityCaptain', rank: 2 },
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
   posture: 'defensive',
   turnLimit: 12,
-  maxUnits: 5,
+  maxUnits: 4,
   testArmy: {
     units: [
-      { type: 'macedonianPhalanx' },
-      { type: 'macedonianPhalanx' },
-      { type: 'antiquityLightCavalry', level: 2 },
-      { type: 'thebanSacredBand' },
-      { type: 'persianShieldArchers', level: 2 },
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 2 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 3 },
     ],
-    general: { id: 'philipII', rank: 1 },
+    general: { id: 'leonidas', rank: 7 },
   },
   bonus: { kind: 'winByTurn', turn: 8 },
   bonusText: 'Win by turn 8.',
 };
 
 /*
- * Issus, 333 BC (research):
- * - Darius III brought the Persian royal army down behind Alexander, and the two met on the
- *   narrow coastal plain by the Gulf of Issus, along the small river Pinarus.
- * - The plain between the sea and the mountains was too narrow for the Persian numbers;
- *   Greek mercenaries held the Persian centre behind the river.
- * - Alexander led the Companions across the river against the Persian left and drove at
- *   Darius, who fled; his army broke.
+ * Issus, 333 BC (near Issus, Turkey). passBridgeOrFord.
+ * Decisive factor: Cross the stream and threaten the king before the centre breaks.
+ * Sources: Arrian, Anabasis 2.6–12. A. B. Bosworth, Conquest and Empire (1988).
  */
 const issus: CampaignBattle = {
   id: 'issus',
   name: 'Issus',
   year: '333 BC',
   age: 1,
-  lat: 36.84,
-  lon: 36.21,
-  problem: 'On a plain too narrow to outflank, cross the Pinarus and drive straight at Darius.',
+  lat: 36.98,
+  lon: 36.2,
+  challengeType: 'passBridgeOrFord',
+  problem: 'Cross the stream and threaten the king before the centre breaks.',
   briefing:
-    'Darius has slipped behind you and caught your army between the mountains and the sea. Here his great numbers cannot spread out: the plain is narrow and the little Pinarus runs across it. His Greek mercenaries hold the centre behind the river. Find a ford, punch through, and make the Great King run.',
+    'Narrow ground limited Persian numbers as Alexander pressed toward Darius. Cross the stream and threaten the king before the centre breaks. The plain is narrow between the sea and the hills: cross the stream at its fords and drive at the king.',
   terrain: [
     '~~~~~~~~~~~~~~~~',
     '........~.......',
@@ -571,42 +550,39 @@ const issus: CampaignBattle = {
     '.DDDD...........',
     '.DDDD...........',
     '.DDDD...........',
-    '................',
+    '.DDDD...........',
     '................',
   ],
   enemy: [
-    { type: 'antiquityLightCavalry', x: 10, y: 1, facing: W },
-    { type: 'hoplitePhalanx', x: 10, y: 3, facing: W },
-    { type: 'hoplitePhalanx', x: 10, y: 5, facing: W },
-    { type: 'persianShieldArchers', x: 10, y: 7, facing: W },
-    { type: 'persianShieldArchers', x: 12, y: 4, facing: W, general: true },
+    { type: 'persianShieldArchers', level: 4, x: 10, y: 3, facing: W },
+    { type: 'persianShieldArchers', level: 4, x: 12, y: 4, facing: W, general: true },
+    { type: 'antiquityLightCavalry', level: 4, x: 10, y: 6, facing: W },
+    { type: 'persianShieldArchers', level: 4, x: 11, y: 4, facing: W },
+    { type: 'persianShieldArchers', level: 4, x: 10, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 4, x: 11, y: 5, facing: W },
   ],
-  enemyGeneral: { id: 'dariusIII', rank: 2 },
+  enemyGeneral: { id: 'dariusIII', rank: 6 },
   posture: 'defensive',
   turnLimit: 12,
   maxUnits: 5,
   testArmy: {
     units: [
-      { type: 'macedonianPhalanx', level: 2 },
-      { type: 'macedonianPhalanx' },
-      { type: 'companionCavalry' },
-      { type: 'antiquityLightCavalry', level: 2 },
-      { type: 'persianShieldArchers', level: 2 },
+      { type: 'thebanSacredBand', level: 4 },
+      { type: 'indianElephants', level: 3 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 3 },
+      { type: 'persianShieldArchers', level: 1 },
     ],
-    general: { id: 'alexander', rank: 1 },
+    general: { id: 'leonidas', rank: 7 },
   },
   bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Make Darius flee: rout or destroy his guard.',
+  bonusText: 'Make Darius flee: bring down his guard.',
 };
 
 /*
- * Gaugamela, 331 BC (research):
- * - Darius chose a wide plain near Gaugamela in northern Mesopotamia and had the ground
- *   levelled for his scythed chariots.
- * - The Macedonian infantry opened lanes and the chariots passed through or were brought
- *   down by javelin men.
- * - Alexander edged to the right; the Persian left followed and a gap opened in the line,
- *   into which he led the Companions straight at Darius, who fled again.
+ * Gaugamela, 1 October 331 BC (near Mosul, Iraq). lineAndFlank.
+ * Decisive factor: Survive envelopment and strike the gap.
+ * Sources: Arrian, Anabasis 3.7–15. A. B. Bosworth, Conquest and Empire (1988).
  */
 const gaugamela: CampaignBattle = {
   id: 'gaugamela',
@@ -615,9 +591,10 @@ const gaugamela: CampaignBattle = {
   age: 1,
   lat: 36.36,
   lon: 43.25,
-  problem: 'On an open plain, survive the scythed chariots, then find the gap and reach Darius.',
+  challengeType: 'lineAndFlank',
+  problem: 'Survive envelopment and strike the gap.',
   briefing:
-    'Darius has gathered the whole empire on a plain he levelled for his scythed chariots. His line is far longer than yours and his Bactrian horsemen will try to wrap round your wings. Let light troops meet the chariots, keep your flanks covered, and when his line stretches thin, ride for the Great King.',
+    "Alexander's oblique advance created a gap in a broad Persian line. Survive envelopment and strike the gap. Let the scythed chariots run onto your spears, and send a fast unit through the gap they leave.",
   terrain: [
     '................',
     '..............,,',
@@ -643,51 +620,48 @@ const gaugamela: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'antiquityLightCavalry', x: 11, y: 1, facing: W },
-    { type: 'scythedChariots', x: 10, y: 3, facing: W, level: 2 },
-    { type: 'persianShieldArchers', x: 13, y: 4, facing: W, general: true },
-    { type: 'persianShieldArchers', x: 12, y: 5, facing: W },
-    { type: 'scythedChariots', x: 10, y: 6, facing: W, level: 2 },
-    { type: 'antiquityLightCavalry', x: 11, y: 8, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 1, facing: W },
+    { type: 'scythedChariots', level: 3, x: 10, y: 4, facing: W },
+    { type: 'persianShieldArchers', level: 3, x: 13, y: 4, facing: W, general: true },
+    { type: 'persianShieldArchers', level: 3, x: 12, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 8, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 4, facing: W },
+    { type: 'scythedChariots', level: 3, x: 12, y: 4, facing: W },
   ],
-  enemyGeneral: { id: 'dariusIII', rank: 3 },
+  enemyGeneral: { id: 'dariusIII', rank: 7 },
   posture: 'aggressive',
   turnLimit: 12,
-  maxUnits: 6,
+  maxUnits: 5,
   testArmy: {
     units: [
-      { type: 'macedonianPhalanx', level: 2 },
-      { type: 'macedonianPhalanx', level: 2 },
-      { type: 'companionCavalry', level: 2 },
-      { type: 'antiquityLightCavalry', level: 2 },
-      { type: 'antiquitySkirmishers', level: 2 },
-      { type: 'persianShieldArchers', level: 2 },
+      { type: 'thebanSacredBand', level: 4 },
+      { type: 'indianElephants', level: 3 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'persianShieldArchers', level: 3 },
+      { type: 'hoplitePhalanx', level: 3 },
     ],
-    general: { id: 'alexander', rank: 2 },
+    general: { id: 'leonidas', rank: 7 },
   },
   bonus: { kind: 'enemyGeneralLost' },
-  bonusText: 'Make Darius flee: rout or destroy his guard.',
+  bonusText: 'Make Darius flee: bring down his guard.',
 };
 
 /*
- * Hydaspes, 326 BC (research):
- * - King Porus held the Hydaspes (Jhelum) against Alexander with war elephants.
- * - Alexander crossed upstream at night in a storm and met Porus on rain-soaked ground.
- * - Horses would not face the elephants, so the Macedonian cavalry struck the Indian wings
- *   while the phalanx and light troops fought the elephants, which in the end ran back
- *   through their own lines. Porus was captured.
+ * Hydaspes, 326 BC (Jhelum River, Pakistan). riverCrossing.
+ * Decisive factor: Cross unseen, win the cavalry fight, then dismantle elephants.
+ * Sources: Arrian, Anabasis 5.8–18. Quintus Curtius Rufus, History of Alexander 8.13–14.
  */
 const hydaspes: CampaignBattle = {
   id: 'hydaspes',
   name: 'Hydaspes',
   year: '326 BC',
   age: 1,
-  lat: 32.98,
-  lon: 73.66,
-  problem:
-    'Beat Porus’s elephants: keep your horses off them and drive them back into their own line.',
+  lat: 32.94,
+  lon: 73.73,
+  challengeType: 'riverCrossing',
+  problem: 'Cross unseen, win the cavalry fight, then dismantle elephants.',
   briefing:
-    'You crossed the swollen Hydaspes in a night storm, and now Porus comes on with a line of war elephants. Horses will not face them, so keep your cavalry on the wings, against his horsemen. Let pikes and missiles meet the elephants, and when one breaks, it will trample the troops beside it.',
+    "Alexander crossed away from his camp and defeated Porus' cavalry and elephants. Cross unseen, win the cavalry fight, then dismantle elephants. Horses fear elephants: meet them with infantry and keep your cavalry for the enemy horse.",
   terrain: [
     '~...............',
     '~.......,,......',
@@ -713,31 +687,535 @@ const hydaspes: CampaignBattle = {
     '................',
   ],
   enemy: [
-    { type: 'antiquityLightCavalry', x: 11, y: 1, facing: W, level: 2 },
-    { type: 'indianElephants', x: 11, y: 3, facing: W, level: 2 },
-    { type: 'antiquitySpearmen', x: 12, y: 4, facing: W, general: true, level: 2 },
-    { type: 'antiquitySpearmen', x: 12, y: 5, facing: W, level: 2 },
-    { type: 'indianElephants', x: 11, y: 6, facing: W, level: 2 },
+    { type: 'indianElephants', level: 4, x: 11, y: 3, facing: W },
+    { type: 'antiquitySpearmen', level: 4, x: 12, y: 4, facing: W, general: true },
+    { type: 'antiquityLightCavalry', level: 4, x: 11, y: 7, facing: W },
+    { type: 'indianElephants', level: 4, x: 11, y: 5, facing: W },
   ],
-  enemyGeneral: { id: 'porus', rank: 3 },
+  enemyGeneral: { id: 'porus', rank: 7 },
   posture: 'aggressive',
   turnLimit: 12,
-  maxUnits: 6,
+  maxUnits: 5,
   testArmy: {
     units: [
-      { type: 'macedonianPhalanx', level: 2 },
-      { type: 'macedonianPhalanx', level: 2 },
-      { type: 'companionCavalry', level: 2 },
-      { type: 'antiquityLightCavalry', level: 2 },
-      { type: 'antiquitySkirmishers', level: 2 },
-      { type: 'persianShieldArchers', level: 2 },
+      { type: 'companionCavalry', level: 1 },
+      { type: 'thebanSacredBand', level: 4 },
+      { type: 'indianElephants', level: 3 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 4 },
     ],
-    general: { id: 'alexander', rank: 2 },
+    general: { id: 'leonidas', rank: 8 },
   },
   bonus: { kind: 'winByTurn', turn: 10 },
   bonusText: 'Win by turn 10.',
 };
 
+/*
+ * Delium, 424 BC (Delium, Boeotia). holdUntilReinforcements.
+ * Decisive factor: Pin the line until the reserve reaches its exposed wing.
+ * Sources: Thucydides, History 4.89–101. Donald Kagan, The Archidamian War (1974).
+ */
+const delium: CampaignBattle = {
+  id: 'delium',
+  name: 'Delium',
+  year: '424 BC',
+  age: 1,
+  lat: 38.37,
+  lon: 23.55,
+  challengeType: 'holdUntilReinforcements',
+  branchesFrom: 'plataea',
+  problem: 'Pin the line until the reserve reaches its exposed wing.',
+  briefing:
+    "Pagondas' deep wing and reserve turned an Athenian local success. Pin the line until the reserve reaches its exposed wing. Hold your hill until the reserve can strike: the ravines on both edges protect your flanks.",
+  terrain: [
+    ',,,,,,....,,,,,,',
+    ',,..........,,,,',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    ',,,..........,,,',
+    ',,,,,,....,,,,,,',
+  ],
+  elevation: [
+    '0000000000000000',
+    '0000000000000000',
+    '0111110000000000',
+    '0111110000000000',
+    '0111110000000000',
+    '0111110000000000',
+    '0111110000000000',
+    '0111110000000000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+  ],
+  enemy: [
+    { type: 'hoplitePhalanx', level: 2, x: 11, y: 3, facing: W, general: true },
+    { type: 'hoplitePhalanx', level: 2, x: 11, y: 5, facing: W },
+    { type: 'antiquitySkirmishers', level: 2, x: 12, y: 7, facing: W },
+  ],
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
+  posture: 'aggressive',
+  turnLimit: 8,
+  holdOut: 'player',
+  maxUnits: 4,
+  firstWinUnlocks: { generals: ['pagondas'] },
+  testArmy: {
+    units: [
+      { type: 'thebanSacredBand', level: 2 },
+      { type: 'macedonianPhalanx', level: 3 },
+      { type: 'persianShieldArchers', level: 1 },
+      { type: 'hoplitePhalanx', level: 1 },
+    ],
+    general: { id: 'leonidas', rank: 3 },
+  },
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
+};
+
+/*
+ * Mantinea, 418 BC (Mantinea plain, Arcadia). lineAndFlank.
+ * Decisive factor: Repair the gap before the enemy overlaps it.
+ * Sources: Thucydides, History 5.63–74. Donald Kagan, The Peace of Nicias and the Sicilian Expedition (1981).
+ */
+const mantinea418: CampaignBattle = {
+  id: 'mantinea418',
+  name: 'Mantinea',
+  year: '418 BC',
+  age: 1,
+  lat: 37.62,
+  lon: 22.39,
+  challengeType: 'lineAndFlank',
+  branchesFrom: 'plataea',
+  problem: 'Repair the gap before the enemy overlaps it.',
+  briefing:
+    'Agis repaired a risky redeployment and won a hard phalanx battle. Repair the gap before the enemy overlaps it. The wood in the south narrows the field: keep your line closed and don’t let them overlap it.',
+  terrain: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '......FFFF......',
+    '.....FFFFFF.....',
+    '....FFFFFFFF....',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+    '................',
+    '................',
+  ],
+  enemy: [
+    { type: 'antiquitySpearmen', level: 2, x: 11, y: 2, facing: W, general: true },
+    { type: 'antiquityArchers', level: 2, x: 12, y: 3, facing: W },
+    { type: 'antiquityLightCavalry', level: 2, x: 11, y: 5, facing: W },
+    { type: 'antiquitySpearmen', level: 2, x: 11, y: 3, facing: W },
+    { type: 'antiquityArchers', level: 2, x: 11, y: 4, facing: W },
+  ],
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
+  posture: 'aggressive',
+  turnLimit: 12,
+  maxUnits: 4,
+  firstWinUnlocks: { units: ['spartanHoplites'] },
+  testArmy: {
+    units: [
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 1 },
+      { type: 'macedonianPhalanx', level: 3 },
+      { type: 'hoplitePhalanx', level: 2 },
+    ],
+    general: { id: 'leonidas', rank: 4 },
+  },
+  bonus: { kind: 'winByTurn', turn: 9 },
+  bonusText: 'Win by turn 9.',
+};
+
+/*
+ * Cunaxa, 401 BC (near Babylon, Iraq). strikeTheCommander.
+ * Decisive factor: Open a safe route to the enemy general.
+ * Sources: Xenophon, Anabasis 1.7–10. Pierre Briant, From Cyrus to Alexander (2002).
+ */
+const cunaxa: CampaignBattle = {
+  id: 'cunaxa',
+  name: 'Cunaxa',
+  year: '401 BC',
+  age: 1,
+  lat: 33.65,
+  lon: 44.2,
+  challengeType: 'strikeTheCommander',
+  branchesFrom: 'plataea',
+  problem: 'Open a safe route to the enemy general.',
+  briefing:
+    'Cyrus died attacking Artaxerxes II despite local success by his Greek wing. Open a safe route to the enemy general. The Euphrates covers your left; push through the archers to the Great King’s guard.',
+  terrain: [
+    '~~~~~~~~~~~~~~~~',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.........,,.....',
+    '................',
+    '................',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+  ],
+  enemy: [
+    { type: 'persianShieldArchers', level: 2, x: 11, y: 3, facing: W },
+    { type: 'persianShieldArchers', level: 2, x: 13, y: 5, facing: W, general: true },
+    { type: 'antiquityLightCavalry', level: 2, x: 11, y: 7, facing: W },
+    { type: 'persianShieldArchers', level: 2, x: 12, y: 5, facing: W },
+    { type: 'persianShieldArchers', level: 2, x: 11, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 2, x: 12, y: 4, facing: W },
+  ],
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
+  posture: 'aggressive',
+  turnLimit: 12,
+  maxUnits: 4,
+  firstWinUnlocks: { units: ['hoplitePhalanx'] },
+  testArmy: {
+    units: [
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 1 },
+      { type: 'macedonianPhalanx', level: 3 },
+      { type: 'hoplitePhalanx', level: 2 },
+    ],
+    general: { id: 'leonidas', rank: 4 },
+  },
+  bonus: { kind: 'enemyGeneralLost' },
+  bonusText: 'Bring down the Great King’s guard.',
+};
+
+/*
+ * Coronea, 394 BC (Coronea, Boeotia). attrition.
+ * Decisive factor: Endure the centre and stop the enemy wing rolling up the line.
+ * Sources: Xenophon, Hellenica 4.3.15–21. Paul Cartledge, Agesilaos and the Crisis of Sparta (1987).
+ */
+const coronea: CampaignBattle = {
+  id: 'coronea',
+  name: 'Coronea',
+  year: '394 BC',
+  age: 1,
+  lat: 38.45,
+  lon: 22.95,
+  challengeType: 'attrition',
+  branchesFrom: 'leuctra',
+  problem: 'Endure the centre and stop the enemy wing rolling up the line.',
+  briefing:
+    'Both sides won on a wing before a brutal central contest. Endure the centre and stop the enemy wing rolling up the line. Both wings will fight their own battle: keep the centre steady while yours wins.',
+  terrain: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.......,,.......',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  elevation: [
+    '0000110000000000',
+    '0000110000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+  ],
+  enemy: [
+    { type: 'antiquitySpearmen', level: 3, x: 11, y: 3, facing: W, general: true },
+    { type: 'antiquityArchers', level: 3, x: 12, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 6, facing: W },
+    { type: 'antiquitySpearmen', level: 3, x: 11, y: 4, facing: W },
+    { type: 'antiquityArchers', level: 3, x: 11, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 12, y: 5, facing: W },
+  ],
+  enemyGeneral: { id: 'antiquityCaptain', rank: 5 },
+  posture: 'aggressive',
+  turnLimit: 12,
+  maxUnits: 4,
+  firstWinUnlocks: { generals: ['leonidas'] },
+  testArmy: {
+    units: [
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 1 },
+      { type: 'macedonianPhalanx', level: 3 },
+      { type: 'hoplitePhalanx', level: 3 },
+    ],
+    general: { id: 'leonidas', rank: 5 },
+  },
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
+};
+
+/*
+ * Mantinea, 362 BC (Mantinea plain, Arcadia). cavalryAndPursuit.
+ * Decisive factor: Mask the concentration and preserve Epaminondas.
+ * Sources: Xenophon, Hellenica 7.5. John Buckler, The Theban Hegemony (1980).
+ */
+const mantinea362: CampaignBattle = {
+  id: 'mantinea362',
+  name: 'Mantinea',
+  year: '362 BC',
+  age: 1,
+  lat: 37.62,
+  lon: 22.39,
+  challengeType: 'cavalryAndPursuit',
+  branchesFrom: 'leuctra',
+  problem: 'Mask the concentration and preserve Epaminondas.',
+  briefing:
+    'Epaminondas won a local breakthrough but died in the battle. Mask the concentration and preserve Epaminondas. Woods close both ends of the plain: pack your blow on one wing and keep your general safe.',
+  terrain: [
+    'FFFF........FFFF',
+    'FF............FF',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    'FF............FF',
+    'FFFF........FFFF',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+  ],
+  enemy: [
+    { type: 'antiquitySpearmen', level: 3, x: 11, y: 3, facing: W, general: true },
+    { type: 'antiquityArchers', level: 3, x: 12, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 11, y: 6, facing: W },
+    { type: 'antiquitySpearmen', level: 3, x: 11, y: 5, facing: W },
+    { type: 'antiquityArchers', level: 3, x: 11, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 3, x: 12, y: 4, facing: W },
+  ],
+  enemyGeneral: { id: 'antiquityCaptain', rank: 6 },
+  posture: 'aggressive',
+  turnLimit: 12,
+  maxUnits: 4,
+  firstWinUnlocks: { units: ['thebanSacredBand'] },
+  testArmy: {
+    units: [
+      { type: 'thebanSacredBand', level: 3 },
+      { type: 'indianElephants', level: 2 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 3 },
+    ],
+    general: { id: 'leonidas', rank: 6 },
+  },
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
+};
+
+/*
+ * Persian Gate, winter 331/330 BC (Zagros approaches, Iran). passBridgeOrFord.
+ * Decisive factor: Secure the alternate mountain route.
+ * Sources: Arrian, Anabasis 3.18. Quintus Curtius Rufus, History of Alexander 5.3–4.
+ */
+const persianGate: CampaignBattle = {
+  id: 'persianGate',
+  name: 'Persian Gate',
+  year: '331/330 BC',
+  age: 1,
+  lat: 30.55,
+  lon: 51.85,
+  challengeType: 'passBridgeOrFord',
+  branchesFrom: 'gaugamela',
+  problem: 'Secure the alternate mountain route.',
+  briefing:
+    'Ariobarzanes blocked a pass until Alexander found a route around it. Secure the alternate mountain route. The pass is a trap: climb the hills around it and come at the defenders from the side.',
+  terrain: [
+    'FFFF....FFFFFFFF',
+    'FFFF.....FFFFFFF',
+    '................',
+    '................',
+    '................',
+    'FFFF.....FFFFFFF',
+    'FFFF....FFFFFFFF',
+    '................',
+    '................',
+    '................',
+  ],
+  elevation: [
+    '0000111100000000',
+    '0000100001000000',
+    '0000100001000000',
+    '0000100001000000',
+    '0000100001000000',
+    '0000100001000000',
+    '0000111100000000',
+    '0000000000000000',
+    '0000000000000000',
+    '0000000000000000',
+  ],
+  deployment: [
+    '................',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '.DDDD...........',
+    '................',
+  ],
+  enemy: [
+    { type: 'persianShieldArchers', level: 5, x: 11, y: 2, facing: W, general: true },
+    { type: 'persianShieldArchers', level: 5, x: 11, y: 4, facing: W },
+    { type: 'antiquityLightCavalry', level: 5, x: 12, y: 8, facing: W },
+    { type: 'persianShieldArchers', level: 5, x: 11, y: 5, facing: W },
+    { type: 'persianShieldArchers', level: 5, x: 12, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 5, x: 12, y: 4, facing: W },
+    { type: 'persianShieldArchers', level: 5, x: 11, y: 6, facing: W },
+    { type: 'persianShieldArchers', level: 5, x: 10, y: 5, facing: W },
+  ],
+  enemyGeneral: { id: 'ariobarzanes', rank: 7 },
+  posture: 'defensive',
+  turnLimit: 12,
+  maxUnits: 5,
+  firstWinUnlocks: { units: ['antiquitySkirmishers'] },
+  testArmy: {
+    units: [
+      { type: 'companionCavalry', level: 1 },
+      { type: 'thebanSacredBand', level: 4 },
+      { type: 'indianElephants', level: 3 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 4 },
+    ],
+    general: { id: 'leonidas', rank: 7 },
+  },
+  bonus: { kind: 'noUnitLost' },
+  bonusText: 'Lose no unit (none routed or destroyed).',
+};
+
+/*
+ * Jaxartes, 329 BC (near Khujand, Tajikistan). riverCrossing.
+ * Decisive factor: Cross under cover and catch horse archers.
+ * Sources: Arrian, Anabasis 4.1–4. A. B. Bosworth, Conquest and Empire (1988).
+ */
+const jaxartes: CampaignBattle = {
+  id: 'jaxartes',
+  name: 'Jaxartes',
+  year: '329 BC',
+  age: 1,
+  lat: 40.28,
+  lon: 69.63,
+  challengeType: 'riverCrossing',
+  branchesFrom: 'gaugamela',
+  problem: 'Cross under cover and catch horse archers.',
+  briefing:
+    'Macedonian missiles covered a river crossing against mobile Saka opponents. Cross under cover and catch horse archers. Shoot across the river to cover the fords, then cross and catch the horsemen before they slip away.',
+  terrain: [
+    '.......~~.......',
+    '.......~~.......',
+    '.......==.......',
+    '.......~~.......',
+    '.......~~.......',
+    '.......~~.......',
+    '.......==.......',
+    '.......~~.......',
+    '.......~~.......',
+    '.......~~.......',
+  ],
+  deployment: [
+    '................',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '.DDDDD..........',
+    '................',
+  ],
+  enemy: [
+    { type: 'antiquitySpearmen', level: 4, x: 12, y: 4, facing: W, general: true },
+    { type: 'antiquityArchers', level: 4, x: 11, y: 5, facing: W },
+    { type: 'antiquityLightCavalry', level: 4, x: 11, y: 2, facing: W },
+    { type: 'antiquitySpearmen', level: 4, x: 11, y: 4, facing: W },
+    { type: 'antiquityArchers', level: 4, x: 11, y: 3, facing: W },
+  ],
+  enemyGeneral: { id: 'sakaChiefs', rank: 7 },
+  posture: 'defensive',
+  turnLimit: 12,
+  maxUnits: 5,
+  firstWinUnlocks: { units: ['antiquityLightCavalry'] },
+  testArmy: {
+    units: [
+      { type: 'companionCavalry', level: 1 },
+      { type: 'thebanSacredBand', level: 4 },
+      { type: 'indianElephants', level: 3 },
+      { type: 'macedonianPhalanx', level: 4 },
+      { type: 'hoplitePhalanx', level: 4 },
+    ],
+    general: { id: 'leonidas', rank: 8 },
+  },
+  bonus: { kind: 'winByTurn', turn: 8 },
+  bonusText: 'Win by turn 8.',
+};
+
+/** Main battles in historical order, then the optional ones. */
 export const ANTIQUITY: CampaignBattle[] = [
   qarqar,
   marathon,
@@ -749,4 +1227,11 @@ export const ANTIQUITY: CampaignBattle[] = [
   issus,
   gaugamela,
   hydaspes,
+  delium,
+  mantinea418,
+  cunaxa,
+  coronea,
+  mantinea362,
+  persianGate,
+  jaxartes,
 ];

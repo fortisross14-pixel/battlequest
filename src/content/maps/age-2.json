@@ -1,0 +1,104 @@
+{
+  "width": 1200,
+  "height": 776,
+  "battles": {
+    "heraclea": [592.3, 532.1],
+    "trebia": [424.8, 373.9],
+    "lakeTrasimene": [482.4, 437],
+    "cannae": [579.6, 497],
+    "zama": [412.8, 654.6],
+    "cynoscephalae": [728.9, 557.4],
+    "pydna": [732.5, 526.5],
+    "carrhae": [1128.7, 634.3],
+    "alesia": [300, 287],
+    "pharsalus": [742.3, 557.8],
+    "teutoburgForest": [387.6, 105.1],
+    "adrianople": [829.4, 484.8],
+    "bagradas": [436.8, 636.7],
+    "metaurus": [506.9, 420.5],
+    "bibracte": [289, 308.9],
+    "munda": [67.2, 622.6],
+    "edessa": [1123, 625.6],
+    "argentoratum": [378, 249.7]
+  },
+  "cities": [
+    {
+      "name": "Rome",
+      "at": [491.5, 478.1]
+    },
+    {
+      "name": "Carthage",
+      "at": [439.7, 634.6]
+    },
+    {
+      "name": "Massilia",
+      "at": [320.9, 432.1]
+    },
+    {
+      "name": "Byzantium",
+      "at": [887.5, 506.2]
+    },
+    {
+      "name": "Antioch",
+      "at": [1059.8, 654.1]
+    },
+    {
+      "name": "Damascus",
+      "at": [1063, 732.7]
+    },
+    {
+      "name": "Ugarit",
+      "at": [1051, 671.8]
+    },
+    {
+      "name": "Athens",
+      "at": [761.5, 600.5]
+    },
+    {
+      "name": "Sparta",
+      "at": [730.3, 628]
+    },
+    {
+      "name": "Pella",
+      "at": [732.5, 514.2]
+    },
+    {
+      "name": "Sardis",
+      "at": [865, 584.9]
+    }
+  ],
+  "rivers": [
+    {
+      "name": "Rhine",
+      "at": [364.8, 167.3]
+    },
+    {
+      "name": "Danube",
+      "at": [576, 284.9]
+    },
+    {
+      "name": "Rhône",
+      "at": [295.2, 375.2]
+    },
+    {
+      "name": "Po",
+      "at": [436.8, 363.3]
+    },
+    {
+      "name": "Jordan",
+      "at": [1050, 767.3]
+    },
+    {
+      "name": "Orontes",
+      "at": [1072.8, 683.6]
+    },
+    {
+      "name": "Euphrates",
+      "at": [1166.4, 692.4]
+    },
+    {
+      "name": "Halys",
+      "at": [1022.4, 541.2]
+    }
+  ]
+}

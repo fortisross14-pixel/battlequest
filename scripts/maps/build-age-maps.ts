@@ -24,6 +24,60 @@ const WIDTH = 1200;
 /** Rivers worth showing, as rough [lon, lat] polylines traced from the real courses. */
 const RIVERS: { name: string; label: [number, number]; points: [number, number][] }[] = [
   {
+    name: 'Rhine',
+    label: [7.2, 50.8],
+    points: [
+      [8.6, 47.6],
+      [7.6, 47.6],
+      [7.8, 48.6],
+      [8.4, 49.0],
+      [8.3, 50.0],
+      [7.6, 50.4],
+      [6.8, 51.2],
+      [6.1, 51.9],
+    ],
+  },
+  {
+    name: 'Danube',
+    label: [16.0, 47.6],
+    points: [
+      [8.5, 48.0],
+      [10.9, 48.7],
+      [12.1, 49.0],
+      [13.5, 48.5],
+      [16.4, 48.2],
+      [18.9, 47.8],
+      [19.0, 46.0],
+      [20.5, 44.8],
+      [22.6, 44.6],
+      [25.0, 43.7],
+      [28.0, 44.1],
+      [29.6, 45.2],
+    ],
+  },
+  {
+    name: 'Rhône',
+    label: [4.3, 45.0],
+    points: [
+      [6.1, 46.2],
+      [5.0, 45.8],
+      [4.8, 45.0],
+      [4.8, 43.9],
+      [4.6, 43.4],
+    ],
+  },
+  {
+    name: 'Po',
+    label: [10.2, 45.35],
+    points: [
+      [7.2, 44.8],
+      [8.6, 45.1],
+      [9.7, 45.05],
+      [11.0, 45.0],
+      [12.3, 44.95],
+    ],
+  },
+  {
     name: 'Nile',
     label: [31.0, 27.3],
     points: [
@@ -130,6 +184,11 @@ const RIVERS: { name: string; label: [number, number]; points: [number, number][
 
 /** A few cities to orient the player. */
 const CITIES: { name: string; lon: number; lat: number }[] = [
+  { name: 'Rome', lon: 12.48, lat: 41.89 },
+  { name: 'Carthage', lon: 10.32, lat: 36.85 },
+  { name: 'Massilia', lon: 5.37, lat: 43.3 },
+  { name: 'Byzantium', lon: 28.98, lat: 41.01 },
+  { name: 'Antioch', lon: 36.16, lat: 36.2 },
   { name: 'Memphis', lon: 31.25, lat: 29.85 },
   { name: 'Thebes', lon: 32.64, lat: 25.7 },
   { name: 'Damascus', lon: 36.29, lat: 33.51 },

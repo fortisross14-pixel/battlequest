@@ -19,6 +19,7 @@ import type { Posture } from '../../src/ai/utility';
 import type { Scenario, Side } from '../../src/core';
 import { ERA_UNITS, ERA_UNIT_BY_ID, ladder } from '../../src/content/eraUnits';
 import { progressionOrder, runProgression, type ProgressionRun } from './progression';
+import { targetBand } from './bands';
 
 const args = process.argv.slice(2);
 const mode = args[0];
@@ -291,26 +292,6 @@ function commonsArmies(b: CampaignBattle, level: number): ArmyChoice[] {
     }
   }
   return out;
-}
-
-/**
- * Target win rate with the expected collection (GAME_DESIGN 7.6). Tutorials: Megiddo is
- * almost impossible to lose, Kadesh about 95%. In an age: battle 1 about 90% (after the
- * first packs), battles 2–4 75–90%, the last 3 battles 35–50%, the middle 60–75%.
- * Optional battles: 10–20 points harder than the main battle they branch from.
- */
-export function targetBand(b: CampaignBattle): [number, number] {
-  if (b.age === 0) return b.id === 'megiddo' ? [0.95, 1] : [0.85, 1];
-  if (b.branchesFrom) {
-    const [lo, hi] = targetBand(BATTLE_BY_ID[b.branchesFrom]!);
-    return [Math.max(0, lo - 0.2), Math.max(0, hi - 0.1)];
-  }
-  const n = AGE_BY_ID[b.age]?.battles.length ?? 1;
-  const i = battleIndex(b);
-  if (i === 0) return [0.8, 1];
-  if (i >= n - 3) return [0.35, 0.5];
-  if (i <= 3) return [0.75, 0.9];
-  return [0.6, 0.75];
 }
 
 /** Commons-only target (GAME_DESIGN 7.6): battle 1 of an age about 50–60%; none after. */
@@ -653,17 +634,33 @@ const started = Date.now();
 if (mode === 'duel') write('duel', runDuel(seedList(opt('seeds', 40))));
 else if (mode === 'aivsai') write('aivsai', runAiVsAi(seedList(opt('seeds', 100))));
 else if (mode === 'progression') {
-  write(
-    'progression',
-    progressionReport(
-      runProgression({
-        seeds: seedList(opt('seeds', 20)),
-        tries: opt('tries', 3),
-        lastAge: opt('age', 2),
-      }),
-      opt('age', 2),
-    ),
-  );
+  const runs = runProgression({
+    seeds: seedList(opt('seeds', 20)),
+    tries: opt('tries', 3),
+    lastAge: opt('age', 2),
+  });
+  write('progression', progressionReport(runs, opt('age', 2)));
+  // --armies file: the army most runs fielded at each battle (to set the test armies).
+  const armiesOut = optStr('armies', '');
+  if (armiesOut) {
+    const modal: Record<string, ArmyChoice> = {};
+    for (const b of progressionOrder(opt('age', 2))) {
+      const counts = new Map<string, { n: number; army: ArmyChoice }>();
+      for (const v of runs.flatMap((r) => r.visits.filter((x) => x.id === b.id))) {
+        const key = JSON.stringify([
+          v.army.units.map((u) => `${u.type}:${u.level}`).sort(),
+          v.army.general?.id,
+        ]);
+        const c = counts.get(key) ?? { n: 0, army: v.army };
+        c.n += 1;
+        counts.set(key, c);
+      }
+      const top = [...counts.values()].sort((a, c) => c.n - a.n)[0];
+      if (top) modal[b.id] = top.army;
+    }
+    writeFileSync(armiesOut, JSON.stringify(modal, null, 1));
+    console.log(`Modal armies written to ${armiesOut}`);
+  }
 } else if (mode === 'scenario') {
   const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
   const armyArg = optStr('army', 'test');

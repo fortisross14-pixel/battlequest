@@ -48,7 +48,8 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 ## Ages 0–2 from the history briefs (docs/prompts/06-build-ages-0-2.md)
 - [x] Phase A — card ladders for Ages 0–2 (power tiers by rarity and age), general ladders, army limits, per-age shop tabs and packs, first-pack guarantees, General Pack price, age-unlock bonus, Legendary road, profile v4 migration, `balance-sim progression`
 - [x] Phase B — Age 0 tutorial rework: exact highlights on every step, Megiddo almost unlosable, Kadesh easy but losable, guided army builder, headless and bad-play tests
-- [ ] Phase C — Antiquity and Classical Empires: 22 main and 13 optional battles
+- [x] Phase C — Antiquity (10 main, 7 optional) and Classical Empires (12 main, 6 optional) built from the briefs: maps, enemies, objectives, bonuses, briefings, coordinates, rewards, age maps
+- [ ] Ages 0–2 balance to §7.6 (paused by the owner; end-of-development pass)
 
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)

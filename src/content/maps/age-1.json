@@ -2,18 +2,37 @@
   "width": 1200,
   "height": 626,
   "battles": {
-    "qarqar": [442.4, 299.7],
-    "marathon": [217.8, 246.8],
-    "thermopylae": [191.6, 231],
-    "plataea": [204.9, 244.5],
-    "leuctra": [203.3, 243.6],
-    "chaeronea": [197.3, 238],
-    "granicus": [277.1, 197.2],
-    "issus": [440.2, 276],
+    "qarqar": [443.5, 304.2],
+    "marathon": [217.6, 246],
+    "thermopylae": [191.6, 230.9],
+    "plataea": [204.5, 244.6],
+    "leuctra": [203.5, 242.1],
+    "chaeronea": [197.3, 238.1],
+    "granicus": [280.9, 203.6],
+    "issus": [440, 272.8],
     "gaugamela": [568.2, 286.9],
-    "hydaspes": [1121.1, 361.6]
+    "hydaspes": [1122.4, 362.5],
+    "delium": [210, 240.9],
+    "mantinea418": [188.9, 258.2],
+    "cunaxa": [585.5, 347.1],
+    "coronea": [199.1, 239.1],
+    "mantinea362": [188.9, 258.2],
+    "persianGate": [724.5, 413.6],
+    "jaxartes": [1047.8, 196]
   },
   "cities": [
+    {
+      "name": "Rome",
+      "at": [8.7, 157.2]
+    },
+    {
+      "name": "Byzantium",
+      "at": [308.7, 178.5]
+    },
+    {
+      "name": "Antioch",
+      "at": [439.3, 290.5]
+    },
     {
       "name": "Memphis",
       "at": [350, 428.3]
@@ -68,6 +87,10 @@
     }
   ],
   "rivers": [
+    {
+      "name": "Danube",
+      "at": [72.7, 10.8]
+    },
     {
       "name": "Nile",
       "at": [345.5, 481.1]

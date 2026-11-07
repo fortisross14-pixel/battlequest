@@ -72,7 +72,7 @@ describe('campaign', () => {
   it('every battle sits inside its age map, in its age list', () => {
     for (const b of CAMPAIGN) {
       const age = AGES.find((a) => a.id === b.age)!;
-      expect(age.battles, b.id).toContain(b.id);
+      expect([...age.battles, ...(age.optional ?? [])], b.id).toContain(b.id);
       expect(b.lat).toBeGreaterThan(age.region.south);
       expect(b.lat).toBeLessThan(age.region.north);
       expect(b.lon).toBeGreaterThan(age.region.west);

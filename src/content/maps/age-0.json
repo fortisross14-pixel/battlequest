@@ -2,10 +2,14 @@
   "width": 1200,
   "height": 806,
   "battles": {
-    "megiddo": [651.3, 450.5],
-    "kadesh": [751.4, 273]
+    "megiddo": [651.4, 450.6],
+    "kadesh": [751.1, 273]
   },
   "cities": [
+    {
+      "name": "Antioch",
+      "at": [724.5, 121.8]
+    },
     {
       "name": "Memphis",
       "at": [356.3, 690.4]

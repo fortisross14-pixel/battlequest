@@ -20,9 +20,9 @@ Age 0 is a tutorial with a mini ladder: 3 Bronze Age Commons (spearmen, archers,
 
 | Age | File | Status |
 |---|---|---|
-| 0 Dawn of War | `age-00-dawn-of-war.md` | received 2026-11-07; build with prompt 06 |
-| 1 Antiquity | `age-01-antiquity.md` | received 2026-11-07; build with prompt 06 (ladder fixes listed there) |
-| 2 Classical Empires | `age-02-classical-empires.md` | received 2026-11-07; build with prompt 06 (ladder fixes listed there) |
+| 0 Dawn of War | `age-00-dawn-of-war.md` | **built** 2026-11-07 (prompt 06). Deviations: tutorials use the Bronze Age Captain, no enemy general on the field; Kadesh breaks the army instead of the hold-out and has 4 slots against 3 Level 1 units; Megiddo has 3 player units (spearmen, two chariots) against 2 Disrupted blocks behind a brook. |
+| 1 Antiquity | `age-01-antiquity.md` | **built** 2026-11-07: 10 main and 7 optional battles. Deviations: prompt 06 ladder and general fixes; scythed chariots kept as an enemy-only card at Gaugamela; optional rewards naming enemy-only generals replaced (Mantinea 418 Spartan hoplites, Cunaxa Hoplite phalanx, Coronea Leonidas); hold-point objectives (Issus, Persian Gate) become break-the-army; strike-the-commander (Cunaxa) is break-the-army with the enemy general as the ★★★ bonus; the generic bonus "preserve the unit…" is replaced by a concrete one per battle; rain at Hydaspes not modelled; enemy counts and levels tuned. See DECISIONS, Ages 0–2 C. |
+| 2 Classical Empires | `age-02-classical-empires.md` | **built** 2026-11-07: 12 main and 6 optional battles. Deviations: Legio X added as the Legendary; Hellenistic phalanx enemy-only and fielded at Cynoscephalae and Pydna (the brief used Classical spearmen); rewards naming enemy-only generals replaced (Metaurus Classical war elephants, Edessa Cataphracts); fog and ambush (Trebia, Trasimene, Teutoburg) are set-ups (hidden or flanking deployment squares) without fog of war; Metaurus hold-point becomes break-the-army; Alesia puts enemies on both sides; rain at Trebia not modelled; map region stops at 42° E. See DECISIONS, Ages 0–2 C. |
 | 3 Early Middle Ages | `age-03-early-middle-ages.md` | to do |
 | 4 High and Late Middle Ages | `age-04-high-late-middle-ages.md` | to do |
 | 5 Age of Exploration | `age-05-exploration.md` | to do |

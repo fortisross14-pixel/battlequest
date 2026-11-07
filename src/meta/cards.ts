@@ -5,8 +5,8 @@ import { addUnitCard, type CardResult, type Profile } from './profile';
 
 /** Troop card odds for packs and battle rewards (GAME_DESIGN 5 and 8). */
 export const CARDS = {
-  /** Packs: mostly Common, with a chance of Rare or better (a lucky Legendary is rare). */
-  packWeight: { common: 68, rare: 25, epic: 6, legendary: 1 } as Record<string, number>,
+  /** Packs: mostly Common, with a chance of Rare or better; a Legendary about 1 pack in 100. */
+  packWeight: { common: 70, rare: 25, epic: 5, legendary: 0.25 } as Record<string, number>,
   /** Battle rewards: drawn from types the player owns this often, so they can upgrade. */
   ownedShare: 0.7,
   /** Among owned types, the ones fielded in the battle just fought are this much likelier. */

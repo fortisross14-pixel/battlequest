@@ -93,8 +93,12 @@ describe('ages', () => {
     const p = antiquityOpen();
     for (const id of AGES[1]!.battles) p.battles[id] = { stars: 3, wins: 1, plays: 1 };
     expect(isAgeUnlocked(p, 1)).toBe(true);
-    expect(AGES[2]!.status).toBe('inPreparation');
-    expect(isAgeUnlocked(p, 2)).toBe(false);
+    // Winning every Antiquity main battle opens Classical Empires (now built)…
+    expect(isAgeUnlocked(p, 2)).toBe(true);
+    // …but an age in preparation never opens.
+    for (const id of AGES[2]!.battles) p.battles[id] = { stars: 3, wins: 1, plays: 1 };
+    expect(AGES[3]!.status).toBe('inPreparation');
+    expect(isAgeUnlocked(p, 3)).toBe(false);
   });
 
   it('progress counts battles won and stars against the totals', () => {

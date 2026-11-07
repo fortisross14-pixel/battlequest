@@ -45,6 +45,16 @@ export const AGES: Age[] = [
       'gaugamela',
       'hydaspes',
     ],
+    // Optional battles (docs/history/ROSTER.md), each after the main battle it branches from.
+    optional: [
+      'delium',
+      'mantinea418',
+      'cunaxa',
+      'coronea',
+      'mantinea362',
+      'persianGate',
+      'jaxartes',
+    ],
     // Hydaspes needs 16, not 18: the stand-in player reaches about 17 stars over the first
     // nine battles keeping the best of three tries (DECISIONS, Campaign D).
     starThresholds: [0, 0, 1, 2, 4, 6, 8, 10, 14, 16],
@@ -64,23 +74,25 @@ export const AGES: Age[] = [
     years: '280 BC–AD 378',
     from: -280,
     to: 378,
-    region: { west: -2, east: 42, south: 30, north: 55 },
+    // Munda (5.2° W) to Carrhae and Edessa (39° E); the brief's region reaches 75° E, but no
+    // battle lies east of Carrhae, so the map stays on the Mediterranean.
+    region: { west: -8, east: 42, south: 32, north: 55 },
     emblem: 'eagle',
-    battles: [],
-    planned: [
-      { name: 'Heraclea', year: '280 BC', lat: 40.21, lon: 16.68 },
-      { name: 'Trebia', year: '218 BC', lat: 45.0, lon: 9.6 },
-      { name: 'Lake Trasimene', year: '217 BC', lat: 43.17, lon: 12.1 },
-      { name: 'Cannae', year: '216 BC', lat: 41.31, lon: 16.13 },
-      { name: 'Zama', year: '202 BC', lat: 36.3, lon: 9.45 },
-      { name: 'Cynoscephalae', year: '197 BC', lat: 39.43, lon: 22.55 },
-      { name: 'Pydna', year: '168 BC', lat: 40.37, lon: 22.6 },
-      { name: 'Carrhae', year: '53 BC', lat: 36.87, lon: 39.03 },
-      { name: 'Alesia', year: '52 BC', lat: 47.54, lon: 4.5 },
-      { name: 'Pharsalus', year: '48 BC', lat: 39.3, lon: 22.38 },
-      { name: 'Teutoburg', year: 'AD 9', lat: 52.4, lon: 8.1 },
-      { name: 'Adrianople', year: 'AD 378', lat: 41.68, lon: 26.56 },
+    battles: [
+      'heraclea',
+      'trebia',
+      'lakeTrasimene',
+      'cannae',
+      'zama',
+      'cynoscephalae',
+      'pydna',
+      'carrhae',
+      'alesia',
+      'pharsalus',
+      'teutoburgForest',
+      'adrianople',
     ],
+    optional: ['bagradas', 'metaurus', 'bibracte', 'munda', 'edessa', 'argentoratum'],
     starThresholds: DEFAULT_STAR_THRESHOLDS,
     starterUnits: [
       'classicalSpearmen',
@@ -90,7 +102,7 @@ export const AGES: Age[] = [
     ],
     starterGenerals: ['classicalCaptain', 'classicalTribune'],
     legendary: 'legioX',
-    status: 'inPreparation',
+    status: 'playable',
   },
   {
     id: 3,

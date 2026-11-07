@@ -2,6 +2,7 @@ import { Cohesion } from '../../core/types';
 import { AGES, AGE_BY_ID } from './ages';
 import { KADESH_BUILDER_STEPS, KADESH_TUTORIAL, MEGIDDO_TUTORIAL } from './tutorial';
 import { ANTIQUITY } from './antiquity';
+import { CLASSICAL } from './classical';
 import type { CampaignBattle } from './types';
 
 const N = 0 as const;
@@ -165,7 +166,7 @@ const kadesh: CampaignBattle = {
   bonusText: 'Lose no unit (none routed or destroyed).',
 };
 
-export const CAMPAIGN: CampaignBattle[] = [megiddo, kadesh, ...ANTIQUITY];
+export const CAMPAIGN: CampaignBattle[] = [megiddo, kadesh, ...ANTIQUITY, ...CLASSICAL];
 
 export const BATTLE_BY_ID: Record<string, CampaignBattle> = Object.fromEntries(
   CAMPAIGN.map((b) => [b.id, b]),
