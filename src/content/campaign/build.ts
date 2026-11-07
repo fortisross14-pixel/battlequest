@@ -31,11 +31,15 @@ export function defaultPlacement(b: CampaignBattle, army: ArmyChoice): Pos[] {
   const squares = deploymentSquares(b);
   const need = army.units.length + (army.general ? 1 : 0);
   if (need > squares.length) throw new Error(`${b.id}: not enough deployment squares`);
-  const out = squares.slice(0, army.units.length);
+  // Suggested squares first (when they are deployment squares), then the front squares.
+  const isDeploy = (p: Pos) => squares.some((q) => q.x === p.x && q.y === p.y);
+  const picked = (b.startAt ?? []).slice(0, army.units.length).filter(isDeploy);
+  const free = squares.filter((q) => !picked.some((p) => p.x === q.x && p.y === q.y));
+  const out = [...picked, ...free.slice(0, army.units.length - picked.length)];
   if (army.general) {
     const mid = (b.deployment.length - 1) / 2;
-    const rest = squares
-      .slice(army.units.length)
+    const rest = free
+      .slice(army.units.length - picked.length)
       .sort((a, c) => a.x - c.x || Math.abs(a.y - mid) - Math.abs(c.y - mid));
     out.push(rest[0]!);
   }

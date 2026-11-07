@@ -831,6 +831,13 @@
   pointer-events: none;
 }
 
+/* Moved down when it would cover the troops the step is about. */
+.tutorial.bottom {
+  top: auto;
+  /* Above the hint pill and the bottom bar. */
+  bottom: 120px;
+}
+
 .tutorial small {
   display: block;
   font-weight: 700;
@@ -887,6 +894,10 @@
     width: min(560px, calc(100% - 250px));
     font-size: 13px;
     padding: 6px 10px;
+  }
+  .tutorial.bottom {
+    top: auto;
+    bottom: 8px;
   }
 }
 
@@ -1700,4 +1711,25 @@ button.mini-card {
     min-height: 196px;
     top: 8px;
   }
+}
+
+/* The tutorial banner ignores taps (it sits over the map), except its Skip button. */
+.tutorial .skip-tutorial {
+  pointer-events: auto;
+  display: block;
+  margin: 6px 0 0 auto;
+  min-height: 44px;
+}
+
+/* Tutorial tips in the army builder (GAME_DESIGN 7.4). */
+.builder-tips {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-left: 4px solid #b8860b;
+  border-radius: 8px;
+  background: #fff7e0;
+}
+
+.builder-tips p {
+  margin: 4px 0;
 }

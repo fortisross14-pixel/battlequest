@@ -222,9 +222,40 @@ export class Hud {
     this.speedBtn.textContent = label;
   }
 
-  setTutorial(text: string | null, progress: string): void {
+  /**
+   * Shows a tutorial step. The card sits at the top of the board, or at the bottom when it
+   * would cover any of `avoid` (client coordinates of the units the step is about).
+   */
+  setTutorial(
+    text: string | null,
+    progress: string,
+    onSkip?: () => void,
+    avoid: { x: number; y: number }[] = [],
+  ): void {
     this.tutorial.classList.toggle('hidden', !text);
-    if (text) this.tutorial.replaceChildren(el('small', {}, `Tutorial ${progress}`), text);
+    this.tutorial.classList.remove('bottom');
+    if (!text) return;
+    const skip = el(
+      'button',
+      { class: 'btn small skip-tutorial', type: 'button' },
+      'Skip tutorial',
+    );
+    if (onSkip) skip.onclick = onSkip;
+    this.tutorial.replaceChildren(
+      el('small', {}, `Tutorial ${progress}`),
+      text,
+      onSkip ? skip : '',
+    );
+    const r = this.tutorial.getBoundingClientRect();
+    const margin = 36;
+    const covered = avoid.some(
+      (p) =>
+        p.x > r.left - margin &&
+        p.x < r.right + margin &&
+        p.y > r.top - margin &&
+        p.y < r.bottom + margin,
+    );
+    this.tutorial.classList.toggle('bottom', covered);
   }
 
   showSkills(

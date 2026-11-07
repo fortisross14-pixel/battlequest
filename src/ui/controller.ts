@@ -33,6 +33,7 @@ import {
   decideCellTap,
   decideSkillTap,
   TutorialGuide,
+  tutorialTriggers,
   type Mode,
   type Targets,
   type TutorialStep,
@@ -267,7 +268,6 @@ export class Controller {
     this.view.clearGhost();
     const ok = await this.run({ type: 'Move', unitId: u.id, to: dest }, null);
     if (!ok) return;
-    this.advanceTutorial('move');
     const moved = this.unit(u.id)!;
     if (isFighting(moved) && !isEngaged(this.state, moved.id) && !this.state.result) {
       this.openFacingRing(moved);
@@ -300,7 +300,6 @@ export class Controller {
     this.hud.showPreview(p, att, def, {
       confirm: () => {
         this.hud.hidePreview();
-        if (type === 'Charge') this.advanceTutorial('charge');
         void this.run(cmd, att.id);
       },
       cancel: () => this.cancelPreview(),
@@ -407,10 +406,15 @@ export class Controller {
 
   /** Applies a command, plays its events, then reselects `reselect` if it can still act. */
   private async run(cmd: Command, reselect: string | null): Promise<boolean> {
+    const before = this.state;
     const res = this.session.apply(cmd);
     if (!res.ok) {
       this.hud.toast(res.rejection.message);
       return false;
+    }
+    // Tutorial steps advance on what the command really did (GAME_DESIGN 7.4).
+    for (const t of tutorialTriggers(before, res.events, before.activeSide)) {
+      this.advanceTutorial(t);
     }
     this.record(res.events);
     if (cmd.type === 'Move' || cmd.type === 'Rotate') this.movesHistory.push([...this.turnMoves]);
@@ -544,7 +548,6 @@ export class Controller {
     const ending = this.state.activeSide;
     this.deselect();
     const ok = await this.run({ type: 'EndTurn' }, null);
-    this.advanceTutorial('endTurn');
     if (!ok || this.state.result) return;
     this.lastMoves = this.turnMoves.filter((m) => m.side === ending);
     this.turnMoves = [];
@@ -670,7 +673,24 @@ export class Controller {
 
   private showTutorial(): void {
     const c = this.tutorial.current();
-    this.hud.setTutorial(c ? c.text : null, c ? c.progress : '');
+    // Keep the card off the troops the step is about (all of the player's, if none named).
+    const side = this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : 'blue';
+    const box = this.view.canvas.getBoundingClientRect();
+    const avoid = this.state.units
+      .filter((u) => u.side === side && isOnMap(u) && (!c?.unit || u.type.id === c.unit))
+      .map((u) => {
+        const p = this.view.cellToScreen(u);
+        return { x: box.left + p.x, y: box.top + p.y };
+      });
+    this.hud.setTutorial(
+      c ? c.text : null,
+      c ? c.progress : '',
+      () => {
+        this.tutorial.skip();
+        this.showTutorial();
+      },
+      avoid,
+    );
   }
 
   private advanceTutorial(trigger: TutorialTrigger): void {

@@ -220,8 +220,8 @@ describe('army builder rules', () => {
     const b = BATTLE_BY_ID.megiddo!;
     const army = fixedArmyFor(p, b)!;
     expect(army.units).toEqual([
-      { type: 'egyptianChariots', level: 3 },
       { type: 'egyptianSpearmen', level: 1 },
+      { type: 'egyptianChariots', level: 3 },
     ]);
     expect(army.general?.id).toBe('thutmose');
     expect(armyProblems(p, b, army)).toEqual([]);

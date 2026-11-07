@@ -338,6 +338,47 @@ for (const size of SIZES) {
     .tap();
   await page.waitForTimeout(300);
   await shot(page, size, '35-after-upgrade');
+
+  // Kadesh: the second tutorial battle (shooting and a general skill).
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.getByRole('button', { name: /Continue: Kadesh/ }).tap();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /Deploy/ }).tap();
+  await page.waitForTimeout(500);
+  await page.getByRole('button', { name: 'Start battle' }).tap();
+  await page.waitForTimeout(600);
+  await shot(page, size, '36-kadesh-tutorial');
+  await page.getByRole('button', { name: 'Leave battle' }).tap();
+  await page.getByRole('button', { name: 'Leave', exact: true }).tap();
+  await page.waitForTimeout(1200);
+
+  // Timeline after Age 0, and the Antiquity map with starred and locked nodes.
+  await page.evaluate(() => {
+    const app = window.__bq.app;
+    const won = (stars) => ({ stars, wins: 1, plays: 1 });
+    Object.assign(app.profile.battles, {
+      megiddo: won(3),
+      kadesh: won(2),
+      qarqar: won(2),
+      marathon: won(1),
+    });
+    app.save();
+    app.campaign();
+  });
+  await page.waitForTimeout(600);
+  await shot(page, size, '37-timeline-after-age0');
+  await page.getByRole('button', { name: /^Antiquity/ }).tap();
+  await page.waitForTimeout(800);
+  await shot(page, size, '38-antiquity-map');
+  const locked = page.locator('.battle-node.locked').first();
+  if (await locked.count()) {
+    const lb = await locked.boundingBox();
+    if (lb) await page.touchscreen.tap(lb.x + lb.width / 2, lb.y + 22);
+    await page.waitForTimeout(300);
+    await shot(page, size, '39-locked-tap');
+  }
+  const ns = await smallTargets(page);
+  if (ns.length) problems.push(`${size.name} (age map): small buttons ${JSON.stringify(ns)}`);
   await ctx.close();
 }
 await browser.close();

@@ -222,8 +222,12 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
     }
 
     deployBtn.disabled = problems.length > 0;
+    const tips = b.builderTips && !p.battles[b.id]?.wins ? b.builderTips : [];
     builder.replaceChildren(
       el('h2', {}, 'Your army'),
+      tips.length
+        ? el('div', { class: 'builder-tips', role: 'note' }, ...tips.map((t) => el('p', {}, t)))
+        : '',
       el(
         'div',
         { class: 'budget' },

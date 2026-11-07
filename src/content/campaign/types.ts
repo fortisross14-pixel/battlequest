@@ -61,6 +61,8 @@ export interface CampaignBattle {
    * player's roster; the general may be one the player doesn't own (for this battle only).
    */
   fixedArmy?: ArmyChoice;
+  /** Starting squares for the first units, in army order (a tutorial sets up its lesson). */
+  startAt?: { x: number; y: number }[];
   /** Granted the first time this battle is won. */
   firstWinUnlocks?: { units?: string[]; generals?: string[] };
   bonus: BonusCondition;
@@ -99,6 +101,8 @@ export type TutorialTrigger =
 export interface TutorialStep {
   text: string;
   until: TutorialTrigger;
+  /** The troop (era unit id) the step asks the player to use, if one. */
+  unit?: string;
 }
 
 export type AgeEmblem =

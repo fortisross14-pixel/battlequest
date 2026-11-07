@@ -3,7 +3,6 @@ import { KADESH_BUILDER_TIPS, KADESH_TUTORIAL, MEGIDDO_TUTORIAL } from './tutori
 import type { CampaignBattle } from './types';
 
 const W = 6 as const;
-const SW = 5 as const;
 
 /*
  * Megiddo, 1457 BC (research):
@@ -22,26 +21,18 @@ const megiddo: CampaignBattle = {
   tutorial: MEGIDDO_TUTORIAL,
   problem: 'Strike the Canaanite line from the flank before it can turn to face you.',
   briefing:
-    'Thutmose III has led his army through the narrow Aruna pass and out onto the plain before Megiddo, where the Canaanite kings did not expect him. Their warriors are still forming up. Turn your chariots against the side of their line, where a unit can only strike back at half strength — and keep your spearmen facing the enemy.',
+    'Thutmose III has led his army through the narrow Aruna pass and out onto the plain before Megiddo, where the Canaanite kings did not expect him. Their warriors are still forming up, a wood covering their southern end. Pin their line from the front with your spearmen, then send the chariots round the open northern end into its flank, where a unit can only strike back at half strength.',
+  // The Canaanite line faces west on open ground. A wood covers its southern end, so the
+  // only flank the chariots can reach is the open northern one: the lesson of the battle.
   terrain: [
     '............',
-    '.......,,...',
     '............',
     '............',
-    '.......F....',
-    '......FF....',
     '............',
     '............',
-  ],
-  elevation: [
-    '000000000000',
-    '000000000110',
-    '000000000110',
-    '000000000110',
-    '000000000000',
-    '000000000000',
-    '000000000000',
-    '000000000000',
+    '......FFF...',
+    '.....FFFF...',
+    '............',
   ],
   deployment: [
     '............',
@@ -54,22 +45,27 @@ const megiddo: CampaignBattle = {
     '............',
   ],
   enemy: [
-    { type: 'canaaniteWarriors', x: 8, y: 3, facing: W, general: true, level: 2 },
-    { type: 'canaaniteWarriors', x: 8, y: 5, facing: SW, level: 2 },
+    { type: 'canaaniteWarriors', x: 6, y: 3, facing: W, general: true },
+    { type: 'canaaniteWarriors', x: 6, y: 4, facing: W },
   ],
-  enemyGeneral: { id: 'kingOfKadesh', rank: 2 },
+  enemyGeneral: { id: 'kingOfKadesh', rank: 1 },
   posture: 'defensive',
   turnLimit: 10,
   // The tutorial forgives one lost unit.
   playerBreakpoint: 0.75,
   maxUnits: 2,
   fixedArmy: {
-    units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
+    units: [{ type: 'egyptianSpearmen' }, { type: 'egyptianChariots' }],
     general: { id: 'thutmose', rank: 1 },
   },
+  // Spearmen facing the line; chariots on the open northern side, ready to ride round.
+  startAt: [
+    { x: 3, y: 3 },
+    { x: 3, y: 1 },
+  ],
   firstWinUnlocks: { units: ['egyptianArchers'], generals: ['thutmose'] },
   testArmy: {
-    units: [{ type: 'egyptianChariots' }, { type: 'egyptianSpearmen' }],
+    units: [{ type: 'egyptianSpearmen' }, { type: 'egyptianChariots' }],
     general: { id: 'thutmose', rank: 1 },
   },
   bonus: { kind: 'winByTurn', turn: 6 },
@@ -115,22 +111,18 @@ const kadesh: CampaignBattle = {
     '............',
   ],
   enemy: [
-    { type: 'hittiteChariots', x: 10, y: 2, facing: W, general: true, level: 2 },
-    { type: 'canaaniteChariots', x: 10, y: 6, facing: W, level: 2 },
-    { type: 'hittiteSpearmen', x: 10, y: 4, facing: W },
+    { type: 'hittiteChariots', x: 10, y: 2, facing: W, general: true },
+    { type: 'canaaniteChariots', x: 10, y: 6, facing: W },
   ],
   enemyGeneral: { id: 'muwatalli', rank: 1 },
   posture: 'aggressive',
   turnLimit: 5,
   holdOut: 'player',
   maxUnits: 3,
+  // What the builder tips suggest: two archers and a spear line, with Thutmose.
   testArmy: {
-    units: [
-      { type: 'egyptianSpearmen' },
-      { type: 'egyptianSpearmen' },
-      { type: 'hittiteSpearmen' },
-    ],
-    general: { id: 'captain', rank: 1 },
+    units: [{ type: 'egyptianArchers' }, { type: 'egyptianArchers' }, { type: 'egyptianSpearmen' }],
+    general: { id: 'thutmose', rank: 1 },
   },
   bonus: { kind: 'noUnitLost' },
   tutorial: KADESH_TUTORIAL,

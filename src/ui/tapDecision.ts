@@ -1,8 +1,9 @@
 import { validateCommand } from '../core/engine';
 import { samePos } from '../core/geometry';
 import type { ReachableSquare } from '../core/movement';
-import { getUnit, isFighting, unitAt } from '../core/state';
-import type { BattleState, Pos, Unit } from '../core/types';
+import type { GameEvent } from '../core/events';
+import { getUnit, isEngaged, isFighting, unitAt } from '../core/state';
+import type { BattleState, Pos, Side, Unit } from '../core/types';
 
 /**
  * The battle controller's mode state machine, as pure functions (review 1 WP7): given the
@@ -119,10 +120,50 @@ export class TutorialGuide {
     return false;
   }
 
-  /** The current step's text and "n/m" progress, or null when finished or absent. */
-  current(): { text: string; progress: string } | null {
+  /** Hides the tutorial for the rest of the battle. */
+  skip(): void {
+    this.step = this.steps?.length ?? 0;
+  }
+
+  /** The current step's text, "n/m" progress and troop, or null when finished or absent. */
+  current(): { text: string; progress: string; unit?: string } | null {
     const steps = this.steps;
     const s = steps?.[this.step];
-    return s && steps ? { text: s.text, progress: `${this.step + 1}/${steps.length}` } : null;
+    if (!s || !steps) return null;
+    return { text: s.text, progress: `${this.step + 1}/${steps.length}`, unit: s.unit };
   }
+}
+
+/**
+ * The tutorial triggers a player's command produced, read from its events (GAME_DESIGN 7.4:
+ * steps advance on real events). `before` is the state the command was applied to.
+ * 'select' and keeping a facing are UI events and are reported by the controller.
+ */
+export function tutorialTriggers(
+  before: BattleState,
+  events: GameEvent[],
+  side: Side,
+): TutorialTrigger[] {
+  const mine = (id: string) => getUnit(before, id)?.side === side;
+  const out: TutorialTrigger[] = [];
+  const charge = events.find(
+    (e): e is Extract<GameEvent, { type: 'ChargeDeclared' }> =>
+      e.type === 'ChargeDeclared' && mine(e.unitId),
+  );
+  if (charge) {
+    out.push('charge');
+    if (isEngaged(before, charge.targetId)) out.push('support');
+    const hit = events.find(
+      (e) => e.type === 'DamageDealt' && e.kind === 'impact' && e.attackerId === charge.unitId,
+    );
+    if (hit && hit.type === 'DamageDealt' && hit.arc !== 'front') out.push('flankCharge');
+  } else if (
+    events.some((e) => e.type === 'UnitMoved' && e.kind !== 'pushBack' && mine(e.unitId))
+  ) {
+    out.push('move');
+  }
+  if (events.some((e) => e.type === 'ShotFired' && mine(e.unitId))) out.push('shoot');
+  if (events.some((e) => e.type === 'SkillUsed' && mine(e.unitId))) out.push('skill');
+  if (events.some((e) => e.type === 'SideTurnEnded' && e.side === side)) out.push('endTurn');
+  return out;
 }
