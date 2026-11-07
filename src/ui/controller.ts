@@ -303,11 +303,34 @@ export class Controller {
   }
 
   /** The petals for a unit, at their fixed clock positions (UX §2). */
+  /** The Move / Attack hint shows once per battle. */
+  private actHinted = false;
+
   private petals(u: Unit): Petal[] {
     const engaged = isEngaged(this.state, u.id);
     const canTurn = DIRS.some((d) => d !== u.facing && turnCost(u, u.facing, d) <= u.mpLeft + 1e-9);
     const out: Petal[] = [
       { id: 'info', icon: 'ⓘ', label: 'Info', enabled: true, run: () => this.openInfo(u) },
+      {
+        // Move / Attack (owner): closes the bubble so nearby squares are easy to tap; the
+        // unit stays selected with its moves and targets shown.
+        id: 'act',
+        icon: '➚',
+        label: 'Move / Attack',
+        enabled: !u.hasActed || (u.mpLeft > 0 && !engaged),
+        reason: 'Nothing left to do this turn',
+        run: () => {
+          this.bubble.close();
+          if (!this.actHinted) {
+            this.actHinted = true;
+            this.hud.toast(
+              'Tap a square to move there, or an enemy to attack it.',
+              undefined,
+              1800,
+            );
+          }
+        },
+      },
       {
         id: 'turn',
         icon: '↻',

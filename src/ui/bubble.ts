@@ -8,7 +8,7 @@ import { EASE, gsap, MOTION, reducedMotion, sec, sfx } from './motion';
  * the whole ring rotates (keeping the order) so every petal stays on screen and off the
  * HUD. Moving needs no petal: it is the default tap on a reachable square.
  */
-export type PetalId = 'info' | 'turn' | 'hold' | 'signature' | 'skill' | 'undo';
+export type PetalId = 'info' | 'act' | 'turn' | 'hold' | 'signature' | 'skill' | 'undo';
 
 export interface Petal {
   id: PetalId;
@@ -25,6 +25,7 @@ export interface Petal {
 /** Clock positions in degrees, clockwise from 12 o'clock. */
 export const PETAL_ANGLE: Record<PetalId, number> = {
   info: 0,
+  act: 45,
   turn: 90,
   hold: 180,
   signature: 225,
@@ -33,7 +34,7 @@ export const PETAL_ANGLE: Record<PetalId, number> = {
 };
 
 /** Importance order for the bloom (Info first). */
-const ORDER: PetalId[] = ['info', 'hold', 'turn', 'skill', 'signature', 'undo'];
+const ORDER: PetalId[] = ['info', 'act', 'hold', 'turn', 'skill', 'signature', 'undo'];
 
 const RADIUS = 66;
 const PETAL = 48;

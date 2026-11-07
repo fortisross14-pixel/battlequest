@@ -18,6 +18,10 @@ export const CONTROLS: { gesture: string; does: string }[] = [
   { gesture: 'Tap another of your units', does: 'Switch the selection.' },
   { gesture: 'Tap ground you can’t reach', does: 'Deselect.' },
   { gesture: 'ⓘ petal, or long-press a unit', does: 'Open the unit card.' },
+  {
+    gesture: '➚ petal (Move / Attack)',
+    does: 'Close the bubble to reach nearby squares; the unit stays selected.',
+  },
   { gesture: '↻ petal', does: 'Turn mode: tap an arrowhead to face that way (each shows its MP).' },
   { gesture: '⛨ petal', does: 'Hold: brace and end the unit’s action.' },
   { gesture: '★ petal or the general medallion', does: 'Use your general’s skill.' },
