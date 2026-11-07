@@ -12,6 +12,10 @@ This folder holds the **historical research** behind every age, battle, general 
 - Every `newMechanics` entry and `existingEffect: none` skill goes through the `rules-change` skill before the battle or general that needs it.
 - If the brief and `GAME_DESIGN.md` disagree on a game rule, the design doc wins. If they disagree on a historical fact, the brief wins.
 
+**Phase 1 scope: Ages 0–4.** That is 70 battles (45 main and 25 optional, per `ROSTER.md`), the five card ladders and their generals, delivered one age per document. Ages 5–9 follow later.
+
+Age 0 is a tutorial with a mini ladder: 3 Bronze Age Commons (spearmen, archers, chariots), 1 generic Common general, and the named generals of Megiddo and Kadesh. The existing troop ids (`egyptianSpearmen`, `egyptianArchers`, `egyptianChariots`, `canaaniteWarriors`, `canaaniteChariots`) are folded into the ladders by the build agent, so the briefs don't need to reuse them.
+
 **Status**
 
 | Age | File | Status |
