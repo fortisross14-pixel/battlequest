@@ -5,6 +5,8 @@ description: Add a historical battle scenario to the campaign (map, armies, obje
 
 # Add a battle
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 Each battle is a short tactical puzzle built around one clear historical "problem" (docs/GAME_DESIGN.md §7). Content is data only. If the battle needs a new mechanic, use the `rules-change` skill first.
 
 ## Steps

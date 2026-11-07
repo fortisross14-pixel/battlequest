@@ -5,6 +5,8 @@ description: Add a unit type or a general to the game data with consistent stats
 
 # Add a unit or general
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 If `docs/history/` has a brief for this troop or general, start from it (history, flavor, suggested modifiers, trait and skills), then balance it.
 
 ## Units

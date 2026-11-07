@@ -127,6 +127,7 @@ All timings are tokens in `src/ui/motion.ts` (see the `motion` skill), and the A
 | **Full charge: breakthrough** | Longer wind-up, a dash with a strong ink trail, and the defender's block ripples as the cavalry **passes through it**, landing behind already turned (one 180° whip with a small overshoot), with a dust burst. On a failure, a hard stop and recoil on impact. | about 0.9 s |
 | Charge | Wind-up (4% pull-back), a dash with a fading ink-trail arrow, an impact squash and shake on both blocks, ink specks, then floating loss numbers, with a 60 ms hit-stop on the impact frame (`game-feel`). | about 0.6 s |
 | Rout | The block hollows out, wobbles and slides off. The breakpoint meter ticks up with a pulse. | about 0.7 s |
+| **Battle-ending moment** | The moment a battle is decided, a banner names the reason **before** the victory or defeat sequence: "**The enemy general has fallen!**" (or "Your general has fallen"), "The enemy army breaks", "You held the line", "Time is up: draw". The deciding unit is highlighted, with a short slow-motion beat on the general's unit if a general fell. | about 1.2 s, skippable |
 | Turn change | A thin ink banner sweeps across the guidance strip ("Turn 4 · Your move"). | ≤ 0.7 s |
 
 **Reduce motion** (the OS setting or the in-game toggle) turns all of these into short fades of at most 0.16 s, with no shake, flight or hit-stop.
@@ -150,6 +151,14 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - **Timeline node → age map:** a shared-element zoom. The tapped age medallion expands into the age map.
 - **Age-map node → briefing:** the battle seal flips over and becomes the briefing card.
 
+**Shop: a pack store, not a text list** (like mobile card games or FIFA Ultimate Team).
+- Each offer is a **physical pack**: the owner's pack art in `src/assets/packs/` (Recruit, Veteran, General), with the **age emblem** from `src/assets/ages/` as the seal over the circle at the top.
+- The packs stand in a row on the parchment with a soft contact shadow and a slow idle float (±3 px).
+- **Under each pack:** its name ("Recruit Pack") in the serif title font, then two buttons right below: **Buy · ● 250** (primary, brass) and **Details**.
+- **Details** opens a sheet with the contents (number of cards, rarity odds, the guarantee, which age's ladder it draws from) and the cards you could get (silhouettes for ones not owned).
+- **Buy:** the button presses, the pack lifts and slides to the centre, then the pack-opening ceremony plays (the seal breaks, cards fan out, the flip). When you can't afford it, the button is greyed and shows how many coins are missing.
+- The age tabs from §4 sit above the packs. The daily offer is a single face-up card next to the packs, with its own Buy and Details.
+
 **Cards and packs** (the recipes in the `motion` skill):
 - The pack's wax seal breaks and cards fan out face down.
 - Rarity anticipation: an edge glint, and a tremble for Epic and Legendary.
@@ -172,12 +181,31 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - Removing a card lets the remaining slots close the gap with Flip.
 - The army power meter eases to its new value.
 
-**Results:** the victory sequence from the `motion` skill: the battle redrawn as arrows, the VICTORY seal, then stars, coins, XP and cards in sequence, all skippable with a tap.
+**General markers in battle:** both generals' units carry a gold ring. A long press or the Info card says "If this unit falls, the battle is lost". When your general's unit is in reach of an enemy charge, its ring pulses red.
+
+**Results: two steps, never one crowded page.**
+1. **Step 1: the result.**
+   - The battle-ending banner (§3) hands over to the outcome screen: the **VICTORY** (or DEFEAT) seal stamps in, with the **reason in large type** beneath it ("The enemy general has fallen", "The enemy army breaks", "You held the line").
+   - **Stars**, one per line, each with its condition: "★ Victory", "★ At most 1 troop lost", "★ Kill Mardonius". Earned stars stamp in one by one; a missed star shows its condition greyed out with what happened ("missed: Mardonius escaped").
+   - **The two armies side by side.** Each unit shows its pictogram, a strength bar that animates down to what is left, and a clear status word: **Standing**, **Routed**, **Fled** or **Destroyed**. "Held" is no longer used. The general's unit is marked.
+   - **Turning point:** one plain line ("Turn 2: the enemy light cavalry broke and fled").
+   - The optional battle diagram replay (the battle redrawn as arrows) sits behind a "Replay" button.
+   - Button: **Collect rewards ›**
+2. **Step 2: the rewards.** A new sheet slides up over the result:
+   - the **coin** counter rolls up with a brass glint;
+   - each **general's XP bar** fills, with a rank-up flourish if one was earned;
+   - **new cards** flip in with the card recipe (NEW ribbon, "Upgrade ready" badge);
+   - **unlocks** ("Battle 4 unlocked", "Age complete") stamp in last.
+   - Buttons: **Retry** · **Back to map ›**. Back to the map then plays the unlock moment there.
+- Each step's sequence can be skipped with a tap. Reduce motion gives the same two steps with short fades.
+- Defeat uses the same two steps, but muted: step 1 shows what went wrong plus one tip, and step 2 shows only the consolation coins and XP.
+
 
 ## 5. Age map: make the path obvious
 
 **Problem:** players can't tell which battle comes first without reading the years.
 
+- **Age emblems** (`src/assets/ages/`) identify each age everywhere: timeline medallions, the age-map header, pack seals, shop age tabs and army filter chips.
 - **Numbered seals.** Each main battle's node is a wax seal with its number (1, 2, 3 …) in large type; the name and year sit beneath it.
 - **Route with direction.** An ink route links the main battles in order, with small arrowheads every few centimetres:
   - travelled segments (won battles) are solid ink;

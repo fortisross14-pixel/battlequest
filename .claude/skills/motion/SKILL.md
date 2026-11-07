@@ -5,6 +5,8 @@ description: BattleQuest's motion system (timing tokens, easing, the ink-on-parc
 
 # Motion
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 The game looks like a living historical battle map, and animation should feel like **ink, paper, wax and brass**: quick, confident, a little ceremonial. Keep it minimal. Effects are flat shapes, lines and dots; no 3D models, glossy gradients or particle storms.
 
 ## Rules (all of them, every time)
