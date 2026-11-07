@@ -257,7 +257,11 @@ Balance works within an age. `balance-sim` checks the ladder: a full Common army
 
 **Older troops in later ages.** You can always field any troop you own (the cross-era fantasy stays), but each age is a **power tier**. Troop stats scale with their age: a later age's Commons roughly match an earlier age's Epics. Myrmidons are a legend in Antiquity and a curiosity at Waterloo. Upgrades and generals can make an old favourite viable for a while, but every new age's ladder is the main path.
 
-**Generals follow the same ladder per age:** 1–2 generic Commons ("Antiquity captain"); 2–3 named Rares and Epics (Leonidas, Miltiades, Pericles…); and **one Legendary** (Alexander in Antiquity, Napoleon in the Napoleonic Wars).
+**Generals follow a ladder per age too:**
+- **2 generic generals:** 1 Common and 1 **Uncommon** (for example "Antiquity captain" and "Antiquity veteran commander"). Uncommon is a rarity for generic generals only; troops don't use it, because levels already make a generic troop stronger.
+- **5–8 named generals:** 2–3 Rare (Miltiades, Pericles…), 2–3 Epic (Leonidas, Darius…) and 1–2 Legendary (Alexander in Antiquity, Napoleon in the Napoleonic Wars).
+
+**Enemy armies use the same cards.** A battle defines only the enemy army; the player always picks their own. Enemies use generic Commons by default and a named card only where that real elite troop existed. A strong historical army is shown with **higher levels and a higher general rank**, never with an invented troop: Troy's archers are Antiquity archers at level 3, not "Trojan archers". Meeting a named card as an enemy is also a teaser for collecting it.
 
 ### 5.2 Cards, levels and upgrades
 
@@ -296,7 +300,7 @@ Balance works within an age. `balance-sim` checks the ladder: a full Common army
 
 | Field | Description |
 |---|---|
-| Rarity | Common, Rare, Epic, Legendary |
+| Rarity | Common, Uncommon (generic generals only), Rare, Epic, Legendary |
 | Era | The age the general belongs to. It sets their power tier, as for troops (§5.1). Any general can lead any army. |
 | Rank | 1–10, from XP earned in battle |
 | Command radius | 3 at rank 1, 4 at rank 4, 5 at rank 8 |

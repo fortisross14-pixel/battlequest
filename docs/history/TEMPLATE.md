@@ -13,9 +13,9 @@ Every entity is a fenced `yaml` block, so the build agent can convert it straigh
 
 **The card ladder (GAME_DESIGN §5.1). Every age has exactly this set of playable cards:**
 - **Troops:** 4–5 **Common** troops that are unnamed and generic ("Antiquity archers"), one per main role; 3–4 **Rare** famous named troops; 2 **Epic**; and **1 Legendary**, the age's icon (at most 2).
-- **Generals:** 1–2 generic Commons ("Antiquity captain"), 2–3 named Rares or Epics, and **1 Legendary**.
+- **Generals:** 2 generic ones (1 Common, 1 Uncommon, e.g. "Antiquity captain" and "Antiquity veteran commander"), plus 5–8 named ones: 2–3 Rare, 2–3 Epic and 1–2 Legendary.
 
-Enemy armies are built from the same ladder (enemy-only names are fine for flavour: set `playable: false` and use the archetype). Don't create a separate troop for every faction. If a battle's history needs a troop the ladder doesn't have, use the closest card and explain it in the battle's notes.
+**Battles define only the enemy army.** The player picks their own army. Enemy armies are built only from the age's ladder cards: generic Commons by default, and a named card only where that real elite troop existed. Show a strong enemy with **higher levels** (1–5) and a higher general rank, never with an invented troop (Troy's archers are `antiquityArchers` at level 3, not "Trojan archers"). If history needs something the ladder lacks, use the closest card and explain it in the battle's notes.
 
 **Accuracy rules**
 - Don't invent facts. If something is disputed (numbers, exact location, who commanded), give the most accepted value and explain the dispute in `uncertainty`.
@@ -126,28 +126,18 @@ battle:
     lat: 36.36
     lon: 43.25
     uncertainty: "exact site disputed (Tell Gomel)"
-  sides:
-    player:                       # usually the historical victor; say so if the underdog makes a better puzzle
-      faction: Macedon
-      commander: alexander
-      strength: "~47,000"
-      composition:                # proportions by archetype, not exact numbers
-        pikemen: 40%
-        heavyCavalry: 15%
-        lightCavalry: 10%
-        skirmishers: 20%
-        spearmen: 15%
-    enemy:
-      faction: Achaemenid Persia
-      commander: darius3
-      strength: "~100,000 (ancient sources claim far more)"
-      composition:
-        heavyCavalry: 25%
-        lightCavalry: 20%
-        chariots: 5%              # scythed chariots
-        spearmen: 30%
-        archers: 15%
-        warElephants: 5%
+  history:                        # facts for the briefing; the player's army is NOT defined (the player picks it)
+    playerSide: { faction: Macedon, commander: alexander, strength: "~47,000" }   # usually the historical victor
+    enemySide:  { faction: Achaemenid Persia, commander: darius3, strength: "~100,000 (ancient sources claim far more)" }
+  enemyArmy:                      # the actual opponent: 3–8 units, built ONLY from the age's ladder cards
+    general: { id: darius3, rank: 5 }   # a ladder general (named or generic); rank 1–10 shows how good they were
+    units:
+      - { card: persianImmortals, level: 2 }        # a named card only where the real troop existed
+      - { card: antiquityCavalry, level: 3, count: 2 }   # generic cards, LEVELLED UP to show quality
+      - { card: antiquityArchers, level: 2, count: 2 }
+      - { card: persianChariots, level: 1 }         # scythed chariots
+  # Show strength through LEVELS (1–5), the general's rank and numbers, never through invented troops.
+  # e.g. Troy's archers are just "antiquityArchers" at level 3, not "Trojan archers".
   whatHappened: >                 # 4–6 sentences: deployment, phases, the turning point, the result
     ...
   decisiveFactor: >               # one sentence: why the winner won

@@ -22,9 +22,9 @@ Your research becomes the game's content. A separate build agent turns it into g
 2. **Its troops:** the age's **card ladder** (GAME_DESIGN §5.1 and the top of the template): 4–5 unnamed Commons, 3–4 named Rares, 2 Epics and 1 Legendary, each mapped to one archetype. Build enemy armies from the same set. Don't create a separate troop for every faction.
 3. **Its generals:**
    - the commanders of its battles;
-   - the same ladder for generals: 1–2 generic Commons, 2–3 named Rares or Epics, and 1 Legendary;
+   - the general ladder: 2 generic ones (1 Common, 1 Uncommon), plus 5–8 named ones (2–3 Rare, 2–3 Epic, 1–2 Legendary);
    - each with a trait and 1–2 skills grounded in how they really fought.
-4. **Its battles:** the main and optional battles in `docs/history/ROSTER.md`, in historical order, filling in every field of the battle block. That includes `node`, `branchesFrom` and `reward` for optional battles, and a `challengeType` for every battle. Each age should mix several challenge types.
+4. **Its battles** (define only the enemy army, from ladder cards, with levels and the general's rank showing its quality): the main and optional battles in `docs/history/ROSTER.md`, in historical order, filling in every field of the battle block. That includes `node`, `branchesFrom` and `reward` for optional battles, and a `challengeType` for every battle. Each age should mix several challenge types.
 
 **Order:** Age 0 first (only Megiddo and Kadesh; they are tutorials, so keep the sketches simple), then **Age 1 Antiquity, which is needed first**, then Ages 2–9. Commit and push after each age, so the build agent can start on finished ages.
 
