@@ -151,6 +151,14 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - **Timeline node → age map:** a shared-element zoom. The tapped age medallion expands into the age map.
 - **Age-map node → briefing:** the battle seal flips over and becomes the briefing card.
 
+**Shop: a pack store, not a text list** (like mobile card games or FIFA Ultimate Team).
+- Each offer is a **physical pack**: the owner's pack art in `src/assets/packs/` (Recruit, Veteran, General), with a wax seal over the circle at the top showing the pack's age.
+- The packs stand in a row on the parchment with a soft contact shadow and a slow idle float (±3 px).
+- **Under each pack:** its name ("Recruit Pack") in the serif title font, then two buttons right below: **Buy · ● 250** (primary, brass) and **Details**.
+- **Details** opens a sheet with the contents (number of cards, rarity odds, the guarantee, which age's ladder it draws from) and the cards you could get (silhouettes for ones not owned).
+- **Buy:** the button presses, the pack lifts and slides to the centre, then the pack-opening ceremony plays (the seal breaks, cards fan out, the flip). When you can't afford it, the button is greyed and shows how many coins are missing.
+- The age tabs from §4 sit above the packs. The daily offer is a single face-up card next to the packs, with its own Buy and Details.
+
 **Cards and packs** (the recipes in the `motion` skill):
 - The pack's wax seal breaks and cards fan out face down.
 - Rarity anticipation: an edge glint, and a tremble for Epic and Legendary.
