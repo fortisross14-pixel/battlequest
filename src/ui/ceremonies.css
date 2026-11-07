@@ -638,3 +638,27 @@
 .pack-opening:not(.opened) .ceremony-title {
   opacity: 0;
 }
+
+/* Foil (Epic and Legendary): a flat diagonal sheen, larger than the card so it can slide. */
+.foil-sheen {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0 14%,
+    rgba(255, 255, 255, 0.55) 18%,
+    rgba(255, 230, 170, 0.35) 22%,
+    rgba(255, 255, 255, 0) 28% 40%
+  );
+}
+.pcard.epic .foil-sheen {
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0 14%,
+    rgba(230, 210, 255, 0.6) 18%,
+    rgba(180, 200, 255, 0.35) 22%,
+    rgba(255, 255, 255, 0) 28% 40%
+  );
+}

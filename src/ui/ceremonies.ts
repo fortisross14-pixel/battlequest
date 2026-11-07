@@ -231,6 +231,10 @@ function badgeFor(c: PackCard, upgradeReady: (c: PackCard) => boolean): HTMLElem
 /** A face-down card that flips (3D rotateY, 450 ms, scale 1 → 1.08 → 1). */
 function flipCard(c: PackCard, upgradeReady: (c: PackCard) => boolean, hero = false): FlipCard {
   const front = el('div', { class: 'face front' }, cardView(c));
+  // A flat foil sheen on Epic and Legendary cards; it shifts as the card tilts.
+  const foil =
+    RARITY_ORDER[c.rarity] >= 3 ? el('span', { class: 'foil-sheen', 'aria-hidden': 'true' }) : null;
+  if (foil) front.append(foil);
   const back = el(
     'div',
     { class: 'face back' },
@@ -262,6 +266,7 @@ function flipCard(c: PackCard, upgradeReady: (c: PackCard) => boolean, hero = fa
       if (badge) front.append(badge);
       if (instant || reducedMotion()) {
         gsap.set(inner, { rotationY: 180 });
+        root.classList.add('turned');
         if (reducedMotion() && !instant) {
           gsap.fromTo(front, { opacity: 0 }, { opacity: 1, duration: sec(MOTION.reducedFade) });
         }
@@ -336,10 +341,54 @@ function flipCard(c: PackCard, upgradeReady: (c: PackCard) => boolean, hero = fa
         },
         sec(MOTION.reveal / 2),
       );
+      tl.add(() => root.classList.add('turned'));
       return tl;
     },
   };
+  tilt(root, front, foil);
   return fc;
+}
+
+/**
+ * Card tilt (UX §4 card detail): a turned card leans toward the pointer, at most 6°, with a
+ * soft parallax between its icon and its text, and its foil sliding across. Off with
+ * Reduce motion.
+ */
+export function tilt(card: HTMLElement, face: HTMLElement, foil: HTMLElement | null): void {
+  if (reducedMotion()) return;
+  const inner = card.querySelector('.pcard-inner') ?? card;
+  const rx = gsap.quickTo(inner, 'rotationX', { duration: 0.35, ease: 'power2.out' });
+  const ry = gsap.quickTo(inner, 'rotationY', { duration: 0.35, ease: 'power2.out' });
+  const layers = () => [...face.querySelectorAll<HTMLElement>('svg, .medallion, b')];
+  const move = (e: PointerEvent) => {
+    if (!card.classList.contains('turned')) return;
+    const r = card.getBoundingClientRect();
+    const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+    const ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+    // The face is turned 180° on Y, so the lean on Y is mirrored.
+    ry(180 - nx * 6);
+    rx(-ny * 6);
+    layers().forEach((l, i) =>
+      gsap.to(l, {
+        x: nx * (i === 0 ? 4 : 2),
+        y: ny * (i === 0 ? 3 : 1.5),
+        duration: 0.35,
+        overwrite: 'auto',
+      }),
+    );
+    if (foil)
+      gsap.to(foil, { xPercent: nx * 25, yPercent: ny * 15, duration: 0.35, overwrite: 'auto' });
+  };
+  const leave = () => {
+    if (!card.classList.contains('turned')) return;
+    ry(180);
+    rx(0);
+    layers().forEach((l) => gsap.to(l, { x: 0, y: 0, duration: 0.4, overwrite: 'auto' }));
+    if (foil) gsap.to(foil, { xPercent: 0, yPercent: 0, duration: 0.4, overwrite: 'auto' });
+  };
+  card.addEventListener('pointermove', move);
+  card.addEventListener('pointerleave', leave);
+  card.addEventListener('pointerup', leave);
 }
 
 /**
