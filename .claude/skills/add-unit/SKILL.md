@@ -5,6 +5,8 @@ description: Add a unit type or a general to the game data with consistent stats
 
 # Add a unit or general
 
+If `docs/history/` has a brief for this troop or general, start from it (history, flavor, suggested modifiers, trait and skills), then balance it.
+
 ## Units
 
 1. **Pick the base archetype** from §4.5. Era units are re-skins of an archetype plus small modifiers: at most ±1 on two stats and at most one extra tag. A brand-new archetype is a design change: log it in `docs/DECISIONS.md` and get the user's approval first.

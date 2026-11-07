@@ -7,6 +7,7 @@ BattleQuest is a turn-based tactical battle simulator for tablets and phones. Yo
 - `docs/GAME_DESIGN.md`: the source of truth for rules, content and UX. Read the relevant section before changing gameplay.
 - `docs/DECISIONS.md`: log of design and implementation decisions that refine or deviate from the design doc. Add an entry whenever you make one.
 - `docs/PROGRESS.md`: milestone checklist.
+- `docs/history/`: researched briefs per age (battles, generals, troops). Use them as the source for any historical content.
 
 ## Architecture rules
 

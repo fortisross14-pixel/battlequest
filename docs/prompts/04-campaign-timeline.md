@@ -16,6 +16,7 @@ Pull the latest branch first. The next goal is the campaign structure:
 - `CLAUDE.md`, including the new **game-dev skills** section;
 - `docs/GAME_DESIGN.md` **§7, rewritten**: the timeline (7.1), age map (7.2), unlock rules and star thresholds (7.3), the Age 0 tutorial (7.4) and the age and battle list (7.5). It is the spec;
 - the project skills `add-battle`, `add-unit` and `rules-change`;
+- the history briefs in `docs/history/` (`age-00-…` and `age-01-…`), if they exist: they are the source for the tutorial and Antiquity battles, troops and generals. If they aren't there yet, research each battle yourself as `add-battle` describes;
 - the third-party skills `level-design` (gating and pacing), `game-ui-ux` (screen stack, safe areas) and `save-systems` (migration).
 
 **Before you start,** confirm that Review 1's work packages are complete in `docs/PROGRESS.md`. If any are unfinished, finish them first.
