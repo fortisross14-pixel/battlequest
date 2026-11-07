@@ -26,6 +26,17 @@ export interface CohesionFactors {
   damage: number;
   arc: Arc;
   adjacentRout: boolean;
+  /** An extra chance to waver (e.g. a Full charge breaking through, 4.12). */
+  extra?: number;
+}
+
+/**
+ * Last stand (for its turns) and Unbreakable (inside the general's command radius) keep a
+ * unit from routing: it holds at Fragmented (GAME_DESIGN 4.12).
+ */
+export function cannotRout(state: BattleState, u: Unit): boolean {
+  if (u.lastStandUntil >= state.turn) return true;
+  return !!u.type.actions?.includes('unbreakable') && inCommandRadius(state, u);
 }
 
 /** Chance that a cohesion test drops the unit one level (section 4.7). */
@@ -34,6 +45,7 @@ export function cohesionDropChance(state: BattleState, u: Unit, f: CohesionFacto
   if (f.arc === 'flank') p += R.flank;
   if (f.arc === 'rear') p += R.rear;
   if (f.adjacentRout) p += R.adjacentRout;
+  if (f.extra) p += f.extra;
   if (u.strength < R.lowStrengthThreshold) p += R.lowStrength;
   p -= R.perMorale * u.type.stats.morale;
   if (inCommandRadius(state, u)) p -= R.commandRadius;
@@ -73,6 +85,7 @@ export function cohesionTest(
   if (!dropped) return;
   // Hold the Line: units in the general's radius cannot fall below Disrupted.
   if (u.cohesion >= Cohesion.Disrupted && holdsTheLine(state, u)) return;
+  if (u.cohesion + 1 >= Cohesion.Routed && cannotRout(state, u)) return;
   if (u.cohesion + 1 >= Cohesion.Routed) routUnit(state, u, 'cohesion', events);
   else setCohesion(u, (u.cohesion + 1) as Cohesion, events);
 }
@@ -171,7 +184,7 @@ export function afterDamage(
     destroyUnit(state, u, 'strength', events);
   } else if (isRouted(u)) {
     return;
-  } else if (u.strength <= R.autoRoutStrength) {
+  } else if (u.strength <= R.autoRoutStrength && !cannotRout(state, u)) {
     routUnit(state, u, 'strength', events);
   } else {
     cohesionTest(state, u, { damage, arc, adjacentRout: friendRoutedNearby(state, u) }, events);

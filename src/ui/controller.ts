@@ -2,6 +2,23 @@ import type { AiPlayer } from '../ai/utility';
 import type { Command } from '../core/engine';
 import { fastForward, haptic, motionSettings } from './motion';
 import { Bubble, type Petal } from './bubble';
+import { ACTION_INFO } from './actionText';
+import { hasAction, parthianDefault, planParthian, volleyArea } from '../core/actions';
+import { hasLineOfSight, shootingRange } from '../core/combat';
+import { arcOf, rangeDistance } from '../core/geometry';
+import { inBounds } from '../core/map';
+import { previewVolley } from '../core/preview';
+import type { PreviewMode } from './hud';
+
+type AttackMode = 'shoot' | 'volley' | 'parthian' | 'engage' | 'full';
+const MODE_LABEL: Record<AttackMode, string> = {
+  shoot: 'Shoot',
+  volley: 'Volley',
+  parthian: 'Parthian shot',
+  engage: 'Engage',
+  full: 'Full charge',
+};
+import { RULES } from '../core/config';
 import { howToPlay, settingsPage } from './controls';
 import { el } from './hud';
 import { validateCommand } from '../core/engine';
@@ -169,6 +186,14 @@ export class Controller {
     }
     this.hud.hideUnitCard();
     if (this.mode.kind === 'preview') {
+      const cell = this.view.screenToCell(x, y);
+      const att = this.unit(this.mode.unitId);
+      const def = this.unit(this.mode.targetId);
+      if (this.volleyAt && cell && att && def) {
+        this.volleyAt = cell;
+        this.showVolley(att, def, this.attackModes(att, 'Shoot'));
+        return;
+      }
       this.cancelPreview();
       return;
     }
@@ -262,6 +287,7 @@ export class Controller {
     });
     this.bubble.open(this.view.cellToClient(u), this.petals(u), this.tutorialRects());
     haptic('light');
+    this.actionHint(u);
     this.refresh();
   }
 
@@ -292,15 +318,10 @@ export class Controller {
         badge: '1 MP',
         run: () => this.openFacingRing(u),
       },
-      {
-        id: 'hold',
-        icon: '⛨',
-        label: 'Hold',
-        enabled: !u.hasActed && !engaged,
-        reason: engaged ? 'In melee' : 'Already acted',
-        run: () => void this.run({ type: 'Hold', unitId: u.id }, null),
-      },
+      this.defencePetal(u, engaged),
     ];
+    const sig = this.signaturePetal(u);
+    if (sig) out.push(sig);
     const g = this.state.sides[u.side].general;
     if (g && !g.lost && g.unitId === u.id && g.skills.length) {
       const ready = g.skills.some((sk) => this.state.turn >= sk.readyTurn);
@@ -321,6 +342,88 @@ export class Controller {
     return out;
   }
 
+  /**
+   * The 6 o'clock petal: Hold, or the card's Fortify or Testudo that replaces it, with its MP
+   * cost (GAME_DESIGN 4.12).
+   */
+  private defencePetal(u: Unit, engaged: boolean): Petal {
+    const stance = hasAction(u, 'testudo') ? 'testudo' : hasAction(u, 'fortify') ? 'fortify' : null;
+    if (!stance) {
+      return {
+        id: 'hold',
+        icon: '⛨',
+        label: 'Hold',
+        enabled: !u.hasActed && !engaged,
+        reason: engaged ? 'In melee' : 'Already acted',
+        run: () => void this.run({ type: 'Hold', unitId: u.id }, null),
+      };
+    }
+    const cmd: Command = { type: stance === 'testudo' ? 'Testudo' : 'Fortify', unitId: u.id };
+    const why = validateCommand(this.state, cmd);
+    const info = ACTION_INFO[stance];
+    return {
+      id: 'hold',
+      icon: info.icon,
+      label: info.name,
+      enabled: !why,
+      reason: why?.message,
+      badge: `${stance === 'testudo' ? RULES.actions.testudo.mp : RULES.actions.fortify.mp} MP`,
+      run: () => void this.run(cmd, u.id),
+    };
+  }
+
+  /** The 7:30 petal: a non-attack signature action (Last stand, Othismos), if the card has one. */
+  private signaturePetal(u: Unit): Petal | null {
+    if (hasAction(u, 'lastStand')) {
+      const cmd: Command = { type: 'LastStand', unitId: u.id };
+      const why = validateCommand(this.state, cmd);
+      return {
+        id: 'signature',
+        icon: ACTION_INFO.lastStand.icon,
+        label: 'Last stand',
+        enabled: !why,
+        reason: why?.message,
+        badge: u.lastStandUsed ? 'used' : '1×',
+        run: () => void this.run(cmd, u.id),
+      };
+    }
+    if (hasAction(u, 'othismos')) {
+      const foe = this.state.units.find(
+        (e) =>
+          e.side !== u.side &&
+          !validateCommand(this.state, { type: 'Othismos', unitId: u.id, targetId: e.id }),
+      );
+      return {
+        id: 'signature',
+        icon: ACTION_INFO.othismos.icon,
+        label: 'Othismos',
+        enabled: !!foe,
+        reason: u.hasActed ? 'Already acted' : 'Needs an enemy in melee in front',
+        run: () => foe && void this.run({ type: 'Othismos', unitId: u.id, targetId: foe.id }, u.id),
+      };
+    }
+    return null;
+  }
+
+  /** A one-time hint the first time the player selects a unit with tactical actions. */
+  private actionHint(u: Unit): void {
+    const acts = u.type.actions ?? [];
+    if (!acts.length || u.side !== this.humanSide()) return;
+    const key = 'battlequest.hint.actions';
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, '1');
+    } catch {
+      return;
+    }
+    const names = acts.map((a) => ACTION_INFO[a].name).join(', ');
+    this.hud.toast(
+      `${u.type.name} has tactical actions: ${names}. Tap ⓘ to read them.`,
+      undefined,
+      5200,
+    );
+  }
+
   /** The unit card (Info petal or long-press). */
   private openInfo(u: Unit): void {
     this.bubble.close();
@@ -329,6 +432,12 @@ export class Controller {
 
   /** The id of the unit whose move the next Undo would take back. */
   private lastMovedId: string | null = null;
+  /** Attack-mode tab chosen per unit and attack type, for the rest of the battle. */
+  private modeMemory = new Map<string, AttackMode>();
+  /** The Volley frame's top-left square while the Volley tab is open. */
+  private volleyAt: Pos | null = null;
+  /** Where a Parthian shot retires to. */
+  private parthianTo: Pos | null = null;
 
   private deselect(): void {
     this.bubble.close();
@@ -392,19 +501,84 @@ export class Controller {
     );
   }
 
-  private openPreview(att: Unit, def: Unit, type: 'Charge' | 'Shoot'): void {
-    const cmd = { type, unitId: att.id, targetId: def.id } as const;
-    if (motionSettings().quickConfirm) {
-      void this.run(cmd, att.id);
+  /** The attack modes a unit has for a target type (GAME_DESIGN 4.12), basic one first. */
+  private attackModes(att: Unit, type: 'Charge' | 'Shoot'): AttackMode[] {
+    if (type === 'Shoot') {
+      const out: AttackMode[] = ['shoot'];
+      if (hasAction(att, 'volley')) out.push('volley');
+      if (hasAction(att, 'parthianShot')) out.push('parthian');
+      return out;
+    }
+    return hasAction(att, 'fullCharge') ? ['engage', 'full'] : ['engage'];
+  }
+
+  /**
+   * The attack preview, with mode tabs when the unit has more than one way to attack. The
+   * chosen tab is remembered per unit for the rest of the battle (UX §2).
+   */
+  private openPreview(att: Unit, def: Unit, type: 'Charge' | 'Shoot', mode?: AttackMode): void {
+    const modes = this.attackModes(att, type);
+    const remembered = this.modeMemory.get(`${att.id}:${type}`);
+    const m = mode ?? (remembered && modes.includes(remembered) ? remembered : modes[0]!);
+    this.modeMemory.set(`${att.id}:${type}`, m);
+    const base = { type, unitId: att.id, targetId: def.id } as const;
+    if (motionSettings().quickConfirm && m !== 'volley') {
+      void this.run(this.attackCommand(att, def, type, m), att.id);
       return;
     }
     this.bubble.close();
-    const p = previewCombat(this.state, cmd);
+    this.view.clearGhost();
+    if (m === 'volley') {
+      this.volleyAt = { x: def.x, y: def.y };
+      this.mode = { kind: 'preview', unitId: att.id, targetId: def.id };
+      this.showVolley(att, def, modes);
+      return;
+    }
+    const p = previewCombat(this.state, { ...base, full: m === 'full' });
     if (isRejection(p)) {
+      if (m !== modes[0]) {
+        // This mode can't be used here: say why, and fall back to the basic attack.
+        this.hud.toast(p.message);
+        this.openPreview(att, def, type, modes[0]);
+        return;
+      }
       this.hud.toast(p.message);
       return;
     }
     this.mode = { kind: 'preview', unitId: att.id, targetId: def.id };
+    const tabs: PreviewMode[] | undefined =
+      modes.length > 1
+        ? modes.map((x) => ({
+            label: MODE_LABEL[x],
+            on: x === m,
+            run: () => this.openPreview(att, def, type, x),
+          }))
+        : undefined;
+    let extra: HTMLElement | undefined;
+    let blocked: string | undefined;
+    if (m === 'full' && p.breakthrough) {
+      const b = p.breakthrough;
+      extra = el(
+        'div',
+        { class: `breakthrough ${b.chance > 0 ? '' : 'none'}` },
+        el('b', {}, `${Math.round(b.chance * 100)}%`),
+        el('span', {}, b.reason ?? 'chance to break through and land behind, facing its rear'),
+      );
+      // A ghost of the cavalry where it would land, already turned.
+      if (b.landing) this.view.showGhost(att, [att, def, b.landing], b.facing);
+    }
+    if (m === 'parthian') {
+      const to = parthianDefault(this.state, att);
+      this.parthianTo = to;
+      extra = el(
+        'p',
+        { class: 'note' },
+        'After the shot the horse archers retire to the ghost square.',
+      );
+      const r = planParthian(this.state, att, to);
+      if (isRejection(r)) blocked = r.message;
+      else if (r.length > 1) this.view.showGhost(att, r, att.facing);
+    }
     const other = type === 'Charge' ? 'Shoot' : 'Charge';
     const canOther = (other === 'Charge' ? this.targets?.charge : this.targets?.shoot)?.includes(
       def,
@@ -416,19 +590,92 @@ export class Controller {
       {
         confirm: () => {
           this.hud.hidePreview();
-          void this.run(cmd, att.id);
+          this.view.clearGhost();
+          void this.run(this.attackCommand(att, def, type, m), att.id);
         },
         cancel: () => this.cancelPreview(),
         alt: canOther
           ? { label: `${other} instead`, run: () => this.openPreview(att, def, other) }
           : undefined,
+        modes: tabs,
+        extra,
+        blocked,
+        confirmLabel:
+          m === 'full' ? 'Full charge' : m === 'parthian' ? 'Shoot and retire' : undefined,
       },
       [this.view.cellToClient(att), this.view.cellToClient(def)],
     );
   }
 
+  private attackCommand(att: Unit, def: Unit, type: 'Charge' | 'Shoot', m: AttackMode): Command {
+    if (m === 'full') return { type: 'Charge', unitId: att.id, targetId: def.id, full: true };
+    if (m === 'parthian') {
+      return {
+        type: 'ParthianShot',
+        unitId: att.id,
+        targetId: def.id,
+        to: this.parthianTo ?? parthianDefault(this.state, att),
+      };
+    }
+    return { type, unitId: att.id, targetId: def.id };
+  }
+
+  /** The Volley frame and its losses; a tap on the map moves the frame. */
+  private showVolley(att: Unit, def: Unit, modes: AttackMode[]): void {
+    const at = this.volleyAt!;
+    const area = volleyArea(at).filter((p) => inBounds(this.state.map, p));
+    const r = shootingRange(this.state, att);
+    const hatched = area.filter(
+      (p) =>
+        rangeDistance(att, p) > r ||
+        arcOf(att, att.facing, p) !== 'front' ||
+        !hasLineOfSight(this.state, att, p),
+    );
+    const vp = previewVolley(this.state, { unitId: att.id, at });
+    const bad = isRejection(vp);
+    this.view.setHighlights({
+      selected: att,
+      reach: [],
+      charge: [],
+      shoot: [],
+      area: { squares: area, bad, hatched },
+    });
+    const rows = bad
+      ? []
+      : vp.targets.map((t) => {
+          const u = this.unit(t.unitId)!;
+          return {
+            name: u.type.name,
+            side: u.side,
+            loss: t.expectedLoss,
+            drop: t.cohesionDropChance,
+          };
+        });
+    this.hud.showVolleyPreview(
+      att,
+      rows,
+      bad ? 0 : vp.total,
+      {
+        confirm: () => {
+          this.hud.hidePreview();
+          void this.run({ type: 'Volley', unitId: att.id, at }, att.id);
+        },
+        cancel: () => this.cancelPreview(),
+        modes: modes.map((x) => ({
+          label: MODE_LABEL[x],
+          on: x === 'volley',
+          run: () => this.openPreview(att, def, 'Shoot', x),
+        })),
+        blocked: bad ? vp.message : undefined,
+      },
+      [this.view.cellToClient(att), this.view.cellToClient(at)],
+    );
+  }
+
   private cancelPreview(): void {
     this.hud.hidePreview();
+    this.view.clearGhost();
+    this.volleyAt = null;
     if ('unitId' in this.mode) this.select(this.mode.unitId);
     else this.deselect();
   }

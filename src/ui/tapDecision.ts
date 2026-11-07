@@ -50,8 +50,12 @@ export function decideCellTap(
     if (there && samePos(there, sel)) return { do: 'deselect' };
     if (there && there.side !== sel.side) {
       const charge = targets.charge.some((u) => u.id === there.id);
-      if (charge || targets.shoot.some((u) => u.id === there.id)) {
-        return { do: 'preview', targetId: there.id, type: charge ? 'Charge' : 'Shoot' };
+      const shoot = targets.shoot.some((u) => u.id === there.id);
+      if (charge || shoot) {
+        // Missile troops shoot by default (Charge is offered too); everyone else charges.
+        const shooter = sel.type.stats.range > 1 && sel.type.stats.ranged > 0;
+        const type = shoot && (shooter || !charge) ? 'Shoot' : 'Charge';
+        return { do: 'preview', targetId: there.id, type };
       }
       // Not a valid target: say which rule blocks it.
       const why =

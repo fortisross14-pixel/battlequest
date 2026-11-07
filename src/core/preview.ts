@@ -11,8 +11,9 @@ import { meleeTargetOf, planCommand } from './engine';
 import type { Arc } from './geometry';
 import { cohesionDropChance, friendRoutedNearby } from './morale';
 import { isRejection, reject, type Rejection } from './rejection';
+import { breakthrough, volleyArea, volleyDamage, type Breakthrough } from './actions';
 import { hasTag, isRouted, requireUnit } from './state';
-import { Cohesion, type BattleState, type Unit } from './types';
+import { Cohesion, type BattleState, type Pos, type Unit } from './types';
 
 export interface SidePreview {
   unitId: string;
@@ -31,6 +32,8 @@ export interface SidePreview {
 
 export interface CombatPreview {
   kind: 'charge' | 'shoot';
+  /** Full charge (GAME_DESIGN 4.12): the chance to break through and where it would land. */
+  breakthrough?: Breakthrough;
   /** mayEvade: the target may slip away; the losses shown are for when it is caught. */
   outcome: 'fight' | 'mayEvade' | 'catchRouter';
   /** Chance the target evades (0 unless outcome is mayEvade). */
@@ -113,7 +116,7 @@ function shotPreview(state: BattleState, victim: Unit, calc: DamageCalc | null):
  */
 export function previewCombat(
   state: BattleState,
-  cmd: { type: 'Charge' | 'Shoot'; unitId: string; targetId: string },
+  cmd: { type: 'Charge' | 'Shoot'; unitId: string; targetId: string; full?: boolean },
 ): CombatPreview | Rejection {
   const plan = planCommand(state, cmd);
   if (isRejection(plan)) return plan;
@@ -148,9 +151,14 @@ export function previewCombat(
     };
   }
   const mayEvade = canEvade(sim, def) && evadePath(sim, def, plan.plan.dir).length > 1;
+  const full = !!cmd.full;
+  // A Full charge's breakthrough, worked out from where the charger starts (as in the rules).
+  const through = full
+    ? breakthrough(state, requireUnit(state, att.id), requireUnit(state, def.id), plan.plan)
+    : undefined;
 
   // Impact: both strike at once.
-  const hit = computeDamage(sim, att, def, 'charge', { runUp: plan.plan.path.length - 1 });
+  const hit = computeDamage(sim, att, def, 'charge', { runUp: plan.plan.path.length - 1, full });
   const back = computeDamage(sim, def, att, 'counter');
   const defStart = def.strength;
   const attStart = att.strength;
@@ -162,9 +170,10 @@ export function previewCombat(
   // First melee round, if neither side routs at impact. The defender strikes the
   // charger only if it is the opponent the real melee phase would pick.
   // Chariots (HitAndRun) fall back after the impact, so there is no melee round.
+  // No melee round after a breakthrough: weight it by the chance of being held.
   const fights = hasTag(att, 'HitAndRun')
     ? 0
-    : (1 - (p1Def >= 1 ? 1 : 0)) * (1 - (p1Att >= 1 ? 1 : 0));
+    : (1 - (p1Def >= 1 ? 1 : 0)) * (1 - (p1Att >= 1 ? 1 : 0)) * (1 - (through?.chance ?? 0));
   def.strength = defStart - impactDef;
   att.strength = attStart - impactAtt;
   sim.engagements.push({ a: att.id, b: def.id });
@@ -185,9 +194,39 @@ export function previewCombat(
 
   return {
     kind: 'charge',
+    ...(through ? { breakthrough: through } : {}),
     outcome: mayEvade ? 'mayEvade' : 'fight',
     evadeChance: mayEvade ? evadeChance(att, def) : 0,
     attacker: outcome(att, attStart, impactAtt, meleeAtt, p1Att, p2Att, back.situational),
     defender: outcome(def, defStart, impactDef, meleeDef, p1Def, p2Def, hit.situational),
+  };
+}
+
+export interface VolleyPreview {
+  kind: 'volley';
+  area: Pos[];
+  /** Expected loss and test odds for each enemy in the area. */
+  targets: SidePreview[];
+  total: number;
+}
+
+/**
+ * Expected-value preview of a Volley (GAME_DESIGN 4.12): the real validation and the real
+ * Volley damage for each enemy in the 2×2 area.
+ */
+export function previewVolley(
+  state: BattleState,
+  cmd: { unitId: string; at: Pos },
+): VolleyPreview | Rejection {
+  const plan = planCommand(state, { type: 'Volley', unitId: cmd.unitId, at: cmd.at });
+  if (isRejection(plan)) return plan;
+  if (plan.type !== 'Volley') return reject('BAD_TARGET', 'Not a Volley.');
+  const att = requireUnit(state, cmd.unitId);
+  const targets = plan.targets.map((t) => shotPreview(state, t, volleyDamage(state, att, t)));
+  return {
+    kind: 'volley',
+    area: volleyArea(cmd.at),
+    targets,
+    total: targets.reduce((a, t) => a + t.expectedLoss, 0),
   };
 }

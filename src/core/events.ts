@@ -10,9 +10,13 @@ export type MoveKind =
   | 'rout'
   | 'pursuit'
   | 'pushBack'
-  | 'followUp';
+  | 'followUp'
+  /** Full charge: the cavalry passes through its target (4.12). */
+  | 'breakthrough'
+  /** Parthian shot: retiring after the shot (4.12). */
+  | 'retire';
 /** `stampede`: a routing elephant unit trampling its own side. */
-export type DamageKind = 'ranged' | 'impact' | 'melee' | 'stampede';
+export type DamageKind = 'ranged' | 'impact' | 'melee' | 'stampede' | 'trample';
 
 /** Everything the renderer needs to animate a state change. */
 export type GameEvent =
@@ -21,6 +25,27 @@ export type GameEvent =
   | { type: 'ChargeDeclared'; unitId: string; targetId: string; path: Pos[] }
   | { type: 'ShotFired'; unitId: string; targetId: string }
   | { type: 'HoldDeclared'; unitId: string }
+  /** Tactical actions (GAME_DESIGN 4.12). */
+  | { type: 'VolleyFired'; unitId: string; at: Pos; targetIds: string[] }
+  | { type: 'Fortified'; unitId: string }
+  | { type: 'TestudoFormed'; unitId: string }
+  | { type: 'LastStandDeclared'; unitId: string }
+  | {
+      type: 'BreakthroughRoll';
+      unitId: string;
+      targetId: string;
+      chance: number;
+      roll: number;
+      success: boolean;
+    }
+  | {
+      type: 'OthismosRoll';
+      unitId: string;
+      targetId: string;
+      chance: number;
+      roll: number;
+      pushed: boolean;
+    }
   | { type: 'EvadeRoll'; unitId: string; chance: number; roll: number; evaded: boolean }
   | {
       type: 'DamageDealt';

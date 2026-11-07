@@ -1,5 +1,6 @@
 import { RULES } from '../core/config';
 import { layout } from './layout';
+import { actionList } from './actionList';
 import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
@@ -102,6 +103,12 @@ export interface MedallionInfo {
   /** 0–1, how much of the cooldown has passed. */
   progress: number;
   label: string;
+}
+
+export interface PreviewMode {
+  label: string;
+  on: boolean;
+  run: () => void;
 }
 
 export interface MenuItem {
@@ -571,7 +578,18 @@ export class Hud {
     p: CombatPreview,
     att: Unit,
     def: Unit,
-    actions: { confirm: () => void; cancel: () => void; alt?: { label: string; run: () => void } },
+    actions: {
+      confirm: () => void;
+      cancel: () => void;
+      alt?: { label: string; run: () => void };
+      /** Attack-mode tabs (GAME_DESIGN 4.12): Shoot | Volley, Engage | Full charge… */
+      modes?: PreviewMode[];
+      /** A block under the tags (the breakthrough chance, the retreat square…). */
+      extra?: HTMLElement;
+      /** Why the attack can't be confirmed in this mode. */
+      blocked?: string;
+      confirmLabel?: string;
+    },
     /** Client positions of the two units: the panel docks where it covers neither. */
     units: { x: number; y: number }[] = [],
   ): void {
@@ -623,8 +641,9 @@ export class Hud {
     const confirm = el(
       'button',
       { class: 'btn primary', type: 'button' },
-      `Confirm ${verb.toLowerCase()}`,
+      actions.confirmLabel ?? `Confirm ${verb.toLowerCase()}`,
     );
+    if (actions.blocked) confirm.disabled = true;
     const cancel = el('button', { class: 'btn', type: 'button' }, 'Cancel');
     confirm.onclick = actions.confirm;
     cancel.onclick = actions.cancel;
@@ -636,8 +655,11 @@ export class Hud {
     }
     buttons.append(confirm);
     this.panel.replaceChildren(
+      actions.modes ? this.modeTabs(actions.modes) : '',
       el('h2', {}, `${verb}: ${att.type.name} → ${def.type.name}`),
       el('p', { class: 'note' }, note),
+      actions.extra ?? '',
+      actions.blocked ? el('p', { class: 'warn' }, actions.blocked) : '',
       tags.length
         ? el('div', { class: 'preview-tags' }, ...tags.map((t) => el('span', {}, t)))
         : '',
@@ -651,6 +673,11 @@ export class Hud {
     );
     // Dock away from the attacker and the target, so the fight stays in view: measure the
     // panel, then pick the end of the screen that covers neither (or fewer) of them.
+    this.dockPanel(units);
+  }
+
+  /** Shows the preview panel where it covers neither unit of the fight (or fewer). */
+  private dockPanel(units: { x: number; y: number }[]): void {
     this.panel.classList.remove('hidden');
     const margin = 36;
     const hits = (dock: string) => {
@@ -677,6 +704,71 @@ export class Hud {
       if (h === 0) break;
     }
     hits(best);
+  }
+
+  private modeTabs(modes: PreviewMode[]): HTMLElement {
+    return el(
+      'div',
+      { class: 'mode-tabs', role: 'tablist' },
+      ...modes.map((m) => {
+        const b = el(
+          'button',
+          { class: `mode-tab ${m.on ? 'on' : ''}`, type: 'button', role: 'tab' },
+          m.label,
+        );
+        b.setAttribute('aria-selected', String(m.on));
+        b.onclick = m.run;
+        return b;
+      }),
+    );
+  }
+
+  /** The Volley preview: losses for each unit in the frame and the total (GAME_DESIGN 4.12). */
+  showVolleyPreview(
+    att: Unit,
+    rows: { name: string; side: Side; loss: number; drop: number }[],
+    total: number,
+    actions: { confirm: () => void; cancel: () => void; modes: PreviewMode[]; blocked?: string },
+    units: { x: number; y: number }[] = [],
+  ): void {
+    const confirm = el('button', { class: 'btn primary', type: 'button' }, 'Fire volley');
+    confirm.disabled = !!actions.blocked;
+    confirm.onclick = actions.confirm;
+    const cancel = el('button', { class: 'btn', type: 'button' }, 'Cancel');
+    cancel.onclick = actions.cancel;
+    this.panel.replaceChildren(
+      this.modeTabs(actions.modes),
+      el('h2', {}, `Volley: ${att.type.name}`),
+      el(
+        'p',
+        { class: 'note' },
+        'Tap a square on the map to move the 2×2 frame. Every enemy inside is hit.',
+      ),
+      rows.length
+        ? el(
+            'ul',
+            { class: 'volley-rows' },
+            ...rows.map((r) =>
+              el(
+                'li',
+                { class: r.side },
+                el('span', {}, r.name),
+                el('b', {}, `−${Math.round(r.loss)}`),
+                el('small', {}, `waver ${pct(r.drop)}`),
+              ),
+            ),
+            el(
+              'li',
+              { class: 'total' },
+              el('span', {}, 'Total'),
+              el('b', {}, `−${Math.round(total)}`),
+            ),
+          )
+        : '',
+      actions.blocked ? el('p', { class: 'warn' }, actions.blocked) : '',
+      el('div', { class: 'row' }, cancel, confirm),
+    );
+    this.dockPanel(units);
   }
 
   hidePreview(): void {
@@ -731,6 +823,7 @@ export class Hud {
       u.type.tags.length
         ? el('ul', { class: 'tags' }, ...u.type.tags.map((t) => el('li', {}, TAG_TEXT[t])))
         : '',
+      actionList(u.type.id, u.type.actions),
       u.status === 'active'
         ? el('p', { class: 'ground' }, el('b', {}, 'Ground: '), groundText(state, u))
         : '',

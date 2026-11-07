@@ -66,6 +66,10 @@ export function createUnit(u: ScenarioUnit): Unit {
     ammoUsed: false,
     lastShotTurn: -99,
     holdFast: 1,
+    fortified: false,
+    testudo: false,
+    lastStandUntil: 0,
+    lastStandUsed: false,
   };
 }
 

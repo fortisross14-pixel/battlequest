@@ -62,6 +62,23 @@ export type UnitTag =
   | 'HelplessInMelee'
   | 'Bounce';
 
+/**
+ * Tactical actions (GAME_DESIGN 4.12): real choices on better cards, beyond Move, the basic
+ * attack and Hold. At most 3 per unit besides Move and Hold.
+ */
+export type ActionId =
+  | 'volley'
+  | 'fortify'
+  | 'fullCharge'
+  | 'testudo'
+  | 'pilaVolley'
+  | 'othismos'
+  | 'parthianShot'
+  | 'feignedRetreat'
+  | 'trample'
+  | 'lastStand'
+  | 'unbreakable';
+
 export interface UnitStats {
   mp: number;
   melee: number;
@@ -85,6 +102,10 @@ export interface UnitType {
   symbol: UnitSymbol;
   stats: UnitStats;
   tags: UnitTag[];
+  /** Tactical actions this card has (GAME_DESIGN 4.12). */
+  actions?: ActionId[];
+  /** Added to the Full charge breakthrough chance (a Legendary's upgraded version). */
+  breakthroughBonus?: number;
   /** Troop level 1–5 from the player's roster (display only: the stats already include it). */
   level?: number;
 }
@@ -139,6 +160,14 @@ export interface Unit {
   lastShotTurn: number;
   /** Damage-taken multiplier from Hold Fast, until the start of its side's next turn (1 = none). */
   holdFast: number;
+  /** Fortify (4.12): until it moves or its side's next turn starts. */
+  fortified: boolean;
+  /** Testudo (4.12): until it moves. */
+  testudo: boolean;
+  /** Last stand (4.12): active while state.turn <= this; 0 = not active. */
+  lastStandUntil: number;
+  /** Last stand is once per battle. */
+  lastStandUsed: boolean;
 }
 
 /** What a general's active skill does (GAME_DESIGN 6.2). Data, resolved by core/generals.ts. */

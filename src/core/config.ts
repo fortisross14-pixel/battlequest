@@ -110,6 +110,67 @@ export const RULES = {
     autoRoutStrength: 25,
     rallyChance: 0.35,
   },
+  /** Tactical actions (GAME_DESIGN 4.12). Starting points; balance-sim tunes them. */
+  actions: {
+    volley: {
+      /** Each enemy in the 2×2 area takes this share of a focused shot. */
+      factor: 0.55,
+      size: 2,
+    },
+    fortify: {
+      mp: 1,
+      /** Damage taken from every attack. */
+      damageTaken: 0.75,
+      /** Against a frontal cavalry or chariot charge: counter-impact and charger impact. */
+      counterImpact: 2,
+      chargerImpact: 0.5,
+    },
+    fullCharge: {
+      impact: 1.25,
+      minRunUp: 2,
+      base: 0.3,
+      /** Per point of the charger's impact above the defender's armor. */
+      perPoint: 0.05,
+      disrupted: 0.15,
+      fragmented: 0.3,
+      /** Against a fortified or anti-cavalry defender facing the charge (never possible). */
+      braced: -0.4,
+      cap: 0.75,
+      /** The defender's extra cohesion test when the cavalry breaks through. */
+      defenderTest: 0.25,
+    },
+    testudo: {
+      mp: 1,
+      /** Ranged damage taken until the unit moves. */
+      rangedTaken: 0.4,
+    },
+    othismos: {
+      /** Chance the shove pushes the enemy back one square. */
+      base: 0.5,
+      perStrength: 0.005,
+      perMelee: 0.05,
+      min: 0.1,
+      max: 0.85,
+      /** Extra chance to waver for the unit pushed back. */
+      cohesion: 0.15,
+    },
+    parthianShot: {
+      /** Share of the unit's MP it may retire after the shot, ignoring zones of control. */
+      mpFraction: 0.5,
+    },
+    feignedRetreat: {
+      /** Evade chance when charged (the pursuer is left Disrupted). */
+      evade: 0.9,
+    },
+    trample: {
+      /** Impact on the units on either side of an elephant's target. */
+      factor: 0.4,
+    },
+    lastStand: {
+      turns: 2,
+      melee: 1.2,
+    },
+  },
   generals: {
     /** [minimum rank, command radius] (6.1). */
     radiusByRank: [

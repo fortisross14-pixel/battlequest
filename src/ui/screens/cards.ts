@@ -5,6 +5,7 @@ import { commandRadiusForRank, scaled, type Rarity } from '../../core/generals';
 import type { Side, UnitStats } from '../../core/types';
 import { armyPower, generalPower } from '../../meta/army';
 import { el, TAG_TEXT } from '../hud';
+import { actionList } from '../actionList';
 import { unitIcon } from '../icons';
 import { html, initials, RARITY_LABEL } from './common';
 
@@ -123,6 +124,7 @@ export function troopDetails(def: EraUnitDef, level: number): HTMLElement {
     t.tags.length
       ? el('ul', { class: 'tags' }, ...t.tags.map((tag) => el('li', {}, TAG_TEXT[tag])))
       : '',
+    actionList(def.id, def.actions),
     el('p', { class: 'flavor' }, def.flavor),
     el('small', {}, `Age ${def.age} · ${t.stats.cost} points`),
   );

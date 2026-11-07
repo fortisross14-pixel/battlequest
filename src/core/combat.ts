@@ -69,7 +69,7 @@ export function effectiveCohesion(state: BattleState, u: Unit): Cohesion {
 }
 
 /** True if this AntiCavalry unit has cavalry to its front. */
-function antiCavalryFront(def: Unit, cav: Unit): boolean {
+export function antiCavalryFront(def: Unit, cav: Unit): boolean {
   return (
     (hasTag(def, 'AntiCavalry') || hasTag(def, 'AntiCavalryStrong')) &&
     isCavalryLike(cav.type) &&
@@ -88,10 +88,14 @@ function effectiveAttack(state: BattleState, att: Unit, def: Unit, role: DamageR
   else if (role === 'charge') mods.push({ label: 'Impact', value: s.impact });
   else if (usesImpact) {
     mods.push({ label: 'Impact', value: s.impact });
-    mods.push({
-      label: 'Braced spears vs cavalry',
-      value: strong ? C.antiCavalry.defenderBonusStrong : C.antiCavalry.defenderBonus,
-    });
+    mods.push(
+      att.fortified
+        ? { label: 'Fortified spears vs cavalry', value: RULES.actions.fortify.counterImpact }
+        : {
+            label: 'Braced spears vs cavalry',
+            value: strong ? C.antiCavalry.defenderBonusStrong : C.antiCavalry.defenderBonus,
+          },
+    );
   } else {
     mods.push({ label: 'Melee', value: s.melee });
     mods.push({ label: 'Counter at impact', value: C.defenderMeleeOnImpact });
@@ -99,10 +103,14 @@ function effectiveAttack(state: BattleState, att: Unit, def: Unit, role: DamageR
 
   if (role === 'charge' && antiCavalryFront(def, att)) {
     const defStrong = hasTag(def, 'AntiCavalryStrong');
-    mods.push({
-      label: 'Charging spears frontally',
-      value: defStrong ? C.antiCavalry.chargerPenaltyStrong : C.antiCavalry.chargerPenalty,
-    });
+    mods.push(
+      def.fortified
+        ? { label: 'Charging fortified spears', value: RULES.actions.fortify.chargerImpact }
+        : {
+            label: 'Charging spears frontally',
+            value: defStrong ? C.antiCavalry.chargerPenaltyStrong : C.antiCavalry.chargerPenalty,
+          },
+    );
   }
   if (role === 'melee' && antiCavalryFront(att, def)) {
     mods.push({ label: 'Spears vs cavalry', value: C.antiCavalry.meleeBonus });
@@ -136,7 +144,7 @@ export function computeDamage(
   att: Unit,
   def: Unit,
   role: DamageRole,
-  opts: { runUp?: number } = {},
+  opts: { runUp?: number; full?: boolean } = {},
 ): DamageCalc {
   const atkMods = effectiveAttack(state, att, def, role);
   const effAtk = product(atkMods);
@@ -186,6 +194,17 @@ export function computeDamage(
   if (role === 'ranged' && terrainRules(state.map, def).cover)
     sit.push({ label: 'Target in cover', value: C.coverVsRanged });
   if (def.bracing) sit.push({ label: 'Target bracing', value: C.bracing });
+  // Tactical actions (GAME_DESIGN 4.12).
+  const A = RULES.actions;
+  if (def.fortified) sit.push({ label: 'Target fortified', value: A.fortify.damageTaken });
+  if (role === 'ranged' && def.testudo) {
+    sit.push({ label: 'Target in testudo', value: A.testudo.rangedTaken });
+  }
+  if (role === 'charge' && opts.full)
+    sit.push({ label: 'Full charge', value: A.fullCharge.impact });
+  if (role === 'melee' && att.lastStandUntil >= state.turn) {
+    sit.push({ label: 'Last stand', value: A.lastStand.melee });
+  }
   if (def.holdFast !== 1) sit.push({ label: 'Target holds fast', value: def.holdFast });
   const coh = effectiveCohesion(state, att);
   if (coh === Cohesion.Disrupted) sit.push({ label: 'Disrupted', value: C.disrupted });

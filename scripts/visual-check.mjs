@@ -235,6 +235,27 @@ for (const size of SIZES) {
   await page.waitForTimeout(400);
   await shot(page, size, '13-red-turn');
 
+  // Tactical actions (GAME_DESIGN 4.12): attack-mode tabs and the Fortify petal.
+  await open(page, 'scenario=debug-actions&seed=1');
+  await tapCell(page, 3, 1);
+  await tapCell(page, 6, 1);
+  await page.getByRole('tab', { name: /^Volley/ }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '13b-volley-tab');
+  await page.getByRole('button', { name: 'Cancel' }).tap();
+  await tapCell(page, 2, 4);
+  await tapCell(page, 6, 4);
+  await page.getByRole('tab', { name: /^Full charge/ }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '13c-full-charge-tab');
+  await page.getByRole('button', { name: 'Cancel' }).tap();
+  await tapCell(page, 4, 6);
+  await page.waitForTimeout(500);
+  await shot(page, size, '13d-fortify-petal');
+  await page.locator('.petal.hold').tap();
+  await page.waitForTimeout(800);
+  await shot(page, size, '13e-fortified');
+
   // Endgame: one charge breaks the red army and the result screen appears.
   await open(page, 'scenario=debug-endgame&seed=1');
   await tapCell(page, 3, 3);

@@ -1,3 +1,5 @@
+import { previewVolley } from '../core/preview';
+import { hasAction } from '../core/actions';
 import {
   arcOf,
   chebyshev,
@@ -94,6 +96,11 @@ export const AI_WEIGHTS = {
   shooterAhead: 3,
   /** Moving first costs a little, so a direct charge beats an equal move + charge. */
   moveChargeCost: 0.5,
+  /** Tactical actions (GAME_DESIGN 4.12): value of a breakthrough, the chance worth trying. */
+  breakthrough: 10,
+  fullChargeMinChance: 0.4,
+  /** A Volley must hit at least this many units to be worth more than a focused shot. */
+  volleyMinTargets: 2,
   /** A worthwhile general skill. */
   skill: 12,
   /** Posture triggers: an enemy this close… */
@@ -273,6 +280,10 @@ export class AiPlayer implements CommandSource {
     }
     if (best) return best;
 
+    if (!u.hasActed && hasAction(u, 'fortify') && this.cavalryThreat(state, u)) {
+      const cmd: Command = { type: 'Fortify', unitId: u.id };
+      if (!validateCommand(state, cmd)) return { unitId: u.id, cmd, value: 0.5 };
+    }
     if (stage === 'fresh' && u.mpLeft > 0) {
       const move = this.bestMove(state, u, stance);
       if (move) return { unitId: u.id, cmd: move.cmd, value: move.gain * AI_WEIGHTS.moveScale };
@@ -383,15 +394,83 @@ export class AiPlayer implements CommandSource {
 
   private bestAttack(state: BattleState, u: Unit): { cmd: Command; value: number } | null {
     let best: { cmd: Command; value: number } | null = null;
+    const offer = (cmd: Command, v: number | null) => {
+      if (v !== null && (!best || v > best.value)) best = { cmd, value: v };
+    };
     for (const e of state.units) {
       if (e.side === u.side || !isOnMap(e)) continue;
       for (const type of ['Charge', 'Shoot'] as const) {
         const cmd = { type, unitId: u.id, targetId: e.id };
-        const v = this.attackScore(state, u, cmd);
-        if (v !== null && (!best || v > best.value)) best = { cmd, value: v };
+        offer(cmd, this.attackScore(state, u, cmd));
+      }
+      // Full charge (4.12): when the chance is good and the landing square is safe.
+      if (hasAction(u, 'fullCharge')) {
+        const full = { type: 'Charge' as const, unitId: u.id, targetId: e.id, full: true };
+        offer(full, this.fullChargeScore(state, u, e));
+      }
+    }
+    // Volley (4.12): at two or more bunched units.
+    if (hasAction(u, 'volley')) {
+      const v = this.bestVolley(state, u);
+      if (v) offer(v.cmd, v.value);
+    }
+    return best;
+  }
+
+  private fullChargeScore(state: BattleState, u: Unit, e: Unit): number | null {
+    const p = previewCombat(state, { type: 'Charge', unitId: u.id, targetId: e.id, full: true });
+    if (isRejection(p) || !p.breakthrough?.landing) return null;
+    const b = p.breakthrough;
+    if (b.chance < AI_WEIGHTS.fullChargeMinChance) return null;
+    // Landing next to other fresh enemies is no breakthrough: it is a trap.
+    const around = state.units.filter(
+      (x) => x.side !== u.side && x.id !== e.id && isFighting(x) && chebyshev(x, b.landing!) <= 1,
+    ).length;
+    if (around > 0) return null;
+    return attackValue(p) + AI_WEIGHTS.breakthrough * b.chance;
+  }
+
+  private bestVolley(state: BattleState, u: Unit): { cmd: Command; value: number } | null {
+    let best: { cmd: Command; value: number } | null = null;
+    const tried = new Set<string>();
+    for (const e of state.units) {
+      if (e.side === u.side || !isOnMap(e)) continue;
+      for (const [dx, dy] of [
+        [0, 0],
+        [-1, 0],
+        [0, -1],
+        [-1, -1],
+      ] as const) {
+        const at = { x: e.x + dx, y: e.y + dy };
+        const key = `${at.x},${at.y}`;
+        if (tried.has(key)) continue;
+        tried.add(key);
+        const vp = previewVolley(state, { unitId: u.id, at });
+        if (isRejection(vp) || vp.targets.length < AI_WEIGHTS.volleyMinTargets) continue;
+        const value =
+          vp.total +
+          vp.targets.reduce(
+            (a, t) =>
+              a + AI_WEIGHTS.cohesionDrop * t.cohesionDropChance + AI_WEIGHTS.rout * t.routChance,
+            0,
+          );
+        if (!best || value > best.value)
+          best = { cmd: { type: 'Volley', unitId: u.id, at }, value };
       }
     }
     return best;
+  }
+
+  /** Enemy horse that could charge this unit's front next turn. */
+  private cavalryThreat(state: BattleState, u: Unit): boolean {
+    return state.units.some(
+      (e) =>
+        e.side !== u.side &&
+        isFighting(e) &&
+        isCavalryLike(e.type) &&
+        chebyshev(e, u) <= Math.ceil(e.type.stats.mp / 2) + 1 &&
+        arcOf(u, u.facing, e) === 'front',
+    );
   }
 
   /**

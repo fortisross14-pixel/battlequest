@@ -23,7 +23,14 @@ export type RejectionCode =
   | 'NO_AMMO'
   | 'NOTHING_TO_UNDO'
   | 'NO_GENERAL'
-  | 'SKILL_COOLDOWN';
+  | 'SKILL_COOLDOWN'
+  /** Tactical actions (GAME_DESIGN 4.12). */
+  | 'NO_ACTION'
+  | 'FRIENDLY_FIRE'
+  | 'USED'
+  | 'NO_RUN_UP'
+  | 'OCCUPIED'
+  | 'OUT_OF_REACH';
 
 /** Why a command was refused. `message` is written for players. */
 export interface Rejection {

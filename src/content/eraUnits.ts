@@ -1,4 +1,4 @@
-import type { UnitStats, UnitTag, UnitType } from '../core/types';
+import type { ActionId, UnitStats, UnitTag, UnitType } from '../core/types';
 import type { Rarity } from '../core/generals';
 import { ARCHETYPES, type ArchetypeId } from './units';
 
@@ -22,6 +22,10 @@ export interface EraUnitDef {
   mods?: Partial<Record<keyof UnitStats, -1 | 1>>;
   /** A Legendary's signature ability, or another specialty. */
   extraTag?: UnitTag;
+  /** Tactical actions (GAME_DESIGN 4.12): at most 3 besides Move and Hold; Commons get none. */
+  actions?: ActionId[];
+  /** A Legendary's upgraded Full charge. */
+  breakthroughBonus?: number;
   /** Only enemy armies field it: never in packs, rewards or the Army screen. */
   enemyOnly?: true;
 }
@@ -127,6 +131,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Hoplite phalanx represent a historically attested battlefield role in Greek city-states forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { armor: 1, morale: 1 },
+    actions: ['fortify'],
   },
   {
     id: 'persianShieldArchers',
@@ -138,6 +143,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Persian shield archers represent a historically attested battlefield role in Achaemenid Persia forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { armor: 1, ranged: -1 },
+    actions: ['volley'],
   },
   {
     id: 'spartanHoplites',
@@ -149,6 +155,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Spartan hoplites represent a historically attested battlefield role in Sparta forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { melee: 1, morale: 1 },
+    actions: ['fortify', 'othismos'],
   },
   {
     id: 'macedonianPhalanx',
@@ -160,6 +167,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Macedonian phalanx represent a historically attested battlefield role in Macedon forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { morale: 1, armor: -1 },
+    actions: ['fortify'],
   },
   {
     id: 'companionCavalry',
@@ -172,6 +180,8 @@ export const ERA_UNITS: EraUnitDef[] = [
       'Companion cavalry represent a historically attested battlefield role in Macedon forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { impact: 1, morale: 1 },
     extraTag: 'LightTurn',
+    actions: ['fullCharge'],
+    breakthroughBonus: 0.15,
   },
   {
     id: 'thebanSacredBand',
@@ -183,6 +193,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Theban Sacred Band represent a historically attested battlefield role in Thebes forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { melee: 1, morale: 1 },
+    actions: ['lastStand'],
   },
   {
     id: 'indianElephants',
@@ -194,6 +205,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Indian war elephants represent a historically attested battlefield role in Paurava kingdom forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { morale: 1, mp: -1 },
+    actions: ['trample'],
   },
   // Enemy-only: a real elite troop the player meets but never collects.
   {
@@ -262,6 +274,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Roman legionaries represent a historically attested battlefield role in Roman Republic and Empire forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { armor: 1, morale: 1 },
+    actions: ['pilaVolley', 'testudo'],
   },
   {
     id: 'carthaginianCavalry',
@@ -273,6 +286,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Carthaginian cavalry represent a historically attested battlefield role in Carthage and Numidia forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { mp: 1, armor: -1 },
+    actions: ['feignedRetreat'],
   },
   {
     id: 'hellenisticPhalanx',
@@ -285,6 +299,7 @@ export const ERA_UNITS: EraUnitDef[] = [
       'Hellenistic phalanx represent a historically attested battlefield role in Macedonian kingdoms forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { morale: 1, armor: -1 },
     enemyOnly: true,
+    actions: ['fortify'],
   },
   {
     id: 'parthianHorseArchers',
@@ -296,6 +311,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Parthian horse archers represent a historically attested battlefield role in Parthia forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { ranged: 1, melee: -1 },
+    actions: ['parthianShot'],
   },
   {
     id: 'romanAuxiliaries',
@@ -307,6 +323,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Roman auxiliaries represent a historically attested battlefield role in Roman Empire forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { ranged: 1, morale: -1 },
+    actions: ['volley'],
   },
   {
     id: 'cataphracts',
@@ -318,6 +335,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Cataphracts represent a historically attested battlefield role in Parthia and late Rome forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { armor: 1, mp: -1 },
+    actions: ['fullCharge'],
   },
   {
     id: 'classicalElephants',
@@ -329,6 +347,7 @@ export const ERA_UNITS: EraUnitDef[] = [
     history:
       'Classical war elephants represent a historically attested battlefield role in Carthage and Hellenistic kingdoms forces. Their small stat shift is a game abstraction, not a claim that every formation fought identically.',
     mods: { morale: 1, mp: -1 },
+    actions: ['trample'],
   },
 
   // Prompt 06: the Classical Legendary troop, added to the brief's ladder.
@@ -343,6 +362,7 @@ export const ERA_UNITS: EraUnitDef[] = [
       'Caesar’s Tenth Legion was his most trusted unit in the Gallic War; he mounted it on horses to escort him to Ariovistus (Gallic War 1.42), and at Pharsalus it held his right, where his reserve cohorts used their pila as spears against Pompey’s cavalry (Civil War 3.89–93).',
     mods: { melee: 1, morale: 1 },
     extraTag: 'AntiCavalry',
+    actions: ['testudo', 'pilaVolley', 'unbreakable'],
   },
 ];
 
@@ -380,7 +400,16 @@ export function eraUnitType(id: string, level = 1): UnitType {
   stats.ranged *= lv;
   stats.morale *= lv;
   const tags = def.extraTag ? [...base.tags, def.extraTag] : [...base.tags];
-  return { ...base, id: def.id, name: def.name, stats, tags, level: Math.max(1, level) };
+  return {
+    ...base,
+    id: def.id,
+    name: def.name,
+    stats,
+    tags,
+    level: Math.max(1, level),
+    ...(def.actions ? { actions: [...def.actions] } : {}),
+    ...(def.breakthroughBonus ? { breakthroughBonus: def.breakthroughBonus } : {}),
+  };
 }
 
 /**

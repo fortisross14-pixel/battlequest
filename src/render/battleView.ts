@@ -19,6 +19,8 @@ export interface Highlights {
   skill?: Pos[];
   /** Squares a selected missile unit can shoot at from where it stands (its range). */
   range?: Pos[];
+  /** A Volley's 2×2 frame (red when it can't be fired), with out-of-range squares hatched. */
+  area?: { squares: Pos[]; bad: boolean; hatched: Pos[] };
 }
 
 export interface RingHandle {
@@ -323,6 +325,27 @@ export class BattleView {
         width: 4,
         color: THEME.select,
       });
+    }
+    if (h.area) {
+      const color = h.area.bad ? THEME.charge : THEME.ink;
+      const xs = h.area.squares.map((p) => p.x);
+      const ys = h.area.squares.map((p) => p.y);
+      const x0 = Math.min(...xs) * CELL + 2;
+      const y0 = Math.min(...ys) * CELL + 2;
+      const w = (Math.max(...xs) + 1) * CELL - 2 - x0;
+      const hgt = (Math.max(...ys) + 1) * CELL - 2 - y0;
+      g.rect(x0, y0, w, hgt).fill({ color, alpha: 0.08 });
+      g.rect(x0, y0, w, hgt).stroke({ width: 4, color, alpha: 0.85 });
+      for (const p of h.area.hatched) {
+        for (let k = 8; k < CELL * 2; k += 12) {
+          const ax = p.x * CELL + Math.max(0, k - CELL);
+          const ay = p.y * CELL + Math.min(k, CELL);
+          const bx = p.x * CELL + Math.min(k, CELL);
+          const by = p.y * CELL + Math.max(0, k - CELL);
+          g.moveTo(ax, ay).lineTo(bx, by);
+        }
+        g.stroke({ width: 1.5, color: THEME.ink, alpha: 0.35 });
+      }
     }
     if (h.selected) {
       const p = h.selected;
