@@ -512,6 +512,18 @@ for (const size of SIZES) {
   await shot(page, size, '43-picker-limits');
   await page.locator('.picker').getByRole('button', { name: 'Close' }).tap();
 
+  // The Army screen with its age and role filters (UX §4): Antiquity cavalry.
+  await page.evaluate(() => window.__bq.app.roster('troops'));
+  await page.waitForTimeout(400);
+  await shot(page, size, '43b-army-antiquity');
+  await page.getByRole('radio', { name: /^Cavalry/ }).tap();
+  await page.waitForTimeout(500);
+  await shot(page, size, '43c-army-cavalry');
+  await page.getByRole('radio', { name: /^All roles/ }).tap();
+  await page.evaluate(() => window.__bq.app.roster('generals'));
+  await page.waitForTimeout(400);
+  await shot(page, size, '43d-army-generals');
+
   // New Antiquity battlefields: scythed chariots at Gaugamela, elephants at Hydaspes.
   // Classical Empires: every Antiquity main battle won opens it; some battles starred.
   await page.evaluate(async () => {

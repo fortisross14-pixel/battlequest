@@ -1,0 +1,623 @@
+/* Ceremonies (motion skill): pack openings, hero reveals, victory, defeat, title card,
+   unlock moments. Ink, paper, wax and brass. Only transform and opacity animate. */
+
+.ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2.4vh, 18px);
+  padding: calc(12px + var(--safe-t)) calc(16px + var(--safe-r)) calc(12px + var(--safe-b))
+    calc(16px + var(--safe-l));
+  box-sizing: border-box;
+  background: var(--grain), radial-gradient(ellipse at 50% 40%, #fffbee, #e8dcbe);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.ceremony-skip {
+  position: absolute;
+  top: calc(10px + var(--safe-t));
+  right: calc(12px + var(--safe-r));
+  min-width: 72px;
+}
+
+.ceremony-title {
+  margin: 0;
+  font: italic 26px var(--serif);
+}
+
+.ceremony-hint {
+  margin: 0;
+  min-height: 20px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.ceremony-actions {
+  display: flex;
+  gap: 10px;
+  min-height: 48px;
+}
+
+/* ---------- Wax seal ---------- */
+
+.wax-seal {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.wax-seal .shard {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #c2493c, #8e2a22 62%, #6e1f19);
+  box-shadow:
+    inset 0 0 0 4px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 6px rgba(255, 210, 190, 0.18);
+  color: rgba(255, 228, 214, 0.75);
+  font: 700 26px var(--serif);
+}
+
+/* Each shard shows one quarter of the seal (a static clip; only transforms animate). */
+.wax-seal .s0 {
+  clip-path: polygon(50% 52%, -10% -10%, 62% -10%);
+}
+.wax-seal .s1 {
+  clip-path: polygon(50% 52%, 62% -10%, 110% -10%, 110% 58%);
+}
+.wax-seal .s2 {
+  clip-path: polygon(50% 52%, -10% -10%, -10% 110%, 44% 110%);
+}
+.wax-seal .s3 {
+  clip-path: polygon(50% 52%, 44% 110%, 110% 110%, 110% 58%);
+}
+
+.wax-seal.small {
+  width: 40px;
+  height: 40px;
+}
+.wax-seal.small .shard {
+  font-size: 16px;
+}
+
+/* ---------- Envelope ---------- */
+
+.envelope {
+  position: relative;
+  width: min(240px, 60vw);
+  height: min(160px, 34vh);
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  perspective: 700px;
+}
+
+.env-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 1.5px solid rgba(59, 50, 38, 0.55);
+  background: var(--grain), linear-gradient(160deg, #f8efd6, #e8d9b2);
+  box-shadow: var(--shadow-sheet);
+}
+
+.env-flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 62%;
+  transform-origin: 50% 0;
+  background: linear-gradient(180deg, #efe1bb, #e2d0a5);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  border-radius: 8px 8px 0 0;
+  backface-visibility: hidden;
+}
+
+.envelope .wax-seal {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  margin: -32px 0 0 -32px;
+}
+
+/* ---------- Cards ---------- */
+
+.pcard-row {
+  display: flex;
+  justify-content: center;
+  gap: clamp(8px, 1.6vw, 16px);
+  perspective: 800px;
+  min-height: 0;
+}
+
+.pcard {
+  position: relative;
+  width: clamp(96px, 15vw, 150px);
+  height: clamp(140px, 31vh, 216px);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform-style: preserve-3d;
+}
+
+.pcard-row.small .pcard {
+  width: clamp(84px, 12vw, 120px);
+  height: clamp(116px, 24vh, 170px);
+}
+
+.pcard.hero {
+  width: clamp(150px, 24vw, 220px);
+  height: clamp(190px, 46vh, 300px);
+}
+
+.pcard-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.pcard .face {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: var(--shadow-paper);
+}
+
+.pcard .back {
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(59, 50, 38, 0.5);
+  background:
+    var(--grain),
+    repeating-linear-gradient(45deg, rgba(59, 50, 38, 0.05) 0 6px, transparent 6px 12px), #efe3c3;
+}
+
+.pcard .back .edge {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 3px var(--rarity, #9a9a9a),
+    inset 0 0 14px var(--rarity, #9a9a9a);
+}
+
+.pcard.rare {
+  --rarity: #3f7cc2;
+}
+.pcard.epic {
+  --rarity: #7b4fb0;
+}
+.pcard.legendary {
+  --rarity: #d9a21b;
+}
+
+.pcard .front {
+  transform: rotateY(180deg);
+  background: var(--paper);
+}
+
+.pcard .front .reveal {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  animation: none;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.pcard.hero .front .reveal b {
+  font: italic 20px var(--serif);
+}
+
+.pcard.hero .front .medallion {
+  width: 76px;
+  height: 76px;
+  font-size: 28px;
+}
+
+.ribbon {
+  position: absolute;
+  top: 10px;
+  right: -30px;
+  width: 110px;
+  transform: rotate(35deg);
+  text-align: center;
+  font: 700 11px var(--sans);
+  letter-spacing: 0.08em;
+  padding: 3px 0;
+  color: #fff8e6;
+  background: var(--red);
+}
+
+.ribbon.upgrade {
+  top: auto;
+  bottom: 8px;
+  right: 8px;
+  left: 8px;
+  width: auto;
+  transform: none;
+  border-radius: 999px;
+  background: #8a6a12;
+  letter-spacing: 0.02em;
+}
+
+.stamp-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 18px;
+  border: 3px solid var(--rarity, var(--ink));
+  pointer-events: none;
+}
+
+/* A single soft glint (foil on Legendary, rarity edge on the backs). */
+.glint-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 48%,
+    rgba(255, 236, 170, 0.35) 52%,
+    transparent 70%
+  );
+}
+.glint-sweep.foil {
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255, 230, 150, 0.7) 45%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 230, 150, 0.7) 55%,
+    transparent 75%
+  );
+}
+
+/* ---------- Victory ---------- */
+
+.battle-diagram {
+  position: absolute;
+  inset: 6% 4%;
+  width: 92%;
+  height: 88%;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.battle-diagram .arrow {
+  fill: none;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+.battle-diagram .arrow.blue {
+  stroke: var(--blue);
+}
+.battle-diagram .arrow.red {
+  stroke: var(--red);
+}
+
+.victory-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(4px, 1.4vh, 10px);
+}
+
+.victory-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(110px, 26vh, 160px);
+  height: clamp(110px, 26vh, 160px);
+}
+
+.victory-seal > span {
+  position: relative;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff8e6;
+  font: italic 700 clamp(18px, 4.4vh, 26px) var(--serif);
+  letter-spacing: 0.08em;
+  box-shadow:
+    inset 0 0 0 2px var(--brass),
+    var(--shadow-paper);
+}
+
+.laurel-wrap,
+.laurel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.laurel path {
+  fill: none;
+  stroke: #5f7a3a;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.v-stars {
+  display: flex;
+  gap: 8px;
+}
+
+.v-stars .star {
+  font-size: clamp(26px, 6vh, 38px);
+  color: rgba(59, 50, 38, 0.3);
+}
+.v-stars .star.on {
+  color: #c99a1e;
+}
+
+.v-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--sans);
+}
+
+.coins-row {
+  color: #8a6a12;
+  font-variant-numeric: tabular-nums;
+}
+.coins-row b {
+  font-size: 20px;
+}
+
+.xp-bar {
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(59, 50, 38, 0.15);
+  overflow: hidden;
+}
+.xp-bar i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+
+.rank-up {
+  color: var(--blue);
+  font: italic 700 16px var(--serif);
+}
+
+/* ---------- Defeat ---------- */
+
+.ceremony.defeat {
+  background: var(--grain), #efe6cf;
+}
+
+.ink-bleed {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 40%,
+    rgba(59, 50, 38, 0.28) 75%,
+    rgba(40, 30, 22, 0.55)
+  );
+}
+
+.defeat-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 460px;
+  text-align: center;
+}
+
+.defeat-stamp {
+  padding: 6px 18px;
+  border: 4px solid #7a2420;
+  border-radius: 8px;
+  color: #7a2420;
+  font: 700 clamp(30px, 8vh, 44px) var(--serif);
+  letter-spacing: 0.12em;
+}
+
+.defeat-tip {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+/* ---------- Title card ---------- */
+
+.ceremony.title-card {
+  background: var(--grain), #f4ecd8;
+}
+
+.title-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-inner h1 {
+  margin: 0;
+  font: italic clamp(30px, 8vh, 48px) var(--serif);
+}
+
+.title-inner p {
+  margin: 0;
+  color: var(--ink-soft);
+  font: 16px var(--serif);
+  letter-spacing: 0.04em;
+}
+
+.quill-line {
+  width: 220px;
+  height: 2px;
+  background: var(--ink);
+  transform-origin: 0 50%;
+  border-radius: 1px;
+}
+
+/* ---------- Motion lab ---------- */
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.lab-scene {
+  position: relative;
+  height: 220px;
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: var(--grain), #f3ead2;
+  box-shadow: var(--shadow-paper);
+  overflow: hidden;
+}
+
+.lab-scene svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lab-scene .route {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-dasharray: 2 7;
+  stroke-linecap: round;
+}
+
+.lab-node {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  display: grid;
+  place-items: center;
+}
+
+.lab-node .lock {
+  position: absolute;
+  font-size: 26px;
+}
+
+.lab-node .node-stars {
+  position: absolute;
+  top: 66px;
+  display: flex;
+  gap: 2px;
+  color: #c99a1e;
+  font-size: 18px;
+}
+
+.lab-banner {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  translate: -50% 0;
+  padding: 8px 18px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff8e6;
+  font: italic 600 17px var(--serif);
+  opacity: 0;
+}
+
+.lab-count {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  font: 700 18px var(--sans);
+  color: #8a6a12;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animated children get their own layers; they must hide their back faces too. */
+.pcard .face * {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The envelope sits over the centre, out of the column, so the cards don't jump when it
+   goes. */
+.pack-opening .envelope {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+/* Short landscape phones: results on the left, the cards and Continue on the right. */
+@media (max-height: 500px) {
+  .victory-panel {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      'seal cards'
+      'stars cards'
+      'coins cards'
+      'xp actions';
+    column-gap: 28px;
+    align-items: center;
+    justify-items: center;
+  }
+  .victory-panel .victory-seal {
+    grid-area: seal;
+    width: 96px;
+    height: 96px;
+  }
+  .victory-panel .v-stars {
+    grid-area: stars;
+  }
+  .victory-panel .coins-row {
+    grid-area: coins;
+  }
+  .victory-panel .xp-row {
+    grid-area: xp;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 260px;
+  }
+  .victory-panel .pcard-row {
+    grid-area: cards;
+  }
+  .victory-panel .ceremony-actions {
+    grid-area: actions;
+  }
+  .pcard-row.small .pcard {
+    width: 104px;
+    height: 150px;
+  }
+  .pcard .front .reveal svg {
+    width: 40px;
+    height: 40px;
+  }
+}

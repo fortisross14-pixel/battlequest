@@ -267,7 +267,7 @@
     0 2px 0 rgba(59, 50, 38, 0.3);
 }
 
-.medallion {
+button.medallion {
   position: absolute;
   left: calc(12px + var(--safe-l));
   bottom: calc(10px + var(--safe-b));
@@ -705,7 +705,7 @@
     font-size: 11px;
     line-height: 1.1;
   }
-  .medallion {
+  button.medallion {
     width: 52px;
     height: 52px;
     bottom: calc(8px + var(--safe-b));

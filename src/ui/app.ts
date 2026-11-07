@@ -17,12 +17,14 @@ import type { BattleView } from '../render/battleView';
 import type { BattleSummary } from './combatLog';
 import { Controller } from './controller';
 import { el, Hud } from './hud';
+import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
 import type { GestureHandlers } from './input';
 import {
   briefingScreen,
   ageMapScreen,
   timelineScreen,
   menuScreen,
+  motionLabScreen,
   resultsScreen,
   rosterScreen,
   shopScreen,
@@ -30,6 +32,14 @@ import {
 } from './screens';
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 31);
+
+/** How a screen arrives (UX §4 transitions). */
+interface Transition {
+  /** 1 forward, -1 back. */
+  dir?: 1 | -1;
+  kind: 'slide' | 'zoom' | 'flip';
+  from?: { rect: DOMRect; at: number };
+}
 
 /**
  * The whole game: menus and screens in HTML, battles on the shared Pixi view.
@@ -54,6 +64,21 @@ export class App implements AppApi {
   ) {
     this.profile = store.load() ?? newProfile(randomSeed());
     document.body.append(this.screenHost);
+    // Remembers what was tapped, for the zoom (age node) and flip (battle seal) transitions.
+    this.screenHost.addEventListener(
+      'pointerdown',
+      (e) => {
+        const z = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-zoom]');
+        this.tapped = z
+          ? {
+              rect: z.getBoundingClientRect(),
+              at: Date.now(),
+              kind: z.dataset.zoom === 'flip' ? 'flip' : 'zoom',
+            }
+          : null;
+      },
+      true,
+    );
   }
 
   /** Handlers wired to the canvas once; they forward to the active battle phase. */
@@ -68,32 +93,102 @@ export class App implements AppApi {
     this.store.save(this.profile);
   }
 
-  show(screen: HTMLElement): void {
+  /**
+   * Shows a screen. With a transition (UX §4): the old screen fades out in place while the
+   * new one fades in and slides 8 px in the direction of travel, or grows out of the tapped
+   * element (an age node zooms into its map; a battle seal flips into its briefing).
+   * Without one (a refresh of the same screen) it swaps at once.
+   */
+  show(screen: HTMLElement, how?: Transition): void {
+    const wasHidden = this.screenHost.classList.contains('hidden');
     this.endBattleUi();
+    const old = this.screenHost.firstElementChild as HTMLElement | null;
+    const scrolled = this.screenHost.scrollTop;
+    gsap.killTweensOf(this.screenHost.children);
     this.screenHost.replaceChildren(screen);
     this.screenHost.classList.remove('hidden');
     // The host is the element that scrolls (screens.css), so a new screen opens at the top.
     this.screenHost.scrollTop = 0;
+    if (!how || wasHidden) return;
+    const reduced = reducedMotion();
+    if (old && !reduced) {
+      // The old screen stays where it was for the crossfade, then goes.
+      old.classList.add('leaving');
+      old.style.top = `${-scrolled}px`;
+      this.screenHost.prepend(old);
+      gsap.to(old, {
+        opacity: 0,
+        duration: sec(MOTION.quick),
+        ease: EASE.in,
+        onComplete: () => old.remove(),
+      });
+    }
+    if (reduced) {
+      gsap.fromTo(screen, { opacity: 0 }, { opacity: 1, duration: sec(MOTION.reducedFade) });
+      return;
+    }
+    const from = how.from && Date.now() - how.from.at < 1500 ? how.from.rect : null;
+    if (from && how.kind !== 'slide') {
+      // Grows out of the tapped element: a zoom for an age, a flip for a battle seal.
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const ox = from.left + from.width / 2;
+      const oy = from.top + from.height / 2;
+      gsap.fromTo(
+        screen,
+        {
+          opacity: 0,
+          scale: Math.max(0.2, Math.min(from.width / vw, from.height / vh)),
+          rotationY: how.kind === 'flip' ? -70 : 0,
+          transformPerspective: 900,
+          transformOrigin: `${(ox / vw) * 100}% ${(oy / vh) * 100}%`,
+        },
+        {
+          opacity: 1,
+          scale: 1,
+          rotationY: 0,
+          duration: sec(MOTION.reveal),
+          ease: EASE.out,
+          clearProps: 'transform,opacity',
+        },
+      );
+      return;
+    }
+    gsap.fromTo(
+      screen,
+      { opacity: 0, x: 8 * (how.dir ?? 1) },
+      { opacity: 1, x: 0, duration: sec(220), ease: EASE.out, clearProps: 'transform,opacity' },
+    );
   }
+
+  /** The element tapped last (for the zoom and flip transitions). */
+  private tapped: { rect: DOMRect; at: number; kind: 'zoom' | 'flip' } | null = null;
 
   /** Pushes a screen (or replaces the top one if it is the same screen) and shows it. */
   private go(key: string, render: () => HTMLElement, first?: HTMLElement): void {
     const top = this.stack.at(-1);
-    if (top?.key === key) this.stack[this.stack.length - 1] = { key, render };
+    const same = top?.key === key;
+    if (same) this.stack[this.stack.length - 1] = { key, render };
     else this.stack.push({ key, render });
-    this.show(first ?? render());
+    const t = this.tapped;
+    this.tapped = null;
+    this.show(
+      first ?? render(),
+      same ? undefined : { dir: 1, kind: t?.kind ?? 'slide', from: t ?? undefined },
+    );
   }
 
   back(): void {
     if (this.stack.length > 1) this.stack.pop();
     const top = this.stack.at(-1);
-    if (top) this.show(top.render());
+    if (top) this.show(top.render(), { dir: -1, kind: 'slide' });
     else this.menu();
   }
 
   menu(): void {
+    const fromScreen = this.stack.length > 0;
     this.stack = [{ key: 'menu', render: () => menuScreen(this) }];
-    this.show(menuScreen(this));
+    this.show(menuScreen(this), fromScreen ? { dir: -1, kind: 'slide' } : undefined);
   }
 
   campaign(): void {
@@ -309,6 +404,14 @@ export class App implements AppApi {
   }
 
   // ---------- Hot-seat ----------
+
+  boardIntro(delayMs = 0): void {
+    this.view.intro(delayMs);
+  }
+
+  motionLab(): void {
+    this.go('motion-lab', () => motionLabScreen(this));
+  }
 
   sandbox(id = 'sandbox', seed = randomSeed()): void {
     const make = BATTLES[id] ?? BATTLES.sandbox!;

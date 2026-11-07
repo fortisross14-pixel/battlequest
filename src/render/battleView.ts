@@ -134,6 +134,50 @@ export class BattleView {
     this.mapSize = { w: state.map.width * CELL, h: state.map.height * CELL };
   }
 
+  /**
+   * The battle intro on the board (motion skill): terrain inks in feature by feature, the
+   * grid sketches in, then the units stamp down side by side with a small ink spatter.
+   * Skippable like every animation (a tap fast-forwards it).
+   */
+  intro(delay = 0): void {
+    const terrain = this.world.children[0] as Container | undefined;
+    const features = terrain ? terrain.children.slice(1) : [];
+    const units = [...this.views.values()]
+      .filter((v) => v.visible)
+      .sort((a, b) => a.look.side.localeCompare(b.look.side) || a.look.x - b.look.x);
+    if (this.reduced) {
+      track(gsap.fromTo(this.world, { alpha: 0 }, { alpha: 1, duration: sec(MOTION.reducedFade) }));
+      return;
+    }
+    const tl = gsap.timeline({ delay: sec(delay) });
+    tl.fromTo(
+      features,
+      { alpha: 0 },
+      { alpha: 1, duration: sec(MOTION.impact), stagger: sec(30), ease: EASE.out },
+      0,
+    );
+    tl.fromTo(
+      this.grid,
+      { alpha: 0 },
+      { alpha: 1, duration: sec(MOTION.reveal), ease: EASE.out },
+      sec(120),
+    );
+    const start = sec(260);
+    const step = Math.min(sec(40), sec(600) / Math.max(1, units.length));
+    units.forEach((v, i) => {
+      const at = start + i * step;
+      tl.fromTo(v, { alpha: 0 }, { alpha: 1, duration: sec(MOTION.instant) }, at);
+      tl.fromTo(
+        v.scale,
+        { x: 1.15, y: 1.15 },
+        { x: 1, y: 1, duration: sec(MOTION.impact), ease: EASE.back },
+        at,
+      );
+      tl.add(() => this.specks(v.look, THEME.ink, 3), at + sec(MOTION.instant));
+    });
+    track(tl);
+  }
+
   /** Snaps every unit block to the given state. */
   sync(state: BattleState): void {
     for (const u of state.units) {
@@ -438,7 +482,12 @@ export class BattleView {
       d.circle(0, 0, 9).stroke({ width: 1.5, color: THEME.side[u.side], alpha: 0.8 });
       const t = new Text({
         text: String(i + 1),
-        style: { fontFamily: THEME.sans, fontSize: 11, fontWeight: '700', fill: THEME.side[u.side] },
+        style: {
+          fontFamily: THEME.sans,
+          fontSize: 11,
+          fontWeight: '700',
+          fill: THEME.side[u.side],
+        },
       });
       t.anchor.set(0.5);
       dot.addChild(d, t);
@@ -463,7 +512,13 @@ export class BattleView {
     }
     if (this.reduced) return;
     // The ghost fades in at its square; footprints ink in along the path, one after another.
-    track(gsap.fromTo(ghost, { alpha: 0 }, { alpha: 0.55, duration: sec(MOTION.quick + 60), ease: EASE.out }));
+    track(
+      gsap.fromTo(
+        ghost,
+        { alpha: 0 },
+        { alpha: 0.55, duration: sec(MOTION.quick + 60), ease: EASE.out },
+      ),
+    );
     track(gsap.fromTo(g, { alpha: 0 }, { alpha: 1, duration: sec(MOTION.quick), ease: EASE.out }));
     steps.forEach((dot, i) =>
       track(
@@ -863,14 +918,29 @@ export class BattleView {
             for (let k = -2; k <= 2; k++) {
               const from = centre(a);
               const to = centre(b);
-              dashed(lines, { x: from.x, y: from.y + k * 3 }, { x: to.x + k * 6, y: to.y + k * 4 }, 5, 7);
+              dashed(
+                lines,
+                { x: from.x, y: from.y + k * 3 },
+                { x: to.x + k * 6, y: to.y + k * 4 },
+                5,
+                7,
+              );
             }
             lines.stroke({ width: 1.5, color: THEME.ink, alpha: 0.6 });
             lines.alpha = 0;
             this.effects.addChild(lines);
             const t0 = `${label}+=${gaps[i] ?? 0.05 * i}`;
             tl.to(lines, { alpha: 1, duration: sec(MOTION.instant), ease: EASE.out }, t0);
-            tl.to(lines, { alpha: 0, duration: sec(MOTION.quick + 80), ease: EASE.in, onComplete: () => lines.destroy() }, `${t0}+=0.12`);
+            tl.to(
+              lines,
+              {
+                alpha: 0,
+                duration: sec(MOTION.quick + 80),
+                ease: EASE.in,
+                onComplete: () => lines.destroy(),
+              },
+              `${t0}+=0.12`,
+            );
           });
           tl.to({}, { duration: sec(260) });
           sfx('volley');
@@ -884,7 +954,11 @@ export class BattleView {
           const stance = e.type === 'Fortified' ? 'fortified' : 'testudo';
           tl.add(() => v.update({ stance }));
           if (!r) {
-            tl.fromTo(v.body.scale, { x: 1.14, y: 1.14 }, { x: 1, y: 1, duration: sec(MOTION.impact), ease: EASE.back });
+            tl.fromTo(
+              v.body.scale,
+              { x: 1.14, y: 1.14 },
+              { x: 1, y: 1, duration: sec(MOTION.impact), ease: EASE.back },
+            );
           }
           sfx('fortify');
           break;

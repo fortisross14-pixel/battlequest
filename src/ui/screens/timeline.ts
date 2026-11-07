@@ -56,6 +56,7 @@ export function timelineScreen(app: AppApi): HTMLElement {
         : el('small', { class: 'age-req' }, requirement),
     );
     node.disabled = !open;
+    node.dataset.zoom = 'zoom';
     node.onclick = () => app.ageMap(age.id);
     strip.append(
       el('span', { class: 'tick', style: `left:${x}px` }),

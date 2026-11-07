@@ -3,6 +3,7 @@ import type { Rarity } from '../../core/generals';
 import type { Unlocks } from '../../meta/campaign';
 import type { Profile } from '../../meta/profile';
 import { el } from '../hud';
+import { EASE, gsap, MOTION, reducedMotion, sec } from '../motion';
 
 /** What the screens need from the app. */
 export interface AppApi {
@@ -22,7 +23,12 @@ export interface AppApi {
   deploy(b: CampaignBattle, army: ArmyChoice): void;
   shop(): void;
   roster(tab?: 'troops' | 'generals'): void;
-  sandbox(): void;
+  /** A debug or hot-seat battle (the scenario id, default the sandbox). */
+  sandbox(id?: string): void;
+  /** Plays the board intro on the battle just loaded (motion lab). */
+  boardIntro(delayMs?: number): void;
+  /** The motion lab (?debug=motion-lab). */
+  motionLab(): void;
   reset(): void;
 }
 
@@ -46,8 +52,36 @@ export function button(label: string, onClick: () => void, cls = 'btn'): HTMLBut
   return b;
 }
 
+/** The coin count shown last, so a change rolls from it (UX §4 number tickers). */
+let shownCoins: number | null = null;
+
 export function coins(p: Profile): HTMLElement {
-  return el('span', { class: 'coins', 'aria-label': `${p.coins} coins` }, `● ${p.coins}`);
+  const to = p.coins;
+  const from = shownCoins ?? to;
+  shownCoins = to;
+  const c = el('span', { class: 'coins', 'aria-label': `${to} coins` }, `● ${from}`);
+  if (from === to) return c;
+  if (reducedMotion()) {
+    c.textContent = `● ${to}`;
+    return c;
+  }
+  const o = { v: from };
+  gsap.to(o, {
+    v: to,
+    duration: sec(Math.min(900, 300 + Math.abs(to - from) * 2)),
+    ease: EASE.out,
+    delay: sec(MOTION.quick),
+    onUpdate: () => {
+      c.textContent = `● ${Math.round(o.v)}`;
+    },
+    onComplete: () => {
+      c.textContent = `● ${to}`;
+      // A short brass glint when it lands.
+      c.classList.add('glint');
+      window.setTimeout(() => c.classList.remove('glint'), 450);
+    },
+  });
+  return c;
 }
 
 /** Header with a back button, a title and the coin count. */

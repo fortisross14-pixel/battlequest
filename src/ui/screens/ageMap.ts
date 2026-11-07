@@ -108,6 +108,7 @@ function nodeFor(app: AppApi, b: CampaignBattle, x: number, y: number): HTMLElem
       class: `battle-node ${open ? 'open' : 'locked'} ${won ? 'won' : ''} ${optional ? 'optional' : ''}`,
       type: 'button',
       'data-battle': b.id,
+      'data-zoom': 'flip',
       style: `left:${x}px;top:${y}px`,
       'aria-label': `${b.name}, ${b.year}${optional ? ', optional battle' : ''}${open ? `, ${rec?.stars ?? 0} of 3 stars` : `, ${lockSay}`}`,
     },

@@ -1,6 +1,7 @@
 // Motion check (motion-check skill): records animations as contact sheets, measures fps with
 // 4× CPU throttling, and runs the skip and reduced-motion checks.
-// Usage: node scripts/motion-check.mjs [--url http://localhost:5173] [--size tablet|phone|both] [--only name,name]
+// Usage: node scripts/motion-check.mjs [--url http://localhost:5173] [--size tablet|phone|both]
+//   [--set battle|lab|all] [--only name,name]
 // Needs the dev server running. Uses the pre-installed Playwright browsers; never downloads.
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -124,7 +125,23 @@ async function contactSheet(browser, frames, file, title) {
 }
 
 /** Recording length per sequence (ms), when longer than the default. */
-const LENGTH = { breakthrough: 2400, charge: 2000, volley: 1800 };
+const LENGTH = {
+  breakthrough: 2400,
+  charge: 2000,
+  volley: 1800,
+  'lab-victory': 4400,
+  'lab-defeat': 1400,
+  'lab-intro': 3000,
+  'lab-unlock-battle': 2000,
+  'lab-unlock-age': 2600,
+  'lab-stars': 1200,
+  'lab-hero-rare': 3000,
+  'lab-hero-legendary': 3000,
+  'lab-pack-common': 3600,
+  'lab-pack-rare': 3600,
+  'lab-pack-epic': 3600,
+  'lab-pack-legendary': 3600,
+};
 
 /** Sequences: each sets up, then returns the action to record. */
 const SEQUENCES = {
@@ -173,7 +190,56 @@ const SEQUENCES = {
     await tapCell(page, 6, 3);
     return () => page.getByRole('button', { name: /Confirm charge/ }).evaluate((b) => b.click());
   },
+  // The motion lab (?debug=motion-lab): ceremonies with forced results. Run with --set lab.
+  ...Object.fromEntries(
+    ['common', 'rare', 'epic', 'legendary'].map((r) => [
+      `lab-pack-${r}`,
+      async (page) => {
+        await labButton(page, `Recruit pack · ${r}`);
+        return async () => {
+          await page.locator('.envelope').evaluate((b) => b.click());
+          await page.waitForTimeout(1500);
+          await page.getByRole('button', { name: 'Reveal all' }).evaluate((b) => b.click());
+        };
+      },
+    ]),
+  ),
+  ...Object.fromEntries(
+    ['rare', 'legendary'].map((r) => [
+      `lab-hero-${r}`,
+      async (page) => {
+        await labButton(page, `General pack · ${r}`);
+        return async () => {
+          await page.locator('.envelope').evaluate((b) => b.click());
+          await page.waitForTimeout(1100);
+          await page.locator('.pcard').evaluate((b) => b.click());
+        };
+      },
+    ]),
+  ),
+  'lab-victory': async (page) => labAction(page, 'Victory'),
+  'lab-defeat': async (page) => labAction(page, 'Defeat'),
+  'lab-intro': async (page) => labAction(page, 'Battle intro'),
+  'lab-unlock-battle': async (page) => labAction(page, 'Play: Battle unlocked'),
+  'lab-unlock-age': async (page) => labAction(page, 'Play: Age unlocked'),
+  'lab-stars': async (page) => labAction(page, 'Play: Stars earned'),
 };
+
+/** Opens the motion lab and presses one of its buttons (the ceremony opens sealed). */
+async function labButton(page, name) {
+  await open(page, 'debug=motion-lab');
+  await page.getByRole('button', { name, exact: true }).evaluate((b) => b.click());
+  await page.waitForTimeout(400);
+}
+async function labAction(page, name) {
+  await open(page, 'debug=motion-lab');
+  const b = page.getByRole('button', { name, exact: true });
+  await b.evaluate((x) => x.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(200);
+  return () => b.evaluate((x) => x.click());
+}
+const LAB = Object.keys(SEQUENCES).filter((k) => k.startsWith('lab-'));
+const set = arg('set', 'battle');
 
 // Use the real GPU: headless software WebGL runs the board at about 3 fps and hides real timing.
 const GPU_ARGS = ['--enable-gpu', '--use-angle=d3d11', '--ignore-gpu-blocklist'];
@@ -196,10 +262,13 @@ for (const size of SIZES) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(arg('throttle', '4')) });
     for (const [name, setup] of Object.entries(SEQUENCES)) {
       if (only.length && !only.includes(name)) continue;
+      // --set battle (default) or lab or all.
+      if (!only.length && set !== 'all' && LAB.includes(name) !== (set === 'lab')) continue;
       try {
         const action = await setup(page);
         const ms = reduce ? 600 : (LENGTH[name] ?? 1400);
-        const { frames } = await record(page, cdp, action, ms, ms > 1600 ? 200 : 100);
+        const every = ms > 3000 ? 250 : ms > 1600 ? 200 : 100;
+        const { frames } = await record(page, cdp, action, ms, every);
         const fps = await measure(page, await setup(page), ms);
         const tag = `${size.name}-${name}${reduce ? '-reduced' : ''}`;
         await contactSheet(

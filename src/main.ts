@@ -33,6 +33,10 @@ async function start(): Promise<void> {
   if (scenario) {
     const seed = params.get('seed');
     app.sandbox(scenario, seed !== null ? Number(seed) : undefined);
+  } else if (params.get('debug') === 'motion-lab') {
+    // The motion lab (prompt 09 F): every ceremony on demand, also on the deployed build.
+    app.menu();
+    app.motionLab();
   } else {
     app.menu();
   }

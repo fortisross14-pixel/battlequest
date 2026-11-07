@@ -6,3 +6,4 @@ export { briefingScreen } from './briefing';
 export { resultsScreen } from './results';
 export { shopScreen } from './shop';
 export { rosterScreen } from './roster';
+export { motionLabScreen } from './motionLab';

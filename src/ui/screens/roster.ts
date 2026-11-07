@@ -1,5 +1,7 @@
-import { ERA_UNITS, eraUnitType, type EraUnitDef } from '../../content/eraUnits';
-import { GENERALS, generalPackAge } from '../../content/generals';
+import { ERA_UNITS, eraUnitType, ladder, type EraUnitDef } from '../../content/eraUnits';
+import { GENERALS, generalPackAge, type GeneralEntry } from '../../content/generals';
+import type { Rarity } from '../../core/generals';
+import { RARITY_RANK } from '../../meta/cards';
 import type { UnitStats } from '../../core/types';
 import {
   canUpgrade,
@@ -20,6 +22,15 @@ import {
   withDetails,
 } from './cards';
 import { button, shell, type AppApi } from './common';
+import {
+  ageOptions,
+  applyFilter,
+  chipRow,
+  filterState,
+  roleOf,
+  roleOptions,
+  type Role,
+} from './filters';
 
 const fmt = (v: number) => String(+v.toFixed(1));
 
@@ -30,12 +41,6 @@ const LEVELLED: [keyof UnitStats, string][] = [
   ['ranged', 'Rng'],
   ['morale', 'Mor'],
 ];
-
-/** Upgradable first, then owned, then locked; inside each group by age and name. */
-function troopOrder(p: Profile, a: EraUnitDef, c: EraUnitDef): number {
-  const group = (d: EraUnitDef) => (canUpgrade(p, d.id).ok ? 0 : p.units[d.id] ? 1 : 2);
-  return group(a) - group(c) || a.age - c.age || a.name.localeCompare(c.name);
-}
 
 function upgradeParts(app: AppApi, def: EraUnitDef): HTMLElement[] {
   const p = app.profile;
@@ -105,30 +110,40 @@ function troopCard(app: AppApi, def: EraUnitDef): HTMLElement {
   return withDetails(card, troopDetails(def, owned.level));
 }
 
-function generalCards(p: Profile): HTMLElement[] {
-  return GENERALS.filter(
-    (g) => g.playable && (generalPackAge(g) <= p.unlockedAge || p.generals[g.id]),
-  ).map((g) => {
-    const owned = p.generals[g.id];
-    if (!owned) return lockedCard('General not found yet', 'Find generals in General Packs.');
-    const rank = rankForXp(owned.xp);
-    const next = rank < ECONOMY.maxRank ? xpForRank(rank + 1) : null;
-    const prev = xpForRank(rank);
-    const pctTo = next ? Math.round((100 * (owned.xp - prev)) / (next - prev)) : 100;
-    const card = el(
-      'div',
-      { class: `mini-card ${g.rarity}` },
-      generalHeader(g, rank),
-      owned.resting ? el('small', { class: 'warn' }, 'Resting: misses the next battle.') : '',
-      el('div', { class: 'bar' }, el('i', { style: `width:${pctTo}%` })),
-      el(
-        'small',
-        {},
-        next ? `${owned.xp} / ${next} XP to rank ${rank + 1}` : `${owned.xp} XP · max rank`,
-      ),
-    );
-    return withDetails(card, generalDetails(g, rank));
-  });
+function generalCard(p: Profile, g: GeneralEntry): HTMLElement {
+  const owned = p.generals[g.id];
+  if (!owned) return lockedCard('General not found yet', 'Find generals in General Packs.');
+  const rank = rankForXp(owned.xp);
+  const next = rank < ECONOMY.maxRank ? xpForRank(rank + 1) : null;
+  const prev = xpForRank(rank);
+  const pctTo = next ? Math.round((100 * (owned.xp - prev)) / (next - prev)) : 100;
+  const card = el(
+    'div',
+    { class: `mini-card ${g.rarity}` },
+    generalHeader(g, rank),
+    owned.resting ? el('small', { class: 'warn' }, 'Resting: misses the next battle.') : '',
+    el('div', { class: 'bar' }, el('i', { style: `width:${pctTo}%` })),
+    el(
+      'small',
+      {},
+      next ? `${owned.xp} / ${next} XP to rank ${rank + 1}` : `${owned.xp} XP · max rank`,
+    ),
+  );
+  return withDetails(card, generalDetails(g, rank));
+}
+
+/** Owned first, then rarity (Legendary first), then level or rank, then name (UX §4). */
+const byRarity = (a: Sortable, c: Sortable) =>
+  Number(c.owned) - Number(a.owned) ||
+  RARITY_RANK[c.rarity] - RARITY_RANK[a.rarity] ||
+  c.level - a.level ||
+  a.name.localeCompare(c.name);
+
+interface Sortable {
+  owned: boolean;
+  rarity: Rarity;
+  level: number;
+  name: string;
 }
 
 export function rosterScreen(app: AppApi, tab: 'troops' | 'generals'): HTMLElement {
@@ -139,12 +154,86 @@ export function rosterScreen(app: AppApi, tab: 'troops' | 'generals'): HTMLEleme
     button('Troops', () => app.roster('troops'), `tab ${tab === 'troops' ? 'on' : ''}`),
     button('Generals', () => app.roster('generals'), `tab ${tab === 'generals' ? 'on' : ''}`),
   );
-  const troops = ERA_UNITS.filter(
-    (u) => !u.enemyOnly && (u.age <= p.unlockedAge || p.units[u.id]),
-  ).sort((a, c) => troopOrder(p, a, c));
-  const body =
-    tab === 'troops'
-      ? el('div', { class: 'mini-grid wide' }, ...troops.map((def) => troopCard(app, def)))
-      : el('div', { class: 'mini-grid wide' }, ...generalCards(p));
-  return shell(app, 'Army', () => app.back(), tabs, body);
+  const ages: number[] = [];
+  for (let a = 0; a <= p.unlockedAge; a++) ages.push(a);
+  // Default: the newest unlocked age (UX §4); remembered until the app closes.
+  const f = filterState(`army-${tab}`, ages.at(-1) ?? 'all');
+  const grid = el('div', { class: 'mini-grid wide' });
+  const empty = el('p', { class: 'empty-note hidden' }, 'No cards here yet.');
+  let items: { el: HTMLElement; age: number; role: Role | null }[];
+  let chips: HTMLElement[];
+  if (tab === 'troops') {
+    const troops = ERA_UNITS.filter(
+      (u) => !u.enemyOnly && (u.age <= p.unlockedAge || p.units[u.id]),
+    )
+      .map((def) => ({
+        def,
+        owned: !!p.units[def.id],
+        rarity: def.rarity as Rarity,
+        level: p.units[def.id]?.level ?? 0,
+        name: def.name,
+      }))
+      .sort(byRarity);
+    items = troops.map((t) => ({ el: troopCard(app, t.def), age: t.def.age, role: roleOf(t.def) }));
+    const count = (a: number) => {
+      const l = ladder(a);
+      return { owned: l.filter((d) => p.units[d.id]).length, total: l.length };
+    };
+    chips = [
+      chipRow('Age', ageOptions(ages, count), f.age, (v) => {
+        f.age = v;
+        f.picked = true;
+        refresh();
+      }),
+      chipRow('Role', roleOptions(), f.role, (v) => {
+        f.role = v;
+        refresh();
+      }),
+    ];
+  } else {
+    const pool = GENERALS.filter(
+      (g) => g.playable && (generalPackAge(g) <= p.unlockedAge || p.generals[g.id]),
+    );
+    items = pool
+      .map((g) => ({
+        g,
+        owned: !!p.generals[g.id],
+        rarity: g.rarity,
+        level: p.generals[g.id] ? rankForXp(p.generals[g.id]!.xp) : 0,
+        name: g.name,
+      }))
+      .sort(byRarity)
+      .map((x) => ({ el: generalCard(p, x.g), age: generalPackAge(x.g), role: null }));
+    const count = (a: number) => {
+      const l = pool.filter((g) => generalPackAge(g) === a);
+      return { owned: l.filter((g) => p.generals[g.id]).length, total: l.length };
+    };
+    chips = [
+      chipRow('Age', ageOptions(ages, count), f.age, (v) => {
+        f.age = v;
+        f.picked = true;
+        refresh();
+      }),
+    ];
+  }
+  grid.append(...items.map((i) => i.el));
+  const keep = (i: (typeof items)[number]) =>
+    (f.age === 'all' || i.age === f.age) &&
+    (f.role === 'all' || i.role === null || i.role === f.role);
+  const refresh = (animate = true) =>
+    applyFilter(
+      items.map((i) => ({ el: i.el, keep: keep(i) })),
+      empty,
+      animate,
+    );
+  refresh(false);
+  return shell(
+    app,
+    'Army',
+    () => app.back(),
+    tabs,
+    el('div', { class: 'filters' }, ...chips),
+    grid,
+    empty,
+  );
 }

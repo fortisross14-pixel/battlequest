@@ -1,6 +1,6 @@
 import { AGES } from '../../content/campaign/battles';
 import type { ArmyChoice, BuilderStep, CampaignBattle } from '../../content/campaign/types';
-import { ERA_UNIT_BY_ID, eraUnitType } from '../../content/eraUnits';
+import { ERA_UNIT_BY_ID, eraUnitType, ladder } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
 import {
   armyPower,
@@ -16,6 +16,7 @@ import { el } from '../hud';
 import { unitIcon } from '../icons';
 import { generalDetails, generalHeader, troopDetails, troopHeader, withDetails } from './cards';
 import { button, html, levelBadge, shell, type AppApi } from './common';
+import { ageOptions, applyFilter, chipRow, filterState, roleOf, roleOptions } from './filters';
 
 function infoSection(b: CampaignBattle, enemyPower: number): HTMLElement {
   const enemyGen = b.enemyGeneral && GENERAL_BY_ID[b.enemyGeneral.id];
@@ -72,14 +73,13 @@ function slotPicker(
   const current = army.units[index];
   const owned = Object.entries(p.units)
     .filter(([id]) => ERA_UNIT_BY_ID[id])
-    // This battle's age first, then newer ages, then by rarity (power tiers, GAME_DESIGN 5.1).
-    .sort(([a], [c]) => {
+    // By rarity (Legendary first), then level, then name (UX §4); the age chips filter.
+    .sort(([a, oa], [c, oc]) => {
       const da = ERA_UNIT_BY_ID[a]!;
       const dc = ERA_UNIT_BY_ID[c]!;
       return (
-        Number(dc.age === b.age) - Number(da.age === b.age) ||
-        dc.age - da.age ||
         RARITY_RANK[dc.rarity] - RARITY_RANK[da.rarity] ||
+        oc.level - oa.level ||
         da.name.localeCompare(dc.name)
       );
     });
@@ -104,8 +104,42 @@ function slotPicker(
       setSlot(p, b, army, index, id);
       close();
     };
-    return withDetails(card, troopDetails(def, o.level));
+    return { el: withDetails(card, troopDetails(def, o.level)), def };
   });
+  // Age chips (default: the battle's own age) and role chips, remembered per age.
+  const ages = [...new Set(owned.map(([id]) => ERA_UNIT_BY_ID[id]!.age))].sort((x, y) => x - y);
+  const f = filterState(`builder-${b.age}`, ages.includes(b.age) ? b.age : 'all');
+  const count = (a: number) => {
+    const l = ladder(a);
+    return { owned: l.filter((d) => p.units[d.id]).length, total: l.length };
+  };
+  const grid = el('div', { class: 'mini-grid' }, ...cards.map((c) => c.el));
+  const none = el('p', { class: 'empty-note hidden' }, 'No troops of this kind yet.');
+  const refresh = (animate = true) =>
+    applyFilter(
+      cards.map((c) => ({
+        el: c.el,
+        keep:
+          (f.age === 'all' || c.def.age === f.age) &&
+          (f.role === 'all' || roleOf(c.def) === f.role),
+      })),
+      none,
+      animate,
+    );
+  const chips = el(
+    'div',
+    { class: 'filters' },
+    chipRow('Age', ageOptions(ages, count), f.age, (v) => {
+      f.age = v;
+      f.picked = true;
+      refresh();
+    }),
+    chipRow('Role', roleOptions(), f.role, (v) => {
+      f.role = v;
+      refresh();
+    }),
+  );
+  refresh(false);
   const empty = button(
     'Empty this slot',
     () => {
@@ -126,7 +160,9 @@ function slotPicker(
       { class: 'picker' },
       el('h2', {}, `Slot ${index + 1}: choose a troop`),
       el('p', { class: 'hint' }, 'Tap a troop to place it. Long-press (or hover) for its details.'),
-      el('div', { class: 'mini-grid' }, ...cards),
+      chips,
+      grid,
+      none,
       el('div', { class: 'row' }, current ? empty : '', button('Close', close, 'btn primary')),
     ),
   );

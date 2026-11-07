@@ -117,15 +117,24 @@ const running = new Set<gsap.core.Animation>();
  */
 export function track<T extends gsap.core.Animation>(anim: T): T {
   running.add(anim);
-  anim.eventCallback('onComplete', () => running.delete(anim));
+  // Keeps the animation's own onComplete (cleanup such as removing a speck or a banner).
+  const own = anim.eventCallback('onComplete') as (() => void) | null | undefined;
+  anim.eventCallback('onComplete', () => {
+    running.delete(anim);
+    if (typeof own === 'function') own();
+  });
   return anim;
 }
 
 /** Jumps every tracked animation to its end (a tap never waits for decoration). */
 export function fastForward(): void {
-  for (const a of [...running]) {
-    a.progress(1);
-    running.delete(a);
+  // Callbacks met on the way can start new tracked animations (ink specks, a card deal):
+  // finish those too, so nothing is left moving after a skip.
+  for (let pass = 0; pass < 5 && running.size; pass++) {
+    for (const a of [...running]) {
+      a.progress(1);
+      running.delete(a);
+    }
   }
 }
 
@@ -167,6 +176,12 @@ export type SfxCue =
   | 'seal-break'
   | 'card-flip'
   | 'coin'
+  | 'coins'
+  | 'stamp'
+  | 'unlock'
+  | 'quill'
+  | 'reveal'
+  | 'reveal-legendary'
   | 'victory'
   | 'defeat';
 
