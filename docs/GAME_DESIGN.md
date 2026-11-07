@@ -64,7 +64,7 @@ The look is a **living historical battle map**: the same red-and-blue blocks, ar
 - **Alternating side turns** (IGOUGO): the player moves all their units, then the AI moves all of theirs. One full round of both sides is one **turn**. Each battle has a turn limit.
 - During your turn, units act in any order you like. Each unit gets:
   - **Movement**, up to its Movement Points (MP), including turning, and
-  - **One action**: Shoot, Charge, Skill (if it is the general's unit), or Hold (brace and gain a defense bonus).
+  - **One action**: Shoot, Charge, Skill (if it is the general's unit), Hold (brace and gain a defense bonus), or one of the unit's **tactical actions** (§4.12: Volley, Fortify, Full charge…).
   - A charge **is** movement plus action: the unit moves in a straight line into contact.
 - **End of side turn:** every melee in progress resolves (both sides deal damage), then cohesion tests, then rout movement.
 
@@ -235,6 +235,63 @@ Utility-based, kept simple:
 - The AI acts in order of its highest-scoring action first. Ranged units shoot before melee units charge.
 - **Difficulty** comes from scenario setup (enemy points, quality, terrain) more than from AI cheating. A "Hard" toggle grants a +10% enemy morale bonus.
 
+### 4.12 Tactical actions (depth through choices)
+
+Every unit can **Move**, use its **basic attack** (Shoot or Charge), and **Hold**. Better cards add **tactical actions**, which are real choices with trade-offs, not just bigger numbers. That keeps Commons simple and makes Rares, Epics and Legendaries feel different to play, not only stronger.
+
+| Rarity | Actions |
+|---|---|
+| Common | Move, basic attack, Hold |
+| Rare | + 1 signature action |
+| Epic | + 1–2 signature actions |
+| Legendary | + its signature actions, usually an upgraded version (for example a higher chance to break through on a Full charge) |
+
+All numbers below are starting points in `RULES.actions`, and `balance-sim` tunes them.
+
+**Volley** (area fire; Rare+ archers, and later every artillery unit as "Bombard").
+- Instead of a focused shot, the shooter targets a **2×2 area**. Every **enemy** unit in it takes about **55% of a focused shot**. Hitting 1 unit is weaker than a normal shot; hitting 3–4 bunched units is much stronger (up to about 2.2× in total).
+- At least one square of the area must be in range and in line of sight. The area can't contain a friendly unit (no friendly fire), and can't contain a melee involving a friend.
+- Each unit hit makes its own cohesion test, with the lower damage.
+- It counts as the unit's shot for Reload. Bombard also keeps Bounce.
+- Effect on tactics: tight blocks become risky, and spacing your deployment matters.
+
+**Fortify** (Rare+ spearmen and pikemen; shield walls in later ages).
+- Costs **1 MP**. You can use it after moving if 1 MP is left, but not while in melee.
+- It lasts until the unit moves, or until the end of the enemy's next turn.
+- While fortified, the unit:
+  - takes ×0.75 damage from every attack;
+  - can't be pushed back;
+  - stays braced against a frontal charge by cavalry or chariots, which deepens its anti-cavalry counter: the counter-impact is ×2, the charger's impact ×0.5, and the charger can never break through.
+- A fortified unit can't charge on that turn.
+- Fortify replaces Hold on units that have it. Hold stays the weaker brace that every unit has.
+- The answer to a charge you can see coming: **fortified spears are a wall that charges break against.**
+
+**Full charge** (Rare+ heavy cavalry; the Legendary versions are stronger).
+- When charging, choose **Engage** (the normal charge, into melee) or **Full charge**. Full charge needs at least 2 squares of straight run-up and uses all remaining MP. It deals impact ×1.25.
+- **Breakthrough chance.** The cavalry can pierce the unit and come out **on the square directly behind it, already turned to face the enemy's rear**, without being locked in melee.
+  - The chance is 30% + 5% per point of the charger's impact above the defender's armor, +15% if the defender is Disrupted, +30% if Fragmented. It is −40%, and never possible, against a defender that is fortified or anti-cavalry and facing the charge. The total is capped at 75%, and the preview shows it.
+  - Breaking through needs that square behind the defender to be free and passable.
+- On a breakthrough, the defender makes an extra cohesion test (+0.25). Next turn the cavalry can hit it in the rear.
+- On a failure, the charge is a normal impact and the cavalry is engaged. If it hit spears or pikes head on, the cavalry also loses one cohesion level ("broke on the spears").
+
+**Other signature actions** (each belongs to specific named cards, as the add-unit skill assigns):
+
+| Action | What it does | Example cards |
+|---|---|---|
+| **Testudo** | Costs 1 MP. Ranged damage taken ×0.4 until the unit moves. The unit can't attack that turn. | Roman legionaries, Legio X |
+| **Pila volley** | One short-range volley per battle, just before a charge: the target starts the melee one cohesion level lower if it fails a test. This is the existing OneShot. | Roman legionaries |
+| **Othismos (push)** | In melee: a shove that pushes the enemy back 1 square if it fails a strength check, breaking its line. | Spartan hoplites |
+| **Parthian shot** | Shoot, then move back up to half MP, even out of a zone of control. | Parthian horse archers |
+| **Feigned retreat** | Evade a charge on purpose: the pursuer is left Disrupted and out of position. | Carthaginian or steppe cavalry |
+| **Trample** | An elephant's charge also damages the units on either side of the target, at 40%. | War elephants |
+| **Last stand** | Once per battle: for 2 turns the unit can't rout, and its melee is ×1.2. | Theban Sacred Band |
+
+**Rules for adding actions:**
+- At most **3 actions per unit** besides Move and Hold. The command bubble and the attack preview must stay readable.
+- Each action has an icon and a one-line description on the unit card.
+- The AI must use the same actions, scored like any other move.
+- Every action needs `balance-sim` duel checks. For example, fortified spears facing a heavy-cavalry Full charge must win at least 80% of the time, and a Volley on one isolated unit must never beat a focused shot.
+
 ## 5. Units and collection
 
 The troop dynamic is **unlock and upgrade**, and every age has its own small **card ladder**: you start each age with plain, generic troops, then collect the famous named troops that make you feel powerful.
@@ -249,6 +306,8 @@ The troop dynamic is **unlock and upgrade**, and every age has its own small **c
 | **Legendary** | 1, at most 2 | Yes, the age's icon | The power fantasy: battles that were hard become easy | **Myrmidons** (Antiquity) · Napoleon's **Imperial Guard** (Napoleonic Wars) |
 
 That is about 11 troop cards per age and about 110 in the whole game. **Fewer, more meaningful cards.**
+
+**Actions.** Rarity also unlocks tactical actions (§4.12): Commons have only the basics, while Rares, Epics and Legendaries add signature choices.
 
 **Power.** At the same level, each rarity step is worth about +20–25% overall strength over the Common of its role:
 - **Rare:** about +20%, plus a specialty tag;

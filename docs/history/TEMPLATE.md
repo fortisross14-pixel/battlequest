@@ -74,6 +74,7 @@ troop:
     morale: +1
     armor: -1
   suggestedTags: [AntiCavalryStrong, FrontOnly]   # from the vocabulary, or new ones explained in `distinctive`
+  suggestedActions: [fortify]     # Rare+ only (GAME_DESIGN §4.12): volley, fortify, fullCharge, testudo, pilaVolley, othismos, parthianShot, feignedRetreat, trample, lastStand, or a new one described in `distinctive`
   flavor: "Sarissas 6 metres long: a hedge no horse would face."   # one line for the unit card
   iconHint: "Two long crossed pikes"              # idea for the pictogram
 ```

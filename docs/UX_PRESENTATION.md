@@ -74,7 +74,8 @@ This is the source of truth for **how the game looks, feels and moves**. The rul
 |---|---|---|
 | **Info** ⓘ | 12 o'clock | always: opens the unit card |
 | **Turn** ↻ | 3 o'clock | always (greyed out with the reason if the unit has no MP) |
-| **Hold** ⛨ | 6 o'clock | when Hold is allowed |
+| **Hold** ⛨ / **Fortify** ▣ / **Testudo** | 6 o'clock | the unit's defensive action. Fortify or Testudo replaces Hold on units that have it (GAME_DESIGN §4.12), showing its MP cost |
+| **Signature** ✦ | 7:30 | only on cards with a non-attack signature action (Last stand, Othismos…), with charges left or a cooldown |
 | **Skill** ★ | 9 o'clock | only on the general's unit, with a cooldown ring |
 | **Undo** ↶ | 10:30 | only if this unit's last move can be undone |
 
@@ -84,6 +85,11 @@ This is the source of truth for **how the game looks, feels and moves**. The rul
 - Tap an enemy: the attack preview opens. Tap again (or Confirm) to attack.
 - Tap your own other unit: switches selection; the bubble jumps to it.
 - Tap empty ground the unit can't reach: deselect. The bubble folds away, with a small "can't reach" ink flick at the tap point.
+
+**Attack modes (GAME_DESIGN §4.12).** When a unit has more than one way to attack, tapping an enemy opens the preview with **mode tabs** above it, defaulting to the basic attack:
+- **Shoot | Volley:** on Volley, a 2×2 **area frame** appears, anchored on the tapped enemy. Drag it, or tap a neighbouring square to shift it. Every unit inside shows its expected loss, plus the total. Squares out of range or line of sight are hatched, and a frame containing a friendly unit turns red and can't be confirmed.
+- **Engage | Full charge:** Full charge shows the **breakthrough chance** as a big percentage and draws a ghost of the cavalry on the square behind the target, already turned, so you can see where it would end up. If a breakthrough is impossible, the tab says why ("Fortified spears: no breakthrough").
+- The chosen tab is remembered per unit for the rest of the battle.
 
 **Turn mode:** the petals fold away and 8 small arrowheads appear around the unit, each showing its MP cost. Tap one, or drag around the unit, to rotate live in 45° snaps. Release or tap to confirm.
 
@@ -116,6 +122,9 @@ All timings are tokens in `src/ui/motion.ts` (see the `motion` skill), and the A
 | Turn mode | Arrowheads sweep in around the ring (a clockwise wave); the block rotates live with a spring. | about 0.3 s |
 | Info card | The block grows into the sheet (Flip). The content is already in place inside it — one entrance per container, no second stagger. | about 0.45 s |
 | Attack preview | The target gets a red ink bracket that draws on (DrawSVG); the odds pill pops in beside it. | about 0.3 s |
+| **Volley** | A fan of fine ink dashes arcs from the shooter and rains into the 2×2 frame, landing on each unit hit in quick succession (varied 30–60 ms, not uniform). Small loss numbers appear per unit, then one total. | about 0.8 s |
+| **Fortify / Testudo** | Shield marks lock along the block's front edge with a short stamp; the front edge thickens. Testudo adds a tiled shield pattern. | about 0.35 s |
+| **Full charge: breakthrough** | Longer wind-up, a dash with a strong ink trail, and the defender's block ripples as the cavalry **passes through it**, landing behind already turned (one 180° whip with a small overshoot), with a dust burst. On a failure, a hard stop and recoil on impact. | about 0.9 s |
 | Charge | Wind-up (4% pull-back), a dash with a fading ink-trail arrow, an impact squash and shake on both blocks, ink specks, then floating loss numbers, with a 60 ms hit-stop on the impact frame (`game-feel`). | about 0.6 s |
 | Rout | The block hollows out, wobbles and slides off. The breakpoint meter ticks up with a pulse. | about 0.7 s |
 | Turn change | A thin ink banner sweeps across the guidance strip ("Turn 4 · Your move"). | ≤ 0.7 s |
@@ -147,7 +156,16 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - A 3D flip with a short delay between cards, and a single foil sweep for Legendary.
 - "NEW" ribbons, and "Upgrade ready" badges that link to the Army screen.
 
+**Unit card actions.** Each tactical action has an icon and a one-line description on the card. Locked actions on higher rarities of the same role are previewed in grey ("Rare: Fortify") as a teaser.
+
 **Card detail:** tilts slightly with drag or device motion (at most 6°, a soft parallax between the art, frame and text layers), and gets a flat foil sheen on Epic and Legendary cards.
+
+**Age filter (Army screen and Army builder).** A row of age chips at the top, **All · Dawn of War · Antiquity · …**, showing only unlocked ages, on both the Troops and the Generals tabs.
+- **Default: the newest unlocked age.** In the army builder, the default is the battle's own age instead.
+- The chosen filter is remembered until the app is closed.
+- Each chip shows the number of cards owned in that age ("Antiquity 7/11").
+- Cards are sorted by rarity (Legendary first), then by level. A second chip row filters by role (Infantry, Ranged, Cavalry, Special).
+- Changing the filter animates the cards with Flip. They don't just pop.
 
 **Army builder:**
 - Cards slide into slots with a magnetic snap and a small dust puff.
