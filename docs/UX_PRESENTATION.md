@@ -152,7 +152,7 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - **Age-map node → briefing:** the battle seal flips over and becomes the briefing card.
 
 **Shop: a pack store, not a text list** (like mobile card games or FIFA Ultimate Team).
-- Each offer is a **physical pack**: the owner's pack art in `src/assets/packs/` (Recruit, Veteran, General), with a wax seal over the circle at the top showing the pack's age.
+- Each offer is a **physical pack**: the owner's pack art in `src/assets/packs/` (Recruit, Veteran, General), with the **age emblem** from `src/assets/ages/` as the seal over the circle at the top.
 - The packs stand in a row on the parchment with a soft contact shadow and a slow idle float (±3 px).
 - **Under each pack:** its name ("Recruit Pack") in the serif title font, then two buttons right below: **Buy · ● 250** (primary, brass) and **Details**.
 - **Details** opens a sheet with the contents (number of cards, rarity odds, the guarantee, which age's ladder it draws from) and the cards you could get (silhouettes for ones not owned).
@@ -205,6 +205,7 @@ Shared rules (`emil-design-eng`, `choreograph`):
 
 **Problem:** players can't tell which battle comes first without reading the years.
 
+- **Age emblems** (`src/assets/ages/`) identify each age everywhere: timeline medallions, the age-map header, pack seals, shop age tabs and army filter chips.
 - **Numbered seals.** Each main battle's node is a wax seal with its number (1, 2, 3 …) in large type; the name and year sit beneath it.
 - **Route with direction.** An ink route links the main battles in order, with small arrowheads every few centimetres:
   - travelled segments (won battles) are solid ink;

@@ -8,7 +8,7 @@ These are the owner's pack illustrations: ivory foil wrappers with a black silho
 | `pack-veteran-*.webp` | Veteran Pack (troops, at least one Rare) | A sealed supply sack and scroll |
 | `pack-general-*.webp` | General Pack                             | A commander with a baton        |
 
-**The empty circle at the top of each wrapper is the seal slot.** The UI overlays a wax seal there, showing the pack's age emblem or numeral and tinted per pack (for example ivory or bronze for Recruit, red wax for Veteran, gold for General). Approximate position, as fractions of the cropped image:
+**The empty circle at the top of each wrapper is the seal slot.** The UI places the **age emblem** from `src/assets/ages/` there (a black seal disc with a white emblem), showing which age's ladder the pack draws from. A thin ring around it can mark the pack type (for example bronze for Recruit, red for Veteran, gold for General). Approximate position, as fractions of the cropped image:
 
 | Pack    | Centre x | Centre y | Diameter (of width) |
 | ------- | -------- | -------- | ------------------- |
