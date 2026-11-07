@@ -16,6 +16,13 @@ import type { SaveStore } from '../meta/saveStore';
 import type { BattleView } from '../render/battleView';
 import type { BattleSummary } from './combatLog';
 import { Controller } from './controller';
+import { defeatCeremony, titleCard, victoryCeremony } from './ceremonies';
+import { battleDiagram } from './diagram';
+import { GENERAL_BY_ID } from '../content/generals';
+import { AGES } from '../content/campaign/ages';
+import type { Command } from '../core/engine';
+import { canUpgrade, rankForXp, xpForRank } from '../meta/profile';
+import type { BattleOutcome, Rewards } from '../meta/rewards';
 import { hideDetails } from './screens/cards';
 import { el, Hud } from './hud';
 import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
@@ -268,7 +275,7 @@ export class App implements AppApi {
 
   // ---------- Deployment ----------
 
-  deploy(b: CampaignBattle, army: ArmyChoice): void {
+  deploy(b: CampaignBattle, army: ArmyChoice, intro = true): void {
     const seed = randomSeed();
     const zone = deploymentSquares(b);
     // One square per unit, then the general's own unit behind the line.
@@ -277,10 +284,12 @@ export class App implements AppApi {
     // its lesson: straight into battle.
     if (b.fixedArmy && b.startAt) {
       this.fight(b, army, placement, seed);
+      if (intro) this.battleIntro(b);
       return;
     }
     let state = startBattle(buildScenario(b, army, seed, placement));
     const hud = this.enterBattleUi(state);
+    if (intro) this.battleIntro(b);
     let selected: number | null = null;
     /** Two-tap placement (CLAUDE.md): the first tap on a square previews, the second places. */
     let pending: Pos | null = null;
@@ -373,7 +382,12 @@ export class App implements AppApi {
       });
       this.save();
       const unlocks = newlyUnlocked(before, this.profile);
-      this.show(resultsScreen(this, b, outcome, rewards, summary, unlocks, () => this.briefing(b)));
+      const retry = () => this.briefing(b);
+      this.show(resultsScreen(this, b, outcome, rewards, summary, unlocks, retry));
+      // The ceremony plays over the results page (motion skill: victory or defeat).
+      this.resultCeremony(b, outcome, rewards, before, state, session.log, () =>
+        this.afterBattle(b, unlocks),
+      );
     };
     const controller = new Controller(session, this.view, hud, {
       title: b.name,
@@ -391,7 +405,7 @@ export class App implements AppApi {
       }),
       onEnd: (final, summary) => window.setTimeout(() => finish(final, summary), 900),
       // Restart (UX §6): back to deployment with the same army and a fresh seed; no defeat.
-      onRestart: () => this.deploy(b, army),
+      onRestart: () => this.deploy(b, army, false),
       onExit: (summary) => {
         // Retreating is a defeat, through the rules like any other command.
         if (!session.state.result) session.apply({ type: 'Concede', side: 'blue' });
@@ -403,6 +417,62 @@ export class App implements AppApi {
       tap: (x, y) => controller.tap(x, y),
       longPress: (x, y) => controller.longPress(x, y),
     };
+  }
+
+  /** The battle title card over the board, which inks in beneath it (motion skill). */
+  private battleIntro(b: CampaignBattle): void {
+    const age = AGES.find((a) => a.id === b.age);
+    void titleCard({ place: b.name, year: b.year, age: age?.name ?? '' });
+    this.view.intro(1400);
+  }
+
+  /** Victory or defeat over the results page; both are skippable with a tap. */
+  private resultCeremony(
+    b: CampaignBattle,
+    o: BattleOutcome,
+    r: Rewards,
+    before: Profile,
+    start: BattleState,
+    log: Command[],
+    toMap: () => void,
+  ): void {
+    if (!o.won) {
+      const g = r.generalId ? GENERAL_BY_ID[r.generalId] : undefined;
+      const tip =
+        o.generalLost && g
+          ? `${g.name} fell. Keep your general behind the line, where nearby units fight better.`
+          : `The key to ${b.name}: ${b.problem.charAt(0).toLowerCase()}${b.problem.slice(1).replace(/\.$/, '')}.`;
+      void defeatCeremony({ battle: b.name, tip }, () => this.briefing(b), toMap);
+      return;
+    }
+    const g = r.generalId ? GENERAL_BY_ID[r.generalId] : undefined;
+    const progress = (xp: number) => {
+      const rank = rankForXp(xp);
+      const lo = xpForRank(rank);
+      const hi = xpForRank(rank + 1);
+      return hi > lo ? Math.round((100 * (xp - lo)) / (hi - lo)) : 100;
+    };
+    const xpBefore = g ? (before.generals[g.id]?.xp ?? 0) : 0;
+    const xpAfter = g ? (this.profile.generals[g.id]?.xp ?? 0) : 0;
+    const rankUp = r.rankAfter > r.rankBefore;
+    void victoryCeremony({
+      battle: b.name,
+      stars: o.stars,
+      newStars: r.newStars,
+      coinsFrom: before.coins,
+      coinsTo: this.profile.coins,
+      xp: g
+        ? {
+            name: g.name,
+            from: progress(xpBefore),
+            to: rankUp ? 100 : progress(xpAfter),
+            rankUp: rankUp ? r.rankAfter : undefined,
+          }
+        : undefined,
+      cards: r.cards,
+      arrows: battleDiagram(start, log),
+      upgradeReady: (c) => c.kind === 'unit' && canUpgrade(this.profile, c.id).ok,
+    });
   }
 
   // ---------- Hot-seat ----------

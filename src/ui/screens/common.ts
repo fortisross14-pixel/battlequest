@@ -20,7 +20,8 @@ export interface AppApi {
   /** After a battle: back to its age map, with the new unlocks. */
   afterBattle(b: CampaignBattle, unlocks: Unlocks): void;
   briefing(b: CampaignBattle): void;
-  deploy(b: CampaignBattle, army: ArmyChoice): void;
+  /** Deployment; `intro` plays the battle title card and board intro (not on a restart). */
+  deploy(b: CampaignBattle, army: ArmyChoice, intro?: boolean): void;
   shop(): void;
   roster(tab?: 'troops' | 'generals'): void;
   /** A debug or hot-seat battle (the scenario id, default the sandbox). */
