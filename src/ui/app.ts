@@ -16,6 +16,7 @@ import type { SaveStore } from '../meta/saveStore';
 import type { BattleView } from '../render/battleView';
 import type { BattleSummary } from './combatLog';
 import { Controller } from './controller';
+import { hideDetails } from './screens/cards';
 import { el, Hud } from './hud';
 import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
 import type { GestureHandlers } from './input';
@@ -101,6 +102,7 @@ export class App implements AppApi {
    */
   show(screen: HTMLElement, how?: Transition): void {
     const wasHidden = this.screenHost.classList.contains('hidden');
+    hideDetails();
     this.endBattleUi();
     const old = this.screenHost.firstElementChild as HTMLElement | null;
     const scrolled = this.screenHost.scrollTop;

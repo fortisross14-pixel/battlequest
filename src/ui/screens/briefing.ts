@@ -160,7 +160,7 @@ function slotPicker(
       'div',
       { class: 'picker' },
       el('h2', {}, `Slot ${index + 1}: choose a troop`),
-      el('p', { class: 'hint' }, 'Tap a troop to place it. Long-press (or hover) for its details.'),
+      el('p', { class: 'hint' }, 'Tap a troop to place it. Rest the pointer on it (or long-press) for its details.'),
       chips,
       grid,
       none,

@@ -5,6 +5,7 @@ import { commandRadiusForRank, scaled, type Rarity } from '../../core/generals';
 import type { Side, UnitStats } from '../../core/types';
 import { armyPower, generalPower } from '../../meta/army';
 import { el, TAG_TEXT } from '../hud';
+import { EASE, gsap, MOTION, reducedMotion, sec } from '../motion';
 import { actionList } from '../actionList';
 import { unitIcon } from '../icons';
 import { html, initials, RARITY_LABEL } from './common';
@@ -37,37 +38,112 @@ export function statRow(s: UnitStats): HTMLElement {
   );
 }
 
+/** The one floating details panel (a tooltip beside the card, over everything). */
+let tip: HTMLElement | null = null;
+let tipFor: HTMLElement | null = null;
+
+export function hideDetails(): void {
+  tip?.remove();
+  tip = null;
+  tipFor = null;
+}
+
+/** Shows `details` in a panel beside `card`: right of it if there is room, else left. */
+function showDetails(card: HTMLElement, details: HTMLElement): void {
+  if (tipFor === card) return;
+  hideDetails();
+  const panel = el('div', { class: 'detail-tip card-details', role: 'tooltip' }, details);
+  document.body.append(panel);
+  const r = card.getBoundingClientRect();
+  const w = panel.offsetWidth;
+  const h = panel.offsetHeight;
+  const gap = 10;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let x = r.right + gap;
+  if (x + w > vw - 8) x = r.left - gap - w;
+  if (x < 8) x = Math.max(8, Math.min(vw - w - 8, r.left));
+  const y = Math.max(8, Math.min(vh - h - 8, r.top));
+  panel.style.left = `${x}px`;
+  panel.style.top = `${y}px`;
+  if (!reducedMotion()) {
+    gsap.fromTo(
+      panel,
+      { opacity: 0, y: 4 },
+      { opacity: 1, y: 0, duration: sec(MOTION.quick), ease: EASE.out },
+    );
+  }
+  tip = panel;
+  tipFor = card;
+}
+
+// A tap or scroll anywhere else closes the panel.
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (tip && !tip.contains(e.target as Node) && !tipFor?.contains(e.target as Node)) {
+        hideDetails();
+      }
+    },
+    true,
+  );
+  document.addEventListener('scroll', () => hideDetails(), true);
+}
+
+/** How long the mouse rests on a card before its details open (owner: 1 s). */
+const HOVER_MS = 1000;
+const LONG_PRESS_MS = 450;
+
 /**
- * Makes `card` reveal `details` on long-press (touch) or hover (mouse). A long-press
- * doesn't count as a tap, so it never picks the card by accident.
+ * Gives `card` a details panel (Paradox-style): with a mouse it opens beside the card once
+ * the pointer has rested on it for a second, and closes when the pointer leaves; on touch a
+ * long-press opens it. The panel floats over the screen, so cards never resize. A
+ * long-press doesn't count as a tap, so it never picks the card by accident.
  */
 export function withDetails(card: HTMLElement, details: HTMLElement): HTMLElement {
-  details.classList.add('card-details');
+  details.classList.add('card-body');
   card.classList.add('has-details');
-  card.append(details);
-  let timer: number | undefined;
+  let hover: number | undefined;
+  let press: number | undefined;
   let longPressed = false;
+  const restart = () => {
+    window.clearTimeout(hover);
+    hover = window.setTimeout(() => showDetails(card, details), HOVER_MS);
+  };
+  card.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse') restart();
+  });
+  card.addEventListener('pointermove', (e) => {
+    // The mouse must stop: every move restarts the wait (until the panel is open).
+    if (e.pointerType === 'mouse' && tipFor !== card) restart();
+  });
+  card.addEventListener('pointerleave', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    window.clearTimeout(hover);
+    if (tipFor === card) hideDetails();
+  });
   card.addEventListener('pointerdown', (e) => {
+    window.clearTimeout(hover);
     if (e.pointerType === 'mouse') return;
     longPressed = false;
-    timer = window.setTimeout(() => {
+    press = window.setTimeout(() => {
       longPressed = true;
-      document
-        .querySelectorAll('.has-details.open')
-        .forEach((c) => c !== card && c.classList.remove('open'));
-      card.classList.toggle('open');
-    }, 450);
+      showDetails(card, details);
+    }, LONG_PRESS_MS);
   });
-  const cancel = () => window.clearTimeout(timer);
+  const cancel = () => window.clearTimeout(press);
   card.addEventListener('pointerup', cancel);
-  card.addEventListener('pointerleave', cancel);
   card.addEventListener('pointercancel', cancel);
   card.addEventListener('contextmenu', (e) => e.preventDefault());
-  // Swallow the click that ends a long-press.
+  // Swallow the click that ends a long-press; a real click closes the panel.
   card.addEventListener(
     'click',
     (e) => {
-      if (!longPressed) return;
+      if (!longPressed) {
+        if (tipFor === card) hideDetails();
+        return;
+      }
       longPressed = false;
       e.stopImmediatePropagation();
       e.preventDefault();
