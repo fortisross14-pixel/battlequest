@@ -17,7 +17,8 @@ The game looks like a living historical battle map, and animation should feel li
    | `quick`    | 160        | Selection, small state changes                                    |
    | `move`     | 240        | One unit sliding one square (scale with path length, at most 600) |
    | `impact`   | 320        | Charge contact, squash and shake                                  |
-   | `reveal`   | 450        | Card flip, panel in                                               |
+   | `reveal`   | 450        | Card flip, panel in, unit info card (Flip)                        |
+   | `bubble`   | 500        | Command bubble bloom (usable within ~120 ms; close 250)           |
    | `ceremony` | up to 2400 | Battle intro, victory sequence (total)                            |
 
    | Easing                         | Use                                          |
@@ -37,9 +38,11 @@ The game looks like a living historical battle map, and animation should feel li
    - Animate only `transform` and `opacity` in CSS; on the Pixi side, only position, rotation, scale and alpha.
    - Never animate layout properties (width, top, box-shadow blur).
    - Pool Pixi objects for particles and floating numbers. Have at most about 40 particles alive at once.
-5. **One animation driver per layer:**
-   - **Board (Pixi):** the existing `tween()` on the Pixi ticker in `render/battleView.ts`. Grow it into a small timeline helper (sequence, parallel, delay, stagger, `fastForward()`). Don't add a library.
-   - **HTML screens:** the Web Animations API (`element.animate`) with the shared tokens, plus CSS transitions for simple state changes. No GSAP or other animation libraries unless a decision in `docs/DECISIONS.md` justifies one.
+5. **One engine: GSAP** (free, all plugins included; pin an exact version in `package.json`).
+   - **HTML screens:** GSAP tweens and timelines. Use Flip for shared-element transitions, DrawSVG for ink lines, SplitText only on ceremonial titles, and CustomEase for the tokens' curves.
+   - **Board (Pixi):** GSAP tweens Pixi display-object properties directly (x, y, rotation, alpha, scale). Replace the hand-rolled `tween()` in `render/battleView.ts`. Keep the Pixi ticker for rendering. `fastForward()` = `timeline.progress(1)`.
+   - Reduced motion through `gsap.matchMedia()` plus the in-game setting. Animation speed through `gsap.globalTimeline.timeScale()`.
+   - Read the third-party skills `gsap-core`, `gsap-timeline`, `gsap-plugins` and `gsap-performance` for the API, and `emil-design-eng`, `animate` and `choreograph` for the craft. Run `review-animations` before committing motion work.
 6. **Style vocabulary:**
    - parchment, ink strokes drawn on (dash-offset), wax seals, stamps, laurels, brass or gold foil glints;
    - blue and red side colors, with rarity colors only on cards (Common grey, Rare blue, Epic purple, Legendary gold);

@@ -4,6 +4,7 @@ A turn-based tactical battle simulator for tablet and phone. Re-fight history's 
 
 - Design: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md)
 - Agent prompts: [`docs/prompts/`](docs/prompts/)
+- UX and presentation spec: [`docs/UX_PRESENTATION.md`](docs/UX_PRESENTATION.md)
 - History briefs: [`docs/history/`](docs/history/)
 - Reviews: [`docs/reviews/`](docs/reviews/)
-- Agent prompts, in order: `01-kickoff` → `02-review-1-fixes` → `04-campaign-timeline` (screens; its content phases are replaced by 06) → `06-build-ages-0-2` → `03-controls-and-motion`; `05-history-research` runs in parallel with a separate history agent
+- Agent prompts, in order: `01-kickoff` → `02-review-1-fixes` → `04-campaign-timeline` (screens; its content phases are replaced by 06) → `06-build-ages-0-2` → `07-premium-ux-and-motion` (replaces 03); `05-history-research` runs in parallel with a separate history agent

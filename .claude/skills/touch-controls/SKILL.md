@@ -20,12 +20,14 @@ Aim: the controls feel **fast, precise and forgiving**, like an instrument. Begi
 
 ## The control set to support
 
-- **Drag to move:** press a unit and drag. A path ghost follows, snapped to reachable squares. The colour changes on a square from which a charge is possible. Release = the move preview (confirm with a tap, or with release if "Quick confirm" is on in the settings).
-- **Drag to face:** after a move, or on a selected unit, drag outward from the unit. The block rotates live in 45° snaps and shows the MP cost; release sets the facing.
-- **Drag onto an enemy:** shows the charge or shoot preview with odds; release opens the confirm panel. In Quick confirm mode, release executes, with a 2 s undo toast for moves only, since combat can't be undone.
-- **Double-tap a unit:** selects it and centres the camera on it.
-- **Long press:** opens the unit card (it already exists). Show a growing radial ring during the hold so the player sees it coming.
-- **Swipe the action bar:** cycles to the next and previous unit that still has actions.
+**The spec is `docs/UX_PRESENTATION.md` §1–2 and §6.** In short:
+
+- **Command bubble:** tapping your unit blooms petals around it at fixed clock positions (Info 12, Turn 3, Hold 6, Skill 9, Undo 10:30). Petals rotate as a group to stay on screen and never sit under a HUD rectangle.
+- **Move is the default:** with a unit selected, tap any reachable square to see the ghost, then tap again or double-tap to confirm. Tap an enemy for the attack preview. Tap another of your units to switch. Tap unreachable ground to deselect.
+- **Turn mode:** 8 arrowheads around the unit; tap one, or drag around the unit (45° snaps, live MP cost).
+- **Optional expert drag** (a setting, default on): press a unit and drag to a square to get the same ghost, then release and tap to confirm.
+- **Long press:** opens the unit card directly, with a growing ring during the hold.
+- **The "waiting" chip** next to End turn cycles through units that haven't acted. There is no bottom action bar.
 - **Camera:**
   - pan with inertia (friction about 0.92 per frame) and soft edges (rubber-band at the map bounds);
   - pinch zoom around the finger midpoint, with zoom limits;
@@ -38,7 +40,7 @@ Aim: the controls feel **fast, precise and forgiving**, like an instrument. Begi
 ## Architecture
 
 - Gesture recognition stays in `input.ts` and produces semantic gestures (`tap`, `doubleTap`, `longPress`, `dragStart/Move/End`, `pinch`, `pan`). It knows nothing about game rules.
-- Move the controller's mode logic into a **plain state machine** (idle → selected → dragging-path → previewing-move → facing → previewing-attack). It is unit-testable with no DOM. Every transition is a pure function of (mode, gesture, state) → (mode, commands, view hints).
+- Move the controller's mode logic into a **plain state machine** (idle → selected (bubble open) → previewing-move (ghost) → facing → previewing-attack, plus info-open). It is unit-testable with no DOM. Every transition is a pure function of (mode, gesture, state) → (mode, commands, view hints).
 - Snap and legality checks come from core (`planMove`, `previewCombat`). Never re-implement the rules in the UI.
 
 ## Testing

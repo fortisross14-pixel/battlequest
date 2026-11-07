@@ -477,22 +477,23 @@ The main path above is fixed for planning. The full roster of main and optional 
 
 Target device: a 10–11" tablet in landscape. It must also work on a 6" phone in landscape (auto-zoom, smaller maps).
 
-| Gesture | Result |
-|---|---|
-| Tap own unit | Select it. Shows reachable squares (soft blue), charge targets (red outline) and shoot targets (crosshair). |
-| Tap a reachable square | Shows a **ghost** of the unit at that square, with its path. Tap again to confirm (two-tap confirm prevents fat-finger mistakes). |
-| After a move | A facing ring with 8 handles appears around the unit. Tap a handle, or tap elsewhere to keep the default facing (the direction of movement). |
-| Tap an enemy that is a valid target | A **combat preview** panel shows expected losses for both sides and the chance of a cohesion drop, with Confirm and Cancel. |
-| Long-press any unit | Full unit card (stats, tags, state). |
-| One-finger drag on empty map | Pan. |
-| Pinch | Zoom. |
-| Buttons | **Undo** (last move, allowed only if no combat happened and nothing new was revealed), **Next unit** (cycles units that still have actions), **End turn**, **General skill**. |
+**The full spec is `docs/UX_PRESENTATION.md`.** In short:
+- **Tap your unit:** a **command bubble** blooms around it, with petals for Info, Turn, Hold, the general's Skill and Undo.
+- **Moving is the default:** tap any reachable square to see the move ghost, then tap it again (or double-tap) to confirm.
+- **Tap an enemy:** the attack preview opens; tap again to confirm.
+- **Long-press:** unit card. **Drag on empty map:** pan. **Pinch:** zoom.
+- **The HUD lives in reserved zones** (top bar, guidance strip, bottom corners), so nothing covers the battlefield.
+- **The ☰ battle menu** has Resume, Restart battle, Objectives, Settings, How to play and Retreat.
+- Every interaction is animated with GSAP, is interruptible and never blocks input.
 
-- Minimum touch target is 44 pt. Buttons sit along the bottom corners within thumb reach.
-- No hover-only information anywhere.
-- Enemy turn plays back quickly, one move at a time, with a speed toggle (1×, 2×, skip).
+Rules that still hold:
+- Minimum touch target is 44 pt. No information is available only on hover.
+- Enemy turn plays back one move at a time, with a speed chip (1×, 2×, skip).
+- Undo is allowed only for moves and turns with no combat and nothing new revealed.
 
 ## 10. Visual style
+
+Presentation, materials, motion and menus are specified in `docs/UX_PRESENTATION.md`; this section sets the base look.
 
 The inspiration is classic battle diagrams like the Waterloo and Gaugamela maps: flat, readable and handsome.
 

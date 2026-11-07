@@ -17,3 +17,17 @@ docs
 
 # History briefs, kept as delivered by the history agent
 docs/history/age-*.md
+.claude/skills/gsap-core
+.claude/skills/gsap-timeline
+.claude/skills/gsap-plugins
+.claude/skills/gsap-performance
+.claude/skills/gsap-utils
+.claude/skills/emil-design-eng
+.claude/skills/animate
+.claude/skills/choreograph
+.claude/skills/review-animations
+.claude/skills/animation-performance
+.claude/skills/apple-design
+.claude/skills/mobile-native
+.claude/skills/animation-vocabulary
+.claude/skills/find-animation-opportunities

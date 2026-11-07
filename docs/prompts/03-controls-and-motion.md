@@ -1,5 +1,7 @@
 # Agent prompt: elite controls and animations
 
+> **Superseded by `07-premium-ux-and-motion.md`.** Kept for history; don't run it.
+
 Use this **after** the Review 1 fixes (`docs/prompts/02-review-1-fixes.md`) **and** the campaign timeline (`docs/prompts/04-campaign-timeline.md`) are done and pushed. Copy everything below the line into the agent session.
 
 ---

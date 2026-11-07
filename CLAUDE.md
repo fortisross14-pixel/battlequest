@@ -7,6 +7,7 @@ BattleQuest is a turn-based tactical battle simulator for tablets and phones. Yo
 - `docs/GAME_DESIGN.md`: the source of truth for rules, content and UX. Read the relevant section before changing gameplay.
 - `docs/DECISIONS.md`: log of design and implementation decisions that refine or deviate from the design doc. Add an entry whenever you make one.
 - `docs/PROGRESS.md`: milestone checklist.
+- `docs/UX_PRESENTATION.md`: battle screen layout, the command bubble, motion, menus, age-map paths, battle menu. The source of truth for look and feel.
 - `docs/history/`: researched briefs per age (battles, generals, troops). Use them as the source for any historical content.
 
 ## Architecture rules
@@ -44,6 +45,12 @@ Copied from awesome-gamedev-agent-skills. They give general game-dev guidance; w
 - `level-design`: battle maps, campaign pacing and star gates.
 - `save-systems`: profile versioning and migration.
 - `performance-optimization`: frame budget, pooling, profiling.
+
+## Animation and polish skills (third-party)
+
+- GSAP (`_third-party/gsap-skills`): `gsap-core`, `gsap-timeline`, `gsap-plugins` (Flip, DrawSVG, SplitText…), `gsap-performance`, `gsap-utils`. GSAP is the animation engine for HTML and the Pixi board.
+- Emil Kowalski design engineering (`_third-party/emil-kowalski-skills`): `emil-design-eng` (polish), `animate`, `choreograph`, `review-animations` (run before committing motion), `animation-performance`, `apple-design` (gestures, springs), `mobile-native`, `animation-vocabulary`, `find-animation-opportunities`.
+- The project's `motion` skill and `docs/UX_PRESENTATION.md` win over these when they disagree.
 
 ## Workflow
 
