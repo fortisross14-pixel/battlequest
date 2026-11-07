@@ -5,6 +5,8 @@ description: Safely add or change a battle rule or mechanic in src/core (combat,
 
 # Change a rule
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 The battle rules are the heart of the game and must stay deterministic, tested and documented.
 
 1. **Read the relevant section** of `docs/GAME_DESIGN.md` (§4) and any related entries in `docs/DECISIONS.md`.

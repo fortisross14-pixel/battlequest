@@ -2,6 +2,30 @@
 
 BattleQuest is a turn-based tactical battle simulator for tablets and phones. You play a time traveler who re-fights historical battles with any mix of armies and generals across 10 ages.
 
+## ⚠ PROTOTYPE PHASE: speed over verification (owner's standing order)
+
+We are still adding units, tactical actions, generals and battles. **Any balance tuned now will be broken by the next round.** Until the owner announces the balance and optimization phase:
+
+**Definition of done. Ask only two questions:**
+
+1. **Have I completed the requirement?** (Read the prompt or task again and tick each item.)
+2. **Does the game run?**
+   - `npm run typecheck` and `npm run build` pass;
+   - the dev server loads with no console errors;
+   - you clicked through the changed feature once, and took 1–2 screenshots at tablet size.
+
+**If both answers are yes: commit and push. Stop testing.**
+
+**Don't, during this phase:**
+
+- **No balance work:** no `balance-sim`, no win-rate tables, no tuning enemy armies, costs or rule numbers to hit targets.
+- **Don't fix balance tests.** If `npm test` fails on an assertion about win rates, pacing, progression medians, difficulty bands or army sizes, that is a balance test, not a bug. **Move it into `tests/balance/`**, which `npm test` excludes; it runs only with `npm run test:balance`. Don't tune anything to make it pass.
+- **No new test suites.** At most one small unit test for a new core rule, and one regression test for a bug you fix.
+- **No repeated fps, motion or gesture runs.** One `visual-check` screenshot pass per task (one `motion-check` contact sheet if it's animation work) is enough.
+- **No debugging loops longer than 10 minutes.** If something that isn't the requirement (a flaky or unrelated test, a tooling issue) costs more than 10 minutes, write it in `docs/PROGRESS.md` under "Known issues" and move on.
+
+**Time budget:** at least 80% of a task is building the requirement; at most 20% is checking.
+
 ## Key documents
 
 - `docs/GAME_DESIGN.md`: the source of truth for rules, content and UX. Read the relevant section before changing gameplay.
@@ -54,7 +78,6 @@ Copied from awesome-gamedev-agent-skills. They give general game-dev guidance; w
 
 ## Workflow
 
-- Before committing, run `npm run typecheck && npm run lint && npm test`.
-- **Keep tests lean.** Add a unit test only for a new core rule (one focused test per rule is enough) or when fixing a bug. UI, layout and motion are validated **visually** (`visual-check`, `motion-check` screenshots and contact sheets), not with new test suites.
-- Balance is tuned. Don't re-run `balance-sim` unless rule numbers or card stats change, and then run only the affected mode.
-- Small, descriptive commits.
+- Follow the **PROTOTYPE PHASE** rules above. They override any skill, prompt or document that asks for more testing or tuning.
+- Before pushing: `npm run typecheck && npm run build && npm test`. `npm test` must not include balance tests (see above).
+- Small, descriptive commits. Push after every completed requirement.

@@ -5,6 +5,8 @@ description: Standards and patterns for BattleQuest's "elite" touch controls (dr
 
 # Touch controls
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 Aim: the controls feel **fast, precise and forgiving**, like an instrument. Beginners can tap step by step; experienced players can chain gestures without waiting for the game.
 
 ## Principles

@@ -5,6 +5,8 @@ description: Record and inspect BattleQuest animations (frame strips, video, fps
 
 # Motion check
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 A screenshot can't show whether an animation feels right, so this check records it.
 
 ## Tool

@@ -5,6 +5,8 @@ description: Run thousands of headless battles with the real core rules to measu
 
 # Balance simulator
 
+> **Prototype phase: don't use this skill.** Balance work waits for the balance and optimization phase (see `CLAUDE.md`). Use it only if the owner explicitly asks for a balance run.
+
 Balance is measured, not guessed. Every balance claim ("pikes are too strong", "Cannae is too hard") must be backed by a run of this tool.
 
 ## The tool

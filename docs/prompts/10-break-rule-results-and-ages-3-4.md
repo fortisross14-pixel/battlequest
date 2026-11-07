@@ -4,14 +4,14 @@ Run this after `09-premium-ux-and-battle-depth.md`, in a **new** coding-agent se
 
 ---
 
-Pull the latest branch. Follow `CLAUDE.md`, including the **lean test policy**: one focused test per new core rule or bug fix, visual validation for UI, and balance runs only where numbers change.
+Pull the latest branch. Follow the **PROTOTYPE PHASE** rules in `CLAUDE.md`. For each part, ask: have I completed the requirement, and does the game run? If yes, push and move on. **No balance runs, tuning or win-rate tables in this prompt.**
 
 ## Part 1 — Break rule by unit count (GAME_DESIGN §4.8, rewritten)
 - An army breaks when **its general falls**, or when **at most 1 troop** (2 for armies of 7 or more) is still fighting. The general's unit isn't counted as a troop. Routed units count as not fighting until they rally.
 - Replace the cost-share breakpoint and the per-battle `enemyBreakpoint` / `playerBreakpoint` with an optional `breakAt`. Use it only where the history calls for it (for example Teutoburg 3, Thermopylae 0). Log each one.
 - Stars count units: ★★ means at most 1 troop lost. Show strength lost separately, as damage, not as "losses".
 - The HUD breakpoint meters read, for example, "3 troops fighting · breaks at 1", plus the general's state.
-- One test for the new rule. Then **re-run `balance-sim scenario` and `progression` for every built battle** (the rule changed), and retune enemy armies only where a battle falls outside its §7.6 band.
+- One small test for the new rule. Don't re-tune battles. If existing balance tests fail because of the rule change, move them to `tests/balance/` (see `CLAUDE.md`).
 
 ## Part 2 — Two-step results screen (UX_PRESENTATION §4 "Results")
 - **Step 1, the result:**
@@ -86,11 +86,10 @@ Pull the latest branch. Follow `CLAUDE.md`, including the **lean test policy**: 
 - the ladders, power tiers, shop tabs and Legendary road;
 - the history-driven new mechanics, at most one per battle through `rules-change`. Simplify and log anything too big; examples are crossbows in Age 4 and wagon forts.
 
-**Tune** to the §7.6 curve with one `balance-sim scenario` and one `progression` run per age, and put the table in `docs/balance/`. Update `docs/history/README.md` status to built.
+Use the briefs' `difficulty` values and enemy levels as given. **No tuning in this round.** Each battle only has to load and be playable to a result. Update `docs/history/README.md` status to built.
 
 ## Finish with
 - a summary per part;
-- before and after win rates for Ages 0–2 under the new break rule;
-- the win-rate table for Ages 3–4;
+- confirmation that every new battle loads and can be played to a result;
 - screenshots of both results steps and both new age maps;
 - anything simplified or deferred.

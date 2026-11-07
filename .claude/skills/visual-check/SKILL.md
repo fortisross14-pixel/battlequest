@@ -5,6 +5,8 @@ description: Screenshot the running game at tablet and phone sizes and check it 
 
 # Visual check
 
+> **Prototype phase:** follow the PROTOTYPE PHASE rules in `CLAUDE.md`. Skip every balance, tuning and win-rate step below, and keep checks to: the requirement is done, and the game runs.
+
 Graphics and touch UX are judged by looking at the game, not by reading code. Do this for every render or UI change.
 
 ## Steps

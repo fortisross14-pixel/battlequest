@@ -27,7 +27,7 @@ Keep the minimal parchment, ink and wax style.
   - `game-feel`, `game-ui-ux`, `pixijs-rendering`.
 - If `docs/PROGRESS.md` shows prompt 06 isn't finished, finish it first.
 
-**Testing for this update: keep it light.**
+**Testing for this update: follow the PROTOTYPE PHASE rules in `CLAUDE.md`.** Requirement done and game runs, then push. In detail:
 - `npm run typecheck && npm run lint && npm test` must stay green.
 - New unit tests only for the new core rules (one focused test per tactical action, plus the `Restart` command) and for bugs you fix. **No new UI, layout or gesture test suites, and no balance-sim tuning** (balance is already tuned).
 - Validate visually: run `visual-check` and `motion-check` after each phase at 1024×768, then do one pass at 812×375 at the end. Read the screenshots and contact sheets and fix what looks wrong.
