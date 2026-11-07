@@ -39,8 +39,22 @@ Pull the latest branch. Follow `CLAUDE.md`, including the **lean test policy**: 
 
    | Age | Rare | Epic | Legendary |
    |---|---|---|---|
-   | Early Middle Ages | Harold Godwinson, Brian Boru, Godfrey of Bouillon | Charles Martel, Belisarius, Harald Hardrada | Khalid ibn al-Walid, William of Normandy |
+   | Early Middle Ages | Harold Godwinson, Brian Boru, Godfrey of Bouillon | Charles Martel, Belisarius, William of Normandy | Khalid ibn al-Walid, **Charlemagne** |
    | High and Late Middle Ages | William Wallace, Alexander Nevsky, João I | Robert the Bruce, Baibars, Edward the Black Prince | Saladin, Richard I |
+
+   **Charlemagne is missing from the brief, so add him** (owner request) with `add-unit`:
+   - Legendary, Frankish, *lived 742–814*.
+   - Trait: his armies could campaign year after year, so the whole army gets +morale and a better rally chance.
+   - Skill: **Paladins' Rally**: units in his command radius gain one cohesion level, and a routed unit there rallies.
+   - Sources: Einhard's *Vita Karoli Magni*; the *Royal Frankish Annals*; Rosamond McKitterick, *Charlemagne: The Formation of a European Identity* (2008).
+   - **His card is the reward of the optional Roncevaux Pass battle.** Rework that battle so the player defends Charlemagne's rearguard in the pass against the Basque ambush:
+     - challenge type `desperateDefence`;
+     - objective: hold out, or get the baggage train off the far edge, within N turns;
+     - the ★★★ condition is "lose no troop".
+
+   Log in `docs/DECISIONS.md` that this flips the brief's player side for Roncevaux. The brief's history text stays as written, because the rearguard really was destroyed: the scenario asks whether you can do better.
+
+   William of Normandy moves from Legendary to Epic, and Harald Hardrada becomes enemy-only, so the general limits still hold.
 
 3. **Legendary troops** must be the age's icon, without duplicating a Rare card:
    - Early Middle Ages: the **Varangian Guard** moves from Epic to Legendary. Crusader knights move from Legendary to Epic, next to Seljuk heavy cavalry.

@@ -19,7 +19,7 @@ This is the full list of battles, compiled from the history agent's proposal (20
 
 ## 3 · Early Middle Ages
 - **Main (10):** Catalaunian Plains (451) · Taginae (552) · Yarmouk (636) · Tours (732) · Lechfeld (955) · Stamford Bridge (1066) · Hastings (1066) · Manzikert (1071) · Dorylaeum (1097) · Legnano (1176)
-- **Optional (6):** Dara (530) · al-Qadisiyyah (636) · Talas (751) · Roncevaux Pass (778) · Clontarf (1014) · Ascalon (1099)
+- **Optional (6):** Dara (530) · al-Qadisiyyah (636) · Talas (751) · Roncevaux Pass (778; the player defends Charlemagne's rearguard, and it rewards the **Charlemagne** general card) · Clontarf (1014) · Ascalon (1099)
 
 ## 4 · High and Late Middle Ages
 - **Main (11):** Hattin (1187) · Arsuf (1191) · Bouvines (1214) · Mohi (1241) · Ain Jalut (1260) · Stirling Bridge (1297) · Bannockburn (1314) · Crécy (1346) · Poitiers (1356) · Agincourt (1415) · Grunwald (1410)
