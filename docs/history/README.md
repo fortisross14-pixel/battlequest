@@ -2,6 +2,8 @@
 
 This folder holds the **historical research** behind every age, battle, general and troop in the game. A history agent writes it, following `TEMPLATE.md`. The build agent turns it into game data in `src/content` using the `add-battle` and `add-unit` skills.
 
+**Roster:** `ROSTER.md` lists every main and optional battle for each age.
+
 **Files:** one per age, `age-NN-<slug>.md`, from `age-00-dawn-of-war.md` to `age-09-age-of-rifles.md`. The age and battle list in `GAME_DESIGN.md` §7.5 is the starting point; the history briefs may propose swaps, and each swap is explained at the top of the age file.
 
 **How the build agent uses a brief:**

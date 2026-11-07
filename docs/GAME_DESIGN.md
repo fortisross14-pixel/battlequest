@@ -326,14 +326,20 @@ Every battle is built around one clear historical "problem" (the terrain or scen
 
 ### 7.3 Unlock rules
 
-- **Battles unlock by stars earned in that age.** The first two battles are always open. The rest need the age's star total to reach a threshold:
+- **Main and optional battles.** Each age has a **main path** of 10–12 battles (the list in §7.5) plus 5–10 **optional battles** (see `docs/history/ROSTER.md`).
+  - Main battles drive the age: their star gates are below, and winning all of them opens the next age.
+  - Optional battles branch off a specific main battle on the age map. They open when that main battle is won.
+  - Optional battles are never required to finish an age. They pay out rarer rewards (a specific troop card, a general, lore) and harder historical challenges.
+  - Their stars count toward the age's star total, so they are another route to the main-path gates.
+- **Main battles unlock by stars earned in that age.** The first two are always open. The rest need the age's star total to reach a threshold:
 
   | Battle # in age | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
   |---|---|---|---|---|---|---|---|---|---|---|---|---|
   | Stars needed | 0 | 0 | 1 | 2 | 4 | 6 | 8 | 10 | 14 | 18 | 22 | 26 |
 
   The thresholds are data per age, so they can be tuned.
-- **The next age unlocks** when every battle in the current age has been **won** (at least ★). Three stars everywhere is not required.
+- **The next age unlocks** when every **main** battle in the current age has been **won** (at least ★). Three stars everywhere is not required.
+- **One tactical idea per battle.** Every battle has a `challengeType` (line and flank; pass, bridge or ford; river crossing; ambush and vision; hills and defensive ground; cavalry and pursuit; hold until reinforcements; strike the commander; desperate defence; attrition). Each age mixes several types, so that it never becomes ten versions of "break the army". Normally no battle adds a new mechanic, and never more than one.
 - **Stars** (§4.8): ★ win; ★★ win losing under 30%; ★★★ also meet the battle's bonus condition. A battle keeps its best result. Replays can raise stars, and the extra stars count immediately toward unlocks.
 
 ### 7.4 Age 0: Dawn of War (tutorial)
@@ -362,7 +368,7 @@ There are 10 ages, each with 10–12 battles. The battle list is a starting poin
 | 6 | Pike and Shot | 1605–1683 | Kircholm · Klushino · White Mountain · Breitenfeld · Lützen · Nördlingen · Rocroi (the last tercios) · Marston Moor · Naseby · Vienna 1683 (hussar charge, reinforcements) |
 | 7 | Linear Warfare | 1704–1781 | Blenheim (village strongpoints) · Poltava · Fontenoy · Plassey · Rossbach · Leuthen (oblique order behind hills) · Quebec · Saratoga · Guilford Courthouse · Cowpens |
 | 8 | Napoleonic Wars | 1800–1815 | Marengo · Austerlitz (fog, Pratzen Heights) · Jena · Eylau · Friedland · Talavera · Wagram · Salamanca · Borodino (redoubts) · Leipzig · **Waterloo** (Hougoumont, La Haye Sainte, Prussians on turn 8) |
-| 9 | Age of Rifles | 1854–1898 | Alma · Balaclava · Solferino · Bull Run · Antietam · Gettysburg · Königgrätz · Sedan · Little Bighorn · Isandlwana · Omdurman |
+| 9 | Age of Rifles | 1854–1898 | Alma · Balaclava · Solferino · Bull Run · Antietam · Gettysburg · Königgrätz · Sedan · Little Bighorn · Isandlwana · Adwa (Ethiopian forces coordinating in the hills) |
 
 Each battle definition includes:
 - map, deployment zones, and the enemy army and its general;
@@ -371,7 +377,11 @@ Each battle definition includes:
 - briefing text (3–4 sentences of history plus the tactical problem);
 - **map coordinates** (latitude/longitude) for its node on the age map.
 
-**MVP content:** Age 0 (2 tutorial battles) plus Age 1 Antiquity (10 battles). Later ages show on the timeline as "In preparation" and are added as content only.
+Age 9 swapped Omdurman (a one-sided massacre that makes a poor puzzle) for Adwa; Omdurman stays in the roster as optional, pending the history brief's sensitivity notes.
+
+The main path above is fixed for planning. The full roster of main and optional battles, about 160 in all, is in `docs/history/ROSTER.md`.
+
+**MVP content:** Age 0 (2 tutorial battles) plus Age 1 Antiquity (10 main battles; its optional battles can follow). Later ages show on the timeline as "In preparation" and are added as content only.
 
 ## 8. Economy and packs
 

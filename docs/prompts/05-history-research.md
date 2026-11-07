@@ -24,7 +24,7 @@ Your research becomes the game's content. A separate build agent turns it into g
    - the commanders of its battles;
    - at least 3 playable ones per age, mixing rarities: at least 1 legendary or epic, and some common or rare;
    - each with a trait and 1–2 skills grounded in how they really fought.
-4. **Its battles:** 10–12 in historical order, filling in every field of the battle block.
+4. **Its battles:** the main and optional battles in `docs/history/ROSTER.md`, in historical order, filling in every field of the battle block. That includes `node`, `branchesFrom` and `reward` for optional battles, and a `challengeType` for every battle. Each age should mix several challenge types.
 
 **Order:** Age 0 first (only Megiddo and Kadesh; they are tutorials, so keep the sketches simple), then **Age 1 Antiquity, which is needed first**, then Ages 2–9. Commit and push after each age, so the build agent can start on finished ages.
 

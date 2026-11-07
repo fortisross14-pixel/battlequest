@@ -107,6 +107,10 @@ battle:
   name: Gaugamela
   date: "1 October 331 BC"
   orderInAge: 9                   # historical order; it also sets the star gate (later = harder)
+  node: main                      # main | optional (see ROSTER.md)
+  branchesFrom: null              # optional battles only: the id of the main battle it opens after
+  reward: null                    # optional battles only: e.g. "card: immortals ×2" or "general: cyrusYounger"
+  challengeType: holdUntilReinforcements   # one of the types listed in the vocabulary below
   location:
     modernPlace: "near Mosul, Iraq"
     lat: 36.36
@@ -176,5 +180,7 @@ battle:
 **Terrain:** open, rough, forest, hill, river, ford, bridge, marsh, village, fieldworks, road.
 
 **Objectives:** breakArmy, holdOut, killGeneral, escape, holdPoint.
+
+**Challenge types** (one per battle, mixed within each age): lineAndFlank, passBridgeOrFord, riverCrossing, ambushAndVision, hillsAndDefence, cavalryAndPursuit, holdUntilReinforcements, strikeTheCommander, desperateDefence, attrition.
 
 **General skill effects already built:** rally, holdFast, heal, cohesionUp, holdTheLine, flankBoost. Anything else is a new mechanic: describe it in `effect` and set `existingEffect: none`.
