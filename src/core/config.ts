@@ -53,6 +53,12 @@ export const RULES = {
     flankedStrikeBack: 0.5,
     /** Extra flank/rear multiplier against FlankVulnerable units. */
     flankVulnerable: 1.25,
+    /** ScaresHorses (elephants): mounted troops fighting them, and them fighting mounted troops. */
+    scaresHorses: { horseVsElephant: 0.6, elephantVsHorse: 1.25 },
+    /** Stampede: strength lost by each friend next to an elephant unit when it routs. */
+    stampedeDamage: 15,
+    /** Scythed chariots: impact multiplier when charging foot troops. */
+    scythed: 1.5,
     uphill: 1.2,
     coverVsRanged: 0.6,
     bracing: 0.8,

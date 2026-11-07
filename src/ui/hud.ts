@@ -1,3 +1,4 @@
+import { RULES } from '../core/config';
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
@@ -64,8 +65,9 @@ export const TAG_TEXT: Record<UnitTag, string> = {
   Charge: 'Shock: hits 1.2× harder at impact after a run-up of 2+ squares.',
   HitAndRun: 'Hit and run: falls back a square after the impact instead of staying in melee.',
   Pursue: 'Pursues routed enemies 1–2 squares.',
-  ScaresHorses: 'Scares horses (not active yet).',
-  Stampede: 'Stampedes when routed (not active yet).',
+  ScaresHorses: `Horses fear them: mounted troops fight them at ×${RULES.combat.scaresHorses.horseVsElephant}, and they hit mounted troops ×${RULES.combat.scaresHorses.elephantVsHorse}.`,
+  Stampede: `Stampedes when it breaks: friends next to it lose ${RULES.combat.stampedeDamage} strength.`,
+  Scythed: `Scythed wheels: ×${RULES.combat.scythed} impact when charging foot troops.`,
   Reload: 'Reload: can fire every other turn.',
   RainPenalty: 'Weak in rain (not active yet).',
   Formations: 'Formations: line, column, square (not active yet).',

@@ -170,6 +170,17 @@ export function computeDamage(
   ) {
     sit.push({ label: 'Full gallop', value: C.chargeMomentum });
   }
+  if (role !== 'ranged') {
+    if (hasTag(def, 'ScaresHorses') && isCavalryLike(att.type)) {
+      sit.push({ label: 'Horses fear elephants', value: C.scaresHorses.horseVsElephant });
+    }
+    if (hasTag(att, 'ScaresHorses') && isCavalryLike(def.type)) {
+      sit.push({ label: 'Elephants vs horses', value: C.scaresHorses.elephantVsHorse });
+    }
+  }
+  if (role === 'charge' && hasTag(att, 'Scythed') && def.type.category === 'infantry') {
+    sit.push({ label: 'Scythed wheels', value: C.scythed });
+  }
   if (elevationAt(state.map, att) > elevationAt(state.map, def))
     sit.push({ label: 'Uphill', value: C.uphill });
   if (role === 'ranged' && terrainRules(state.map, def).cover)

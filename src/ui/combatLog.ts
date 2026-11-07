@@ -94,6 +94,14 @@ export function describeEvents(
         break;
       case 'DamageDealt':
         if (e.kind === 'melee') break; // summarised per fight
+        if (e.kind === 'stampede') {
+          add(
+            'damage',
+            `Stampede: fleeing ${name(e.attackerId)} trampled ${name(e.targetId)}, who lost ${e.amount}.`,
+            sideOf(e.attackerId),
+          );
+          break;
+        }
         add(
           'damage',
           `${e.kind === 'impact' ? 'Impact' : 'Hit'}: ${name(e.targetId)} lost ${e.amount}${e.arc !== 'front' ? ` (${e.arc} attack)` : ''}.`,

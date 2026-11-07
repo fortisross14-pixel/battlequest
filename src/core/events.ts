@@ -11,7 +11,8 @@ export type MoveKind =
   | 'pursuit'
   | 'pushBack'
   | 'followUp';
-export type DamageKind = 'ranged' | 'impact' | 'melee';
+/** `stampede`: a routing elephant unit trampling its own side. */
+export type DamageKind = 'ranged' | 'impact' | 'melee' | 'stampede';
 
 /** Everything the renderer needs to animate a state change. */
 export type GameEvent =

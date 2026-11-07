@@ -128,12 +128,30 @@ function checkGeneralLoss(state: BattleState, u: Unit, events: GameEvent[]): voi
   events.push({ type: 'GeneralLost', side: u.side, generalId: g.generalId, name: g.name });
 }
 
-/** Friendly units next to a unit that just broke take a test with no damage. */
+/**
+ * Friendly units next to a unit that just broke take a test with no damage. An elephant
+ * unit that breaks stampedes instead (GAME_DESIGN 4.5): each of those friends loses
+ * strength and takes the usual test for that damage.
+ */
 function testNeighbours(state: BattleState, u: Unit, events: GameEvent[]): void {
+  const stampede = hasTag(u, 'Stampede');
   for (const f of state.units) {
-    if (f.side === u.side && f.id !== u.id && isFighting(f) && isAdjacent(f, u)) {
+    // Checked as we go: an earlier test in the chain may already have broken this unit.
+    if (f.side !== u.side || f.id === u.id || !isFighting(f) || !isAdjacent(f, u)) continue;
+    if (!stampede) {
       cohesionTest(state, f, { damage: 0, arc: 'front', adjacentRout: true }, events);
+      continue;
     }
+    const amount = applyDamage(f, RULES.combat.stampedeDamage);
+    events.push({
+      type: 'DamageDealt',
+      attackerId: u.id,
+      targetId: f.id,
+      kind: 'stampede',
+      amount,
+      arc: 'front',
+    });
+    afterDamage(state, f, amount, 'front', events);
   }
 }
 

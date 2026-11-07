@@ -121,6 +121,8 @@ Costs were tuned with `balance-sim cost` in review 1 (see docs/DECISIONS.md).
 | Line infantry | 8 | 5 | 4 | 7 (3) | 3 | 7 | 77 | Formations: Line / Column / Square |
 | Field artillery | 4 | 1 | 0 | 9 (6) | 2 | 5 | 100 | NoMoveAndShoot, HelplessInMelee, Bounce (hits the unit behind the target for half damage) |
 
+Elephants and scythed chariots (defined for Antiquity, see docs/DECISIONS.md): **ScaresHorses**: horsemen and chariots fight elephants at ×0.6 (charge, counter and melee), and elephants hit them ×1.25. **Stampede**: when an elephant unit routs, each friend next to it loses 15 strength and tests. **Scythed** (an era tag for chariots): ×1.5 impact when charging foot troops.
+
 Key matchups to protect while balancing:
 
 - Spears and pikes beat a frontal cavalry charge. Cavalry beats them on the flank or rear.

@@ -54,6 +54,8 @@ export type UnitTag =
   | 'Pursue'
   | 'ScaresHorses'
   | 'Stampede'
+  /** Scythed chariots: blades on the wheels cut through foot troops at impact. */
+  | 'Scythed'
   | 'Reload'
   | 'RainPenalty'
   | 'Formations'
