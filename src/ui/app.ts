@@ -1,4 +1,5 @@
 import { AiPlayer } from '../ai/utility';
+import { layout } from './layout';
 import { BATTLES } from '../content/battles';
 import { buildScenario, defaultPlacement, deploymentSquares } from '../content/campaign/build';
 import type { ArmyChoice, CampaignBattle } from '../content/campaign/types';
@@ -131,7 +132,11 @@ export class App implements AppApi {
     this.menu();
   }
 
+  private stopLayout: (() => void) | null = null;
+
   private endBattleUi(): void {
+    this.stopLayout?.();
+    this.stopLayout = null;
     this.controller?.dispose();
     this.controller = null;
     this.hud?.destroy();
@@ -144,8 +149,23 @@ export class App implements AppApi {
     this.screenHost.classList.add('hidden');
     this.view.loadMap(state);
     this.view.sync(state);
-    this.view.fit(state.units.find((u) => u.side === 'blue'));
     this.hud = new Hud(document.body);
+    // The camera uses the play area the HUD leaves (UX §1), and refits when it changes.
+    const canvas = this.view.canvas;
+    this.view.insets = () => {
+      const r = canvas.getBoundingClientRect();
+      return layout.insets({ x: r.left, y: r.top, w: r.width, h: r.height });
+    };
+    const focus = state.units.find((u) => u.side === 'blue');
+    this.view.fit(focus);
+    let last = '';
+    this.stopLayout?.();
+    this.stopLayout = layout.onChange(() => {
+      const key = JSON.stringify(this.view.insets?.());
+      if (key === last) return;
+      last = key;
+      this.view.fit(focus);
+    });
     return this.hud;
   }
 

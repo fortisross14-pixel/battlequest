@@ -16,6 +16,7 @@
     "visual-check": "node scripts/visual-check.mjs"
   },
   "dependencies": {
+    "gsap": "3.15.1",
     "pixi.js": "^8.22.0"
   },
   "devDependencies": {

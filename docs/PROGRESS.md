@@ -51,6 +51,15 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Phase C — Antiquity (10 main, 7 optional) and Classical Empires (12 main, 6 optional) built from the briefs: maps, enemies, objectives, bonuses, briefings, coordinates, rewards, age maps
 - [ ] Ages 0–2 balance to §7.6 (paused by the owner; end-of-development pass)
 
+## Premium UX and battle depth (docs/prompts/09-premium-ux-and-battle-depth.md)
+- [x] Phase A — GSAP foundations: motion tokens and settings, board animation on GSAP timelines, tap fast-forwards, layout manager, motion-check tool
+- [ ] Phase B — battle screen zones and battle menu (Restart)
+- [ ] Phase C — command bubble and controls
+- [ ] Phase D — tactical actions
+- [ ] Phase E — battle motion
+- [ ] Phase F — premium menus, ceremonies (owner approval gate), age filters
+- [ ] Phase G — age map and extras
+
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
 - [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills

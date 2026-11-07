@@ -1,5 +1,6 @@
 import type { AiPlayer } from '../ai/utility';
 import type { Command } from '../core/engine';
+import { fastForward } from './motion';
 import { validateCommand } from '../core/engine';
 import type { GameEvent } from '../core/events';
 import { generalUnit, skillNeedsTarget, validSkillTarget } from '../core/generals';
@@ -140,8 +141,14 @@ export class Controller {
   // ---------- Gestures ----------
 
   tap(x: number, y: number): void {
-    if (this.mode.kind === 'busy' || this.mode.kind === 'over' || this.hud.overlayOpen) return;
-    if (!this.isHumanTurn()) return;
+    // Input never waits for decoration (motion skill): a tap while the board animates jumps
+    // the animation to its end.
+    if (this.mode.kind === 'busy' || !this.isHumanTurn()) {
+      this.view.fastForward();
+      fastForward();
+      return;
+    }
+    if (this.mode.kind === 'over' || this.hud.overlayOpen) return;
     this.hud.hideUnitCard();
     if (this.mode.kind === 'preview') {
       this.cancelPreview();

@@ -4,6 +4,7 @@ import { DIR_VECTORS } from '../core/geometry';
 import { isSpent } from '../core/state';
 import type { BattleState, Dir, Pos, Side, Unit } from '../core/types';
 import { arrow, dashed } from './draw';
+import { done, EASE, gsap, MOTION, reducedMotion, sec, sfx, track } from '../ui/motion';
 import { buildGrid, buildTerrainLayer } from './terrainLayer';
 import { CELL, THEME } from './theme';
 import { loadBadgeTextures } from './badgeTextures';
@@ -32,7 +33,6 @@ const shortestAngle = (from: number, to: number) => {
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
 };
-const ease = (t: number) => 1 - (1 - t) * (1 - t);
 
 /** One breath of the tutorial marker (ms): a slow, calm pulse, like the age map's hint. */
 const TUTORIAL_PULSE_MS = 1200;
@@ -51,7 +51,7 @@ export class BattleView {
   private ringLayer = new Graphics();
   /** Gold rings on what the current tutorial step points at (GAME_DESIGN 7.4). */
   private tutorialLayer = new Graphics();
-  private tutorialClock = 0;
+  private tutorialPulse: gsap.core.Tween | null = null;
   private effects = new Container();
   private views = new Map<string, UnitView>();
   private ring: { at: Pos; handles: RingHandle[] } | null = null;
@@ -151,8 +151,21 @@ export class BattleView {
     this.minFitSquare = phone ? 32 : 44;
   }
 
+  /** The HUD's reserved space around the play area (set by the battle screen's layout). */
+  insets: (() => { top: number; bottom: number; left: number; right: number }) | null = null;
+
   private viewport() {
     this.layout();
+    if (this.insets) {
+      const i = this.insets();
+      // Keep a small margin even where no HUD element sits.
+      this.padding = {
+        top: Math.max(8, i.top),
+        bottom: Math.max(8, i.bottom),
+        left: Math.max(8, i.left),
+        right: Math.max(8, i.right),
+      };
+    }
     const { width, height } = this.app.screen;
     const p = this.padding;
     return { x: p.left, y: p.top, w: width - p.left - p.right, h: height - p.top - p.bottom };
@@ -310,7 +323,8 @@ export class BattleView {
    */
   setTutorialMarks(marks: Pos[]): void {
     const g = this.tutorialLayer.clear();
-    this.app.ticker.remove(this.pulseTutorial, this);
+    this.tutorialPulse?.kill();
+    this.tutorialPulse = null;
     if (!marks.length) return;
     for (const p of marks) {
       const x0 = p.x * CELL - 4;
@@ -336,16 +350,16 @@ export class BattleView {
       });
     }
     this.tutorialLayer.alpha = 1;
-    if (!this.reducedMotion) {
-      this.tutorialClock = 0;
-      this.app.ticker.add(this.pulseTutorial, this);
+    if (!this.reduced) {
+      // A slow, calm breath (a hint loop, not decoration that blocks anything).
+      this.tutorialPulse = gsap.to(this.tutorialLayer, {
+        alpha: 0.55,
+        duration: sec(TUTORIAL_PULSE_MS / 2),
+        ease: 'sine.inOut',
+        yoyo: true,
+        repeat: -1,
+      });
     }
-  }
-
-  private pulseTutorial(t: { deltaMS: number }): void {
-    this.tutorialClock = (this.tutorialClock + t.deltaMS) % TUTORIAL_PULSE_MS;
-    const phase = (Math.sin((this.tutorialClock / TUTORIAL_PULSE_MS) * Math.PI * 2) + 1) / 2;
-    this.tutorialLayer.alpha = 0.55 + 0.45 * phase;
   }
 
   /** A translucent copy of the unit at its destination, with its path as a battle-map arrow. */
@@ -423,27 +437,18 @@ export class BattleView {
     return best?.h ?? null;
   }
 
-  // ---------- Animation ----------
+  // ---------- Animation (GSAP on Pixi properties; motion skill) ----------
 
-  private tween(ms: number, fn: (t: number) => void): Promise<void> {
-    const dur = this.reducedMotion ? 0 : ms / this.speed;
-    if (dur <= 0) {
-      fn(1);
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      let elapsed = 0;
-      const tick = () => {
-        elapsed += this.app.ticker.deltaMS;
-        const t = Math.min(1, elapsed / dur);
-        fn(t);
-        if (t >= 1) {
-          this.app.ticker.remove(tick);
-          resolve();
-        }
-      };
-      this.app.ticker.add(tick);
-    });
+  /** The timeline playing core events now, if any (a tap jumps it to its end). */
+  private playing: gsap.core.Timeline | null = null;
+
+  /** Jumps the current playback to its end state (input never waits for decoration). */
+  fastForward(): void {
+    this.playing?.progress(1, false);
+  }
+
+  private get reduced(): boolean {
+    return this.reducedMotion || reducedMotion();
   }
 
   private floatText(at: Pos, text: string, color: number): void {
@@ -461,65 +466,94 @@ export class BattleView {
     t.anchor.set(0.5);
     t.position.set(c.x + (Math.random() - 0.5) * 10, c.y - 10);
     this.effects.addChild(t);
-    void this.tween(900, (k) => {
-      t.y = c.y - 10 - 34 * ease(k);
-      t.alpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
-    }).then(() => t.destroy());
+    const tl = gsap.timeline({ onComplete: () => t.destroy() });
+    if (this.reduced) tl.to(t, { alpha: 0, duration: sec(MOTION.reducedFade), delay: 0.5 });
+    else
+      tl.to(t, { y: c.y - 44, duration: sec(900), ease: EASE.out }, 0).to(
+        t,
+        { alpha: 0, duration: sec(360), ease: EASE.in },
+        sec(540),
+      );
+    track(tl);
   }
 
-  private async slide(v: UnitView, path: Pos[], turn: boolean): Promise<void> {
+  /** Adds a unit's slide along its path, square by square, to `tl`. */
+  private addSlide(tl: gsap.core.Timeline, v: UnitView, path: Pos[], turn: boolean): void {
+    const end = centre(path[path.length - 1]!);
+    if (this.reduced || path.length < 2) {
+      tl.set(v, { x: end.x, y: end.y });
+      return;
+    }
+    const segs = path.length - 1;
+    const per = sec(Math.min(MOTION.moveMax, MOTION.move * segs) / segs);
+    let rot = v.body.rotation;
     for (let i = 1; i < path.length; i++) {
       const a = centre(path[i - 1]!);
       const b = centre(path[i]!);
-      const fromRot = v.body.rotation;
-      const toRot = turn ? Math.atan2(b.x - a.x, -(b.y - a.y)) : fromRot;
-      const dRot = shortestAngle(fromRot, toRot);
-      await this.tween(130, (t) => {
-        const k = ease(t);
-        v.position.set(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k);
-        v.body.rotation = fromRot + dRot * Math.min(1, k * 2);
-      });
+      const label = `seg${i}`;
+      tl.addLabel(label);
+      tl.to(v, { x: b.x, y: b.y, duration: per, ease: i === segs ? EASE.out : 'none' }, label);
+      if (turn) {
+        const to = rot + shortestAngle(rot, Math.atan2(b.x - a.x, -(b.y - a.y)));
+        tl.to(v.body, { rotation: to, duration: per / 2, ease: EASE.out }, label);
+        rot = to;
+      }
     }
   }
 
-  private rotateTo(v: UnitView, f: Dir, ms = 160): Promise<void> {
-    const from = v.body.rotation;
-    const d = shortestAngle(from, facingRotation(f));
-    return this.tween(ms, (t) => (v.body.rotation = from + d * ease(t)));
+  /** Adds a turn to a facing, settling with a small overshoot. */
+  private addRotate(tl: gsap.core.Timeline, v: UnitView, f: Dir, ms: number = MOTION.quick): void {
+    const target = facingRotation(f);
+    tl.add(() => {
+      const from = v.body.rotation;
+      const to = from + shortestAngle(from, target);
+      if (this.reduced) v.body.rotation = to;
+      else track(gsap.to(v.body, { rotation: to, duration: sec(ms), ease: EASE.back }));
+    });
+    if (!this.reduced) tl.to({}, { duration: sec(ms) });
   }
 
-  /** Plays core events as short tweens, then snaps to the final state. */
+  /** Plays core events as one GSAP timeline, then snaps to the final state. */
   async play(events: GameEvent[], final: BattleState): Promise<void> {
+    this.fastForward();
     const temp = new Graphics();
     this.effects.addChild(temp);
+    const tl = gsap.timeline({ paused: true });
+    const r = this.reduced;
+    const fade = sec(MOTION.reducedFade);
     for (const e of events) {
       switch (e.type) {
         case 'UnitMoved': {
           const v = this.views.get(e.unitId);
           if (!v) break;
           const turn = e.kind === 'move' || e.kind === 'rout' || e.kind === 'pursuit';
-          await this.slide(v, e.path, turn);
+          this.addSlide(tl, v, e.path, turn);
           const end = e.path[e.path.length - 1]!;
-          v.look = { ...v.look, x: end.x, y: end.y, facing: e.facing };
-          await this.rotateTo(v, e.facing, 100);
+          tl.add(() => {
+            v.look = { ...v.look, x: end.x, y: end.y, facing: e.facing };
+          });
+          this.addRotate(tl, v, e.facing, MOTION.quick);
           break;
         }
         case 'UnitRotated': {
           const v = this.views.get(e.unitId);
-          if (v) await this.rotateTo(v, e.to);
+          if (v) this.addRotate(tl, v, e.to);
           break;
         }
-        case 'ChargeDeclared':
-          arrow(
-            temp,
+        case 'ChargeDeclared': {
+          const target = this.views.get(e.targetId);
+          const pts =
             e.path.length > 1
               ? e.path.map(centre)
-              : [centre(e.path[0]!), centre(this.views.get(e.targetId)!.look)],
-            CELL * 0.26,
-            THEME.charge,
-            0.35,
-          );
+              : target
+                ? [centre(e.path[0]!), centre(target.look)]
+                : [];
+          tl.add(() => {
+            if (pts.length > 1) arrow(temp, pts, CELL * 0.26, THEME.charge, 0.35);
+          });
+          sfx('charge');
           break;
+        }
         case 'ShotFired': {
           const a = this.views.get(e.unitId)?.look;
           const b = this.views.get(e.targetId)?.look;
@@ -527,62 +561,99 @@ export class BattleView {
           const line = new Graphics();
           dashed(line, centre(a), centre(b), 8, 6);
           line.stroke({ width: 2.5, color: THEME.ink, alpha: 0.7 });
+          line.alpha = 0;
           this.effects.addChild(line);
-          await this.tween(260, (t) => (line.alpha = 1 - t * 0.3));
-          line.destroy();
+          tl.set(line, { alpha: 1 });
+          tl.to(line, { alpha: 0.4, duration: r ? fade : sec(260), ease: EASE.in });
+          tl.add(() => line.destroy());
           break;
         }
         case 'DamageDealt': {
           const v = this.views.get(e.targetId);
           if (!v) break;
-          v.update({ strength: Math.max(0, v.look.strength - e.amount) });
-          this.floatText(v.look, `−${e.amount}`, THEME.damage);
-          const base = { x: v.x, y: v.y };
-          await this.tween(200, (t) => {
-            const amp = 4 * (1 - t);
-            v.position.set(base.x + Math.sin(t * 40) * amp, base.y + Math.cos(t * 33) * amp * 0.5);
+          const amount = e.amount;
+          tl.add(() => {
+            v.update({ strength: Math.max(0, v.look.strength - amount) });
+            this.floatText(v.look, `−${amount}`, THEME.damage);
+            sfx('impact');
           });
-          v.position.set(base.x, base.y);
+          if (r) break;
+          // Impact frame: a short hit-stop, then the block shakes and settles.
+          if (e.kind === 'impact') tl.to({}, { duration: sec(MOTION.hitStop) });
+          const shake = { k: 1 };
+          let bx = 0;
+          let by = 0;
+          tl.add(() => {
+            bx = v.x;
+            by = v.y;
+          });
+          tl.to(shake, {
+            k: 0,
+            duration: sec(200),
+            ease: 'none',
+            onUpdate: () => {
+              const amp = 4 * shake.k;
+              const t = 1 - shake.k;
+              v.position.set(bx + Math.sin(t * 40) * amp, by + Math.cos(t * 33) * amp * 0.5);
+            },
+            onComplete: () => v.position.set(bx, by),
+          });
           break;
         }
         case 'CohesionChanged':
         case 'UnitRallied': {
           const v = this.views.get(e.unitId);
           if (!v) break;
-          v.update({ cohesion: e.to });
-          await this.tween(260, (t) => v.scale.set(1 + 0.12 * Math.sin(t * Math.PI)));
-          v.scale.set(1);
+          const to = e.to;
+          tl.add(() => v.update({ cohesion: to }));
+          if (!r) {
+            tl.to(v.scale, { x: 1.12, y: 1.12, duration: sec(130), ease: EASE.out });
+            tl.to(v.scale, { x: 1, y: 1, duration: sec(130), ease: EASE.in });
+          }
           break;
         }
         case 'UnitDestroyed':
         case 'UnitFled': {
           const v = this.views.get(e.unitId);
           if (!v) break;
-          const a0 = v.alpha;
-          await this.tween(320, (t) => (v.alpha = a0 * (1 - t)));
-          v.update({ visible: false });
+          tl.to(v, { alpha: 0, duration: r ? fade : sec(MOTION.impact), ease: EASE.in });
+          tl.add(() => v.update({ visible: false }));
+          sfx('rout');
           break;
         }
         case 'UnitHealed': {
           const v = this.views.get(e.unitId);
           if (!v) break;
-          v.update({ strength: Math.min(100, v.look.strength + e.amount) });
-          this.floatText(v.look, `+${e.amount}`, 0x2e7d32);
+          const amount = e.amount;
+          tl.add(() => {
+            v.update({ strength: Math.min(100, v.look.strength + amount) });
+            this.floatText(v.look, `+${amount}`, 0x2e7d32);
+          });
           break;
         }
         case 'SkillUsed': {
           const v = this.views.get(e.unitId);
-          if (v) this.floatText(v.look, e.name, THEME.select);
-          await this.tween(500, () => {});
+          const name = e.name;
+          tl.add(() => {
+            if (v) this.floatText(v.look, name, THEME.select);
+          });
+          if (!r) tl.to({}, { duration: sec(500) });
           break;
         }
         case 'MeleePhase':
-          await this.tween(150, () => {});
+          if (!r) tl.to({}, { duration: sec(150) });
           break;
         default:
           break;
       }
     }
+    this.playing = tl;
+    track(tl);
+    // AI playback speed: 1×, 2×, or skip (Infinity).
+    if (Number.isFinite(this.speed)) tl.timeScale(this.speed).play();
+    else tl.progress(1, false);
+    await done(tl);
+    if (this.playing === tl) this.playing = null;
     temp.destroy();
     this.sync(final);
   }

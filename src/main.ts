@@ -1,4 +1,5 @@
 import { LocalSaveStore } from './meta/saveStore';
+import { isAnimating } from './ui/motion';
 import { BattleView } from './render/battleView';
 import { App } from './ui/app';
 import { attachGestures } from './ui/input';
@@ -41,6 +42,7 @@ async function start(): Promise<void> {
     (window as unknown as { __bq: unknown }).__bq = {
       app,
       cellToScreen: (x: number, y: number) => view.cellToScreen({ x, y }),
+      animating: () => isAnimating(),
     };
   }
 }

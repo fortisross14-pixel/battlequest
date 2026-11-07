@@ -1,4 +1,5 @@
 import { RULES } from '../core/config';
+import { layout } from './layout';
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
@@ -158,6 +159,11 @@ export class Hud {
     );
     host.append(this.root);
     this.mountExtras();
+    // Reserved HUD zones (UX §1): the camera fits the map into what is left.
+    layout.register('topbar', this.top);
+    layout.register('menu', this.menuBtn);
+    layout.register('corner-left', left);
+    layout.register('corner-right', right);
   }
 
   setTop(i: TopInfo): void {
@@ -359,6 +365,7 @@ export class Hud {
   }
 
   destroy(): void {
+    for (const n of ['topbar', 'menu', 'corner-left', 'corner-right']) layout.unregister(n);
     window.clearTimeout(this.bannerTimer);
     this.root.remove();
   }

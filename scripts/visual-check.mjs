@@ -43,14 +43,17 @@ function findChromium() {
 
 const { chromium } = loadPlaywright();
 
+/** The real GPU: headless software WebGL is very slow (about 3 fps for the board). */
+const GPU_ARGS = ['--enable-gpu', '--use-angle=d3d11', '--ignore-gpu-blocklist'];
+
 async function launch() {
   try {
-    return await chromium.launch();
+    return await chromium.launch({ args: GPU_ARGS });
   } catch (e) {
     const executablePath = findChromium();
     if (!executablePath) throw e;
     console.log(`Playwright's browser is missing; using ${executablePath}`);
-    return chromium.launch({ executablePath });
+    return chromium.launch({ args: GPU_ARGS, executablePath });
   }
 }
 
@@ -64,10 +67,11 @@ const label = arg('label', 'check');
 const outDir = join('screenshots', `${new Date().toISOString().slice(0, 10)}-${label}`);
 mkdirSync(outDir, { recursive: true });
 
+const sizeArg = arg('size', 'both');
 const SIZES = [
   { name: 'tablet', width: 1024, height: 768 },
   { name: 'phone', width: 812, height: 375 },
-];
+].filter((s) => sizeArg === 'both' || s.name === sizeArg);
 
 async function open(page, query) {
   await page.goto(`${base}/?${query}`);
