@@ -56,7 +56,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Phase B — battle screen zones (top bar, guidance strip with leader lines, medallion, End turn + waiting chip, toast stack), battle menu with Restart command, settings and How to play
 - [x] Phase C — command bubble with fixed-clock petals, move-by-default, Moved · Undo toast, turn mode via petal, long-press Info, keyboard shortcuts, quick confirm
 - [x] Phase D — tactical actions: Volley, Fortify, Full charge, Testudo, Pila volley, Othismos, Parthian shot, Feigned retreat, Trample, Last stand, Unbreakable; cards, petals, attack-mode tabs, AI use
-- [ ] Phase E — battle motion
+- [x] Phase E — battle motion: bubble bloom, ghost footprints, turn ring, Info FLIP, attack bracket, charge wind-up and hit-stop, Volley ink rain, Fortify/Testudo shield lock, breakthrough, rout, turn banner; reduced-motion fades
 - [ ] Phase F — premium menus, ceremonies (owner approval gate), age filters
 - [ ] Phase G — age map and extras
 

@@ -29,6 +29,24 @@ export interface RingHandle {
 }
 
 const centre = (p: Pos): Pos => ({ x: (p.x + 0.5) * CELL, y: (p.y + 0.5) * CELL });
+
+/**
+ * The order events play in (playback only; the state is already final). A breakthrough
+ * move plays right after its roll, so the cavalry passes through while the defender
+ * reacts, not after the defender's rout.
+ */
+function playbackOrder(events: GameEvent[]): GameEvent[] {
+  const out = [...events];
+  for (let i = 0; i < out.length; i++) {
+    const e = out[i]!;
+    if (e.type !== 'UnitMoved' || e.kind !== 'breakthrough') continue;
+    const roll = out.findIndex((x) => x.type === 'BreakthroughRoll' && x.unitId === e.unitId);
+    if (roll < 0 || roll >= i) continue;
+    out.splice(i, 1);
+    out.splice(roll + 1, 0, e);
+  }
+  return out;
+}
 const shortestAngle = (from: number, to: number) => {
   let d = (to - from) % (Math.PI * 2);
   if (d > Math.PI) d -= Math.PI * 2;
@@ -402,18 +420,115 @@ export class BattleView {
   }
 
   /** A translucent copy of the unit at its destination, with its path as a battle-map arrow. */
-  showGhost(u: Unit, path: Pos[], facing: Dir): void {
+  showGhost(u: Unit, path: Pos[], facing: Dir, cost?: number): void {
     this.clearGhost();
     const g = new Graphics();
     arrow(g, path.map(centre), CELL * 0.22, THEME.side[u.side], 0.32);
     const dest = path[path.length - 1]!;
-    const ghost = new UnitView({ ...lookOf(u, false), x: dest.x, y: dest.y, facing });
+    const ghost = new UnitView({ ...lookOf(u, false), x: dest.x, y: dest.y, facing, stance: null });
     ghost.alpha = 0.55;
     this.ghostLayer.addChild(g, ghost);
+    // Numbered footprints along the path, then the MP cost by the ghost.
+    const steps: Container[] = [];
+    path.slice(1, -1).forEach((p, i) => {
+      const c = centre(p);
+      const dot = new Container();
+      dot.position.set(c.x, c.y);
+      const d = new Graphics().circle(0, 0, 9).fill({ color: THEME.paperInk, alpha: 0.92 });
+      d.circle(0, 0, 9).stroke({ width: 1.5, color: THEME.side[u.side], alpha: 0.8 });
+      const t = new Text({
+        text: String(i + 1),
+        style: { fontFamily: THEME.sans, fontSize: 11, fontWeight: '700', fill: THEME.side[u.side] },
+      });
+      t.anchor.set(0.5);
+      dot.addChild(d, t);
+      this.ghostLayer.addChild(dot);
+      steps.push(dot);
+    });
+    if (cost !== undefined) {
+      const c = centre(dest);
+      const tag = new Text({
+        text: `${+cost.toFixed(1)} MP`,
+        style: {
+          fontFamily: THEME.sans,
+          fontSize: 13,
+          fontWeight: '700',
+          fill: THEME.ink,
+          stroke: { color: 0xfff8e6, width: 4 },
+        },
+      });
+      tag.anchor.set(0.5, 0);
+      tag.position.set(c.x, c.y + CELL * 0.3);
+      this.ghostLayer.addChild(tag);
+    }
+    if (this.reduced) return;
+    // The ghost fades in at its square; footprints ink in along the path, one after another.
+    track(gsap.fromTo(ghost, { alpha: 0 }, { alpha: 0.55, duration: sec(MOTION.quick + 60), ease: EASE.out }));
+    track(gsap.fromTo(g, { alpha: 0 }, { alpha: 1, duration: sec(MOTION.quick), ease: EASE.out }));
+    steps.forEach((dot, i) =>
+      track(
+        gsap.fromTo(
+          dot,
+          { alpha: 0 },
+          { alpha: 1, duration: sec(MOTION.instant), delay: sec(40 + i * 35), ease: EASE.out },
+        ),
+      ),
+    );
   }
 
   clearGhost(): void {
     this.ghostLayer.removeChildren().forEach((c) => c.destroy());
+    this.clearBracket();
+  }
+
+  private bracket: Graphics | null = null;
+
+  /**
+   * The attack preview's target bracket (UX §3): red ink corners that draw on around the
+   * target square.
+   */
+  showBracket(at: Pos): void {
+    this.clearBracket();
+    const g = new Graphics();
+    this.effects.addChild(g);
+    this.bracket = g;
+    const x0 = at.x * CELL - 2;
+    const y0 = at.y * CELL - 2;
+    const sz = CELL + 4;
+    const k = 18;
+    const draw = (p: number) => {
+      if (g.destroyed) return;
+      g.clear();
+      const len = k * p;
+      for (const [cx, cy, sx, sy] of [
+        [x0, y0, 1, 1],
+        [x0 + sz, y0, -1, 1],
+        [x0, y0 + sz, 1, -1],
+        [x0 + sz, y0 + sz, -1, -1],
+      ] as const) {
+        g.moveTo(cx, cy + sy * len)
+          .lineTo(cx, cy)
+          .lineTo(cx + sx * len, cy);
+      }
+      g.stroke({ width: 5, color: THEME.charge, alpha: 0.95, cap: 'round', join: 'round' });
+    };
+    if (this.reduced) {
+      draw(1);
+      return;
+    }
+    const o = { p: 0 };
+    draw(0);
+    const tw = gsap.to(o, { p: 1, duration: sec(300), ease: EASE.out, onUpdate: () => draw(o.p) });
+    // Killed with the bracket.
+    (g as unknown as { _tween?: gsap.core.Tween })._tween = tw;
+    g.on('destroyed', () => tw.kill());
+    track(tw);
+  }
+
+  clearBracket(): void {
+    if (this.bracket) gsap.killTweensOf(this.bracket);
+    this.bracket?.destroy();
+    this.bracket = null;
   }
 
   /** Shows the previous side's moves as faint arrows, like a battle diagram. */
@@ -426,6 +541,18 @@ export class BattleView {
     this.ring = { at, handles };
     const g = this.ringLayer.clear();
     const c = centre(at);
+    // Turn mode (UX §3): the ring scales up around the unit with a small overshoot.
+    this.ringLayer.pivot.set(c.x, c.y);
+    this.ringLayer.position.set(c.x, c.y);
+    if (!this.reduced) {
+      track(
+        gsap.fromTo(
+          this.ringLayer,
+          { alpha: 0, rotation: -0.35 },
+          { alpha: 1, rotation: 0, duration: sec(300), ease: EASE.back },
+        ),
+      );
+    }
     g.circle(c.x, c.y, CELL * 0.95).stroke({ width: 2, color: THEME.ink, alpha: 0.25 });
     for (const h of handles) {
       const p = this.handleWorldPos(at, h.dir);
@@ -452,6 +579,9 @@ export class BattleView {
 
   clearFacingRing(): void {
     this.ring = null;
+    gsap.killTweensOf(this.ringLayer);
+    this.ringLayer.alpha = 1;
+    this.ringLayer.rotation = 0;
     this.ringLayer.clear();
   }
 
@@ -516,6 +646,29 @@ export class BattleView {
     track(tl);
   }
 
+  /** A burst of ink specks (game-feel), fading out; a few small shapes only. */
+  private specks(at: Pos, color: number, n = 6): void {
+    if (this.reduced) return;
+    const c = centre(at);
+    for (let i = 0; i < n; i++) {
+      const g = new Graphics().circle(0, 0, 2 + (i % 3)).fill({ color, alpha: 0.75 });
+      g.position.set(c.x, c.y);
+      this.effects.addChild(g);
+      const a = (i / n) * Math.PI * 2 + 0.4;
+      const r = CELL * (0.32 + 0.12 * (i % 2));
+      track(
+        gsap.to(g, {
+          x: c.x + Math.cos(a) * r,
+          y: c.y + Math.sin(a) * r,
+          alpha: 0,
+          duration: sec(MOTION.impact + 80),
+          ease: EASE.out,
+          onComplete: () => g.destroy(),
+        }),
+      );
+    }
+  }
+
   /** Adds a unit's slide along its path, square by square, to `tl`. */
   private addSlide(tl: gsap.core.Timeline, v: UnitView, path: Pos[], turn: boolean): void {
     const end = centre(path[path.length - 1]!);
@@ -560,13 +713,32 @@ export class BattleView {
     const tl = gsap.timeline({ paused: true });
     const r = this.reduced;
     const fade = sec(MOTION.reducedFade);
-    for (const e of events) {
+    // Where the last impact started: its counter-impact plays at the same moment.
+    let impactAt: number | null = null;
+    // Where a breakthrough's ripple started: the cavalry passes through at that moment.
+    let throughAt: number | null = null;
+    for (const e of playbackOrder(events)) {
+      if (e.type !== 'DamageDealt' || e.kind !== 'impact') impactAt = null;
       switch (e.type) {
         case 'UnitMoved': {
           const v = this.views.get(e.unitId);
           if (!v) break;
           const turn = e.kind === 'move' || e.kind === 'rout' || e.kind === 'pursuit';
-          this.addSlide(tl, v, e.path, turn);
+          if (e.kind === 'breakthrough' && throughAt !== null && !r) {
+            const sub = gsap.timeline();
+            this.addSlide(sub, v, e.path, false);
+            tl.add(sub, throughAt);
+            // The landing (specks, the turn) follows the slide.
+            const end = throughAt + sub.duration();
+            if (end > tl.duration()) tl.to({}, { duration: end - tl.duration() });
+            throughAt = null;
+          } else {
+            this.addSlide(tl, v, e.path, turn);
+          }
+          if (e.kind === 'breakthrough') {
+            const land = e.path[e.path.length - 1]!;
+            tl.add(() => this.specks(land, THEME.rough, 8));
+          }
           const end = e.path[e.path.length - 1]!;
           tl.add(() => {
             v.look = { ...v.look, x: end.x, y: end.y, facing: e.facing };
@@ -581,6 +753,21 @@ export class BattleView {
         }
         case 'ChargeDeclared': {
           const target = this.views.get(e.targetId);
+          // Wind-up (UX §3): a small pull-back against the charge, longer for a Full charge.
+          const charger = this.views.get(e.unitId);
+          const full = events.some((x) => x.type === 'BreakthroughRoll' && x.unitId === e.unitId);
+          if (charger && target && !r) {
+            const from = centre(charger.look);
+            const to = centre(target.look);
+            const len = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+            const k = (full ? 0.12 : 0.05) * CELL;
+            tl.to(charger, {
+              x: from.x - ((to.x - from.x) / len) * k,
+              y: from.y - ((to.y - from.y) / len) * k,
+              duration: sec(full ? 180 : 90),
+              ease: EASE.out,
+            });
+          }
           const pts =
             e.path.length > 1
               ? e.path.map(centre)
@@ -611,22 +798,31 @@ export class BattleView {
           const v = this.views.get(e.targetId);
           if (!v) break;
           const amount = e.amount;
-          tl.add(() => {
+          // Both sides strike at once: a counter-impact shares the first impact's moment.
+          const pairedAt = e.kind === 'impact' && !r ? impactAt : null;
+          if (e.kind === 'impact' && impactAt === null) impactAt = tl.duration();
+          const d = pairedAt !== null ? gsap.timeline({ paused: true }) : tl;
+          d.add(() => {
             v.update({ strength: Math.max(0, v.look.strength - amount) });
             this.floatText(v.look, `−${amount}`, THEME.damage);
             sfx('impact');
           });
           if (r) break;
-          // Impact frame: a short hit-stop, then the block shakes and settles.
-          if (e.kind === 'impact') tl.to({}, { duration: sec(MOTION.hitStop) });
+          // Impact frame: a short hit-stop, a squash, ink specks, then the block shakes.
+          if (e.kind === 'impact' || e.kind === 'trample') {
+            d.to({}, { duration: sec(MOTION.hitStop) });
+            d.add(() => this.specks(v.look, THEME.ink));
+            d.to(v.scale, { x: 1.12, y: 0.88, duration: sec(70), ease: EASE.out });
+            d.to(v.scale, { x: 1, y: 1, duration: sec(160), ease: EASE.back });
+          }
           const shake = { k: 1 };
           let bx = 0;
           let by = 0;
-          tl.add(() => {
+          d.add(() => {
             bx = v.x;
             by = v.y;
           });
-          tl.to(shake, {
+          d.to(shake, {
             k: 0,
             duration: sec(200),
             ease: 'none',
@@ -637,6 +833,7 @@ export class BattleView {
             },
             onComplete: () => v.position.set(bx, by),
           });
+          if (pairedAt !== null && d !== tl) tl.add(d.paused(false), pairedAt);
           break;
         }
         case 'CohesionChanged':
@@ -649,6 +846,81 @@ export class BattleView {
             tl.to(v.scale, { x: 1.12, y: 1.12, duration: sec(130), ease: EASE.out });
             tl.to(v.scale, { x: 1, y: 1, duration: sec(130), ease: EASE.in });
           }
+          break;
+        }
+        case 'VolleyFired': {
+          // Ink rain (UX §3): a fan of fine dashes from the shooter into the frame, landing
+          // on each unit in quick, varied succession.
+          const a = this.views.get(e.unitId)?.look;
+          if (!a || r) break;
+          const label = `volley${tl.duration()}`;
+          tl.addLabel(label);
+          const gaps = [0, 0.04, 0.075, 0.13];
+          e.targetIds.forEach((id, i) => {
+            const b = this.views.get(id)?.look;
+            if (!b) return;
+            const lines = new Graphics();
+            for (let k = -2; k <= 2; k++) {
+              const from = centre(a);
+              const to = centre(b);
+              dashed(lines, { x: from.x, y: from.y + k * 3 }, { x: to.x + k * 6, y: to.y + k * 4 }, 5, 7);
+            }
+            lines.stroke({ width: 1.5, color: THEME.ink, alpha: 0.6 });
+            lines.alpha = 0;
+            this.effects.addChild(lines);
+            const t0 = `${label}+=${gaps[i] ?? 0.05 * i}`;
+            tl.to(lines, { alpha: 1, duration: sec(MOTION.instant), ease: EASE.out }, t0);
+            tl.to(lines, { alpha: 0, duration: sec(MOTION.quick + 80), ease: EASE.in, onComplete: () => lines.destroy() }, `${t0}+=0.12`);
+          });
+          tl.to({}, { duration: sec(260) });
+          sfx('volley');
+          break;
+        }
+        case 'Fortified':
+        case 'TestudoFormed': {
+          // A shield lock: the marks stamp on and the block settles.
+          const v = this.views.get(e.unitId);
+          if (!v) break;
+          const stance = e.type === 'Fortified' ? 'fortified' : 'testudo';
+          tl.add(() => v.update({ stance }));
+          if (!r) {
+            tl.fromTo(v.body.scale, { x: 1.14, y: 1.14 }, { x: 1, y: 1, duration: sec(MOTION.impact), ease: EASE.back });
+          }
+          sfx('fortify');
+          break;
+        }
+        case 'LastStandDeclared': {
+          const v = this.views.get(e.unitId);
+          if (v) tl.add(() => this.floatText(v.look, 'Last stand', THEME.select));
+          if (!r) tl.to({}, { duration: sec(300) });
+          break;
+        }
+        case 'OthismosRoll': {
+          const v = this.views.get(e.unitId);
+          const pushed = e.pushed;
+          if (v) tl.add(() => this.floatText(v.look, pushed ? 'Othismos!' : 'Held', THEME.ink));
+          break;
+        }
+        case 'BreakthroughRoll': {
+          const t = this.views.get(e.targetId);
+          if (t && e.success && !r) {
+            // The defender's block ripples as the cavalry passes through it.
+            throughAt = tl.duration();
+            tl.to(t.scale, { x: 0.9, y: 1.12, duration: sec(90), ease: EASE.out });
+            tl.to(t.scale, { x: 1, y: 1, duration: sec(220), ease: 'elastic.out(1, 0.5)' });
+          }
+          if (e.success) sfx('breakthrough');
+          break;
+        }
+        case 'UnitRouted': {
+          // The block hollows out (the cohesion change) and wobbles before it runs.
+          const v = this.views.get(e.unitId);
+          if (!v || r) break;
+          const rot = v.body.rotation;
+          tl.to(v.body, { rotation: rot + 0.1, duration: sec(70), ease: 'sine.inOut' });
+          tl.to(v.body, { rotation: rot - 0.08, duration: sec(80), ease: 'sine.inOut' });
+          tl.to(v.body, { rotation: rot, duration: sec(70), ease: 'sine.inOut' });
+          sfx('rout');
           break;
         }
         case 'UnitDestroyed':

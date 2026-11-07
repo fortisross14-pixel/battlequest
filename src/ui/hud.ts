@@ -1,7 +1,7 @@
 import { RULES } from '../core/config';
 import { layout } from './layout';
 import { actionList } from './actionList';
-import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
+import { EASE, gsap, MOTION, reducedMotion, sec, track } from './motion';
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
@@ -781,7 +781,41 @@ export class Hud {
 
   // ---------- Unit card ----------
 
-  showUnitCard(u: Unit, state: BattleState): void {
+  /** Where the open unit card grew from (it shrinks back there). */
+  private cardFrom: { x: number; y: number } | null = null;
+
+  /**
+   * Info (UX §3): the card grows out of the unit (a FLIP from the block to the sheet) and
+   * its content is already in place: one entrance for the container, no second stagger.
+   */
+  showUnitCard(u: Unit, state: BattleState, from?: { x: number; y: number }): void {
+    this.fillUnitCard(u, state);
+    this.cardFrom = from ?? null;
+    if (!from || reducedMotion()) {
+      if (!reducedMotion()) return;
+      gsap.fromTo(this.card, { opacity: 0 }, { opacity: 1, duration: sec(MOTION.reducedFade) });
+      return;
+    }
+    gsap.killTweensOf(this.card);
+    gsap.set(this.card, { xPercent: -50, x: 0, y: 0, scale: 1, opacity: 1 });
+    const r = this.card.getBoundingClientRect();
+    track(
+      gsap.fromTo(
+        this.card,
+        {
+          xPercent: -50,
+          x: from.x - (r.left + r.width / 2),
+          y: from.y - (r.top + r.height / 2),
+          scale: 0.12,
+          opacity: 0.2,
+          transformOrigin: '50% 50%',
+        },
+        { x: 0, y: 0, scale: 1, opacity: 1, duration: sec(MOTION.reveal), ease: EASE.out },
+      ),
+    );
+  }
+
+  private fillUnitCard(u: Unit, state: BattleState): void {
     const s = u.type.stats;
     const stat = (k: string, v: string) =>
       el('div', { class: 'stat' }, el('small', {}, k), el('b', {}, v));
@@ -845,7 +879,47 @@ export class Hud {
   }
 
   hideUnitCard(): void {
-    this.card.classList.add('hidden');
+    if (this.card.classList.contains('hidden')) return;
+    const from = this.cardFrom;
+    this.cardFrom = null;
+    if (!from || reducedMotion()) {
+      this.card.classList.add('hidden');
+      gsap.set(this.card, { clearProps: 'transform,opacity' });
+      return;
+    }
+    // Shrinks back into the unit, faster than it grew.
+    const r = this.card.getBoundingClientRect();
+    gsap.to(this.card, {
+      x: `+=${from.x - (r.left + r.width / 2)}`,
+      y: `+=${from.y - (r.top + r.height / 2)}`,
+      scale: 0.12,
+      opacity: 0,
+      duration: sec(MOTION.quick + 60),
+      ease: EASE.in,
+      onComplete: () => {
+        this.card.classList.add('hidden');
+        gsap.set(this.card, { clearProps: 'transform,opacity' });
+      },
+    });
+  }
+
+  /** The turn banner (UX §3): a thin ink banner sweeps across the guidance strip. */
+  turnBanner(text: string): void {
+    const b = el('div', { class: 'turn-banner', role: 'status' }, text);
+    this.root.append(b);
+    const r = this.guide.getBoundingClientRect();
+    b.style.top = `${r.top}px`;
+    b.style.left = `${r.left}px`;
+    b.style.width = `${r.width}px`;
+    b.style.height = `${r.height}px`;
+    if (reducedMotion()) {
+      gsap.fromTo(b, { opacity: 0 }, { opacity: 1, duration: sec(MOTION.reducedFade), yoyo: true, repeat: 1, repeatDelay: 0.4, onComplete: () => b.remove() });
+      return;
+    }
+    const tl = gsap.timeline({ onComplete: () => b.remove() });
+    tl.fromTo(b, { clipPath: 'inset(0 100% 0 0)', opacity: 1 }, { clipPath: 'inset(0 0% 0 0)', duration: sec(260), ease: EASE.out })
+      .to(b, { opacity: 0, duration: sec(180), ease: EASE.in }, sec(500));
+    track(tl);
   }
 
   // ---------- Full-screen overlay (hand-off, result) ----------

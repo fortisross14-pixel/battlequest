@@ -47,6 +47,8 @@ const SIZES = [
 ].filter((s) => sizeArg === 'both' || s.name === sizeArg);
 
 async function open(page, query) {
+  // A fresh page each time (the same URL twice may not reload).
+  await page.goto('about:blank');
   await page.goto(`${base}/?${query}`);
   await page.waitForFunction(() => window.__bq !== undefined);
   await page.waitForTimeout(400);
@@ -121,8 +123,44 @@ async function contactSheet(browser, frames, file, title) {
   await page.close();
 }
 
+/** Recording length per sequence (ms), when longer than the default. */
+const LENGTH = { breakthrough: 2400, charge: 2000, volley: 1800 };
+
 /** Sequences: each sets up, then returns the action to record. */
 const SEQUENCES = {
+  bubble: async (page) => {
+    await open(page, 'scenario=sandbox&seed=1');
+    return () => tapCell(page, 5, 4);
+  },
+  ghost: async (page) => {
+    await open(page, 'scenario=sandbox&seed=1');
+    await tapCell(page, 5, 4);
+    return () => tapCell(page, 7, 3);
+  },
+  volley: async (page) => {
+    await open(page, 'scenario=debug-actions&seed=1');
+    await tapCell(page, 3, 1);
+    await tapCell(page, 6, 1);
+    await page.getByRole('tab', { name: /^Volley/ }).tap();
+    await page.waitForTimeout(300);
+    return () => page.getByRole('button', { name: 'Fire volley' }).evaluate((b) => b.click());
+  },
+  fortify: async (page) => {
+    await open(page, 'scenario=debug-actions&seed=1');
+    await tapCell(page, 4, 6);
+    await page.waitForTimeout(300);
+    return () => page.locator('.petal.hold').tap();
+  },
+  breakthrough: async (page) => {
+    // Seed 1 breaks through (75% chance).
+    await open(page, 'scenario=debug-actions&seed=1');
+    await tapCell(page, 2, 4);
+    await tapCell(page, 6, 4);
+    await page.getByRole('tab', { name: /^Full charge/ }).tap();
+    await page.waitForTimeout(300);
+    return () =>
+      page.getByRole('button', { name: 'Full charge', exact: true }).evaluate((b) => b.click());
+  },
   move: async (page) => {
     await open(page, 'scenario=sandbox&seed=1');
     await tapCell(page, 5, 4);
@@ -133,7 +171,7 @@ const SEQUENCES = {
     await open(page, 'scenario=debug-states&seed=3');
     await tapCell(page, 3, 3);
     await tapCell(page, 6, 3);
-    return () => page.getByRole('button', { name: /Confirm charge/ }).tap();
+    return () => page.getByRole('button', { name: /Confirm charge/ }).evaluate((b) => b.click());
   },
 };
 
@@ -158,24 +196,32 @@ for (const size of SIZES) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(arg('throttle', '4')) });
     for (const [name, setup] of Object.entries(SEQUENCES)) {
       if (only.length && !only.includes(name)) continue;
-      const action = await setup(page);
-      const { frames } = await record(page, cdp, action, reduce ? 600 : 1400);
-      const fps = await measure(page, await setup(page), reduce ? 600 : 1400);
-      const tag = `${size.name}-${name}${reduce ? '-reduced' : ''}`;
-      await contactSheet(
-        browser,
-        frames,
-        join(outDir, `${tag}.png`),
-        `${tag} · avg ${fps.avg} fps, worst ${fps.worst} fps (4× CPU)`,
-      );
-      // Skip test: run the action again and tap 300 ms in; nothing may still animate a frame later.
-      const again = await setup(page);
-      await again();
-      await page.waitForTimeout(300);
-      await page.touchscreen.tap(size.width - 30, size.height / 2);
-      await page.waitForTimeout(40);
-      const still = await page.evaluate(() => window.__bq.animating?.() ?? false);
-      report.push({ tag, ...fps, skipOk: !still, errors: errors.splice(0) });
+      try {
+        const action = await setup(page);
+        const ms = reduce ? 600 : (LENGTH[name] ?? 1400);
+        const { frames } = await record(page, cdp, action, ms, ms > 1600 ? 200 : 100);
+        const fps = await measure(page, await setup(page), ms);
+        const tag = `${size.name}-${name}${reduce ? '-reduced' : ''}`;
+        await contactSheet(
+          browser,
+          frames,
+          join(outDir, `${tag}.png`),
+          `${tag} · avg ${fps.avg} fps, worst ${fps.worst} fps (4× CPU)`,
+        );
+        // Skip test: run the action again and tap 300 ms in; nothing may still animate a frame later.
+        const again = await setup(page);
+        await again();
+        await page.waitForTimeout(300);
+        // Tap the guidance strip: an inert spot, so the tap only skips.
+        await page.touchscreen.tap(size.width / 2, size.name === 'phone' ? 62 : 78);
+        await page.waitForTimeout(40);
+        const still = await page.evaluate(() => window.__bq.animating?.() ?? false);
+        report.push({ tag, ...fps, skipOk: !still, errors: errors.splice(0) });
+      } catch (e) {
+        const tag = `${size.name}-${name}${reduce ? '-reduced' : ''}`;
+        await page.screenshot({ path: join(outDir, `${tag}-FAILED.png`) }).catch(() => {});
+        report.push({ tag, avg: 0, worst: 0, skipOk: false, errors: [String(e).split('\n')[0]] });
+      }
     }
     await ctx.close();
   }

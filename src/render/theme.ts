@@ -6,6 +6,8 @@ export const CELL = 64;
 export const THEME = {
   parchment: 0xefe6cf,
   mapPaper: 0xf4ecd8,
+  /** Footprint discs on the move ghost. */
+  paperInk: 0xfff8e6,
   ink: 0x3b3226,
   grid: 0x6b5a3a,
   gridAlpha: 0.13,

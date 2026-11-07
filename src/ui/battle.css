@@ -881,3 +881,18 @@ ul.actions li.teaser .action-icon {
   max-height: calc(100% - 120px - var(--safe-t) - var(--safe-b));
   overflow-y: auto;
 }
+
+/* The turn banner: a thin ink banner across the guidance strip (UX §3). */
+.turn-banner {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font: italic 600 17px var(--serif);
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  z-index: 4;
+}

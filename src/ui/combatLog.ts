@@ -115,6 +115,36 @@ export function describeEvents(
           sideOf(e.unitId),
         );
         break;
+      case 'VolleyFired':
+        add(
+          'action',
+          `${name(e.unitId)} fired a volley into ${e.targetIds.length} unit${e.targetIds.length === 1 ? '' : 's'}.`,
+          sideOf(e.unitId),
+        );
+        break;
+      case 'Fortified':
+        add('action', `${name(e.unitId)} fortified its position.`, sideOf(e.unitId));
+        break;
+      case 'TestudoFormed':
+        add('action', `${name(e.unitId)} formed testudo.`, sideOf(e.unitId));
+        break;
+      case 'LastStandDeclared':
+        add('action', `${name(e.unitId)} made a last stand.`, sideOf(e.unitId));
+        break;
+      case 'BreakthroughRoll':
+        add(
+          'action',
+          `Full charge: ${pct(e.chance)} chance to break through ${name(e.targetId)}, rolled ${Math.round(e.roll * 100)} → ${e.success ? 'broke through' : 'held'}.`,
+          sideOf(e.unitId),
+        );
+        break;
+      case 'OthismosRoll':
+        add(
+          'action',
+          `Othismos: ${pct(e.chance)} chance to push ${name(e.targetId)} back, rolled ${Math.round(e.roll * 100)} → ${e.pushed ? 'pushed' : 'held'}.`,
+          sideOf(e.unitId),
+        );
+        break;
       case 'CohesionTest': {
         // A test that could not fail is noise.
         if (e.chance <= 0 && !e.dropped) break;

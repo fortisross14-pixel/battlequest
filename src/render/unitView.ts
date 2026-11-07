@@ -21,6 +21,8 @@ export interface UnitLook {
   pennant: string | null;
   /** Troop level (chevrons on the block). */
   level: number;
+  /** Fortify or Testudo (GAME_DESIGN 4.12): shield marks on the block. */
+  stance: 'fortified' | 'testudo' | null;
 }
 
 export function lookOf(u: Unit, spent: boolean, pennant: string | null = null): UnitLook {
@@ -36,6 +38,7 @@ export function lookOf(u: Unit, spent: boolean, pennant: string | null = null): 
     spent,
     pennant,
     level: u.type.level ?? 1,
+    stance: u.fortified ? 'fortified' : u.testudo ? 'testudo' : null,
   };
 }
 
@@ -126,6 +129,33 @@ export class UnitView extends Container {
       b.moveTo(x0 - 1, y0 + 1)
         .lineTo(x0 + BLOCK_W + 1, y0 + 1)
         .stroke({ width: 7, color: dark, cap: 'square' });
+      const stance = this.look.stance;
+      if (stance === 'fortified') {
+        // Shields locked along the front edge; the edge thickens.
+        b.moveTo(x0 - 2, y0 - 1)
+          .lineTo(x0 + BLOCK_W + 2, y0 - 1)
+          .stroke({ width: 10, color: dark, cap: 'square' });
+        const n = 5;
+        for (let i = 0; i < n; i++) {
+          const cx = x0 + ((i + 0.5) * BLOCK_W) / n;
+          b.circle(cx, y0 - 1, 4.2).fill(THEME.symbol).stroke({ width: 1.5, color: dark });
+        }
+      } else if (stance === 'testudo') {
+        // A tiled shield pattern over the block.
+        const cols = 5;
+        const rows = 2;
+        const w = BLOCK_W / cols;
+        const h = BLOCK_H / rows;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            b.roundRect(x0 + c * w + 1.5, y0 + r * h + 1.5, w - 3, h - 3, 2).stroke({
+              width: 1.4,
+              color: THEME.symbol,
+              alpha: 0.75,
+            });
+          }
+        }
+      }
     }
     // The troop badge: upright, on the block (GAME_DESIGN 10). Routed units get a pale one.
     const want = `${symbol}|${side}|${this.look.level}|${routed}`;

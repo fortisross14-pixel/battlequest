@@ -174,11 +174,10 @@ export class Controller {
   tap(x: number, y: number): void {
     // Input never waits for decoration (motion skill): a tap while the board animates jumps
     // the animation to its end.
-    if (this.mode.kind === 'busy' || !this.isHumanTurn()) {
-      this.view.fastForward();
-      fastForward();
-      return;
-    }
+    // Every tap also finishes decoration still playing (floating numbers, fades).
+    this.view.fastForward();
+    fastForward();
+    if (this.mode.kind === 'busy' || !this.isHumanTurn()) return;
     if (this.mode.kind === 'over' || this.hud.overlayOpen) return;
     // The facing step completes on the next tap: keeping a facing is a choice too.
     if (this.tutorial.current()?.step.until === 'facing' && this.mode.kind !== 'facing') {
@@ -236,7 +235,7 @@ export class Controller {
     if (!cell) return;
     const u = unitAt(this.state, cell);
     this.bubble.close();
-    if (u) this.hud.showUnitCard(u, this.state);
+    if (u) this.hud.showUnitCard(u, this.state, this.view.cellToClient(u));
     else this.hud.showTerrainCard(cell, this.state);
   }
 
@@ -427,7 +426,7 @@ export class Controller {
   /** The unit card (Info petal or long-press). */
   private openInfo(u: Unit): void {
     this.bubble.close();
-    this.hud.showUnitCard(u, this.state);
+    this.hud.showUnitCard(u, this.state, this.view.cellToClient(u));
   }
 
   /** The id of the unit whose move the next Undo would take back. */
@@ -469,7 +468,7 @@ export class Controller {
     }
     this.mode = { kind: 'ghost', unitId: u.id, dest };
     this.bubble.close();
-    this.view.showGhost(u, plan.path, plan.facing);
+    this.view.showGhost(u, plan.path, plan.facing, plan.cost);
     this.hud.setChip(`${u.type.name}: tap again to move here (${+plan.cost.toFixed(1)} MP)`);
   }
 
@@ -546,6 +545,7 @@ export class Controller {
       return;
     }
     this.mode = { kind: 'preview', unitId: att.id, targetId: def.id };
+    this.view.showBracket(def);
     const tabs: PreviewMode[] | undefined =
       modes.length > 1
         ? modes.map((x) => ({
@@ -989,6 +989,7 @@ export class Controller {
     this.view.showLastMoves(moves);
     this.mode = { kind: 'idle' };
     this.deselect();
+    this.hud.turnBanner(`Turn ${this.state.turn} · Your move`);
   }
 
   private finish(): void {

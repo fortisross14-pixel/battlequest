@@ -88,6 +88,32 @@ export class Bubble {
   constructor(host: HTMLElement) {
     this.root.append(this.disc);
     host.append(this.root);
+    this.warmUp(host);
+  }
+
+  /**
+   * Lays out one invisible petal when the battle loads, so the first selection doesn't pay
+   * for the first style pass and font shaping (a visible hitch on slow phones).
+   */
+  private warmUp(host: HTMLElement): void {
+    const probe = el(
+      'div',
+      { class: 'bubble', 'aria-hidden': 'true', style: 'visibility:hidden;left:-999px;top:-999px' },
+      el(
+        'button',
+        { class: 'petal info', type: 'button', tabindex: '-1' },
+        el('span', { class: 'petal-icon' }, 'ⓘ'),
+        el('small', { class: 'petal-badge' }, '1'),
+        el('span', { class: 'petal-label show' }, 'Info · Hold · Turn'),
+      ),
+    );
+    host.append(probe);
+    const done = () => {
+      void probe.getBoundingClientRect();
+      probe.remove();
+    };
+    if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(done, { timeout: 600 });
+    else window.setTimeout(done, 50);
   }
 
   get isOpen(): boolean {
@@ -117,10 +143,18 @@ export class Bubble {
         el('span', { class: 'petal-label' }, p.label),
       );
       btn.setAttribute('aria-disabled', String(!p.enabled));
+      // A petal acts on a press that began on it (or the keyboard), never on the tap that
+      // selected the unit: its click can land on a petal still flying out of the centre.
+      let pressed = false;
+      btn.onpointerdown = (e) => {
+        e.stopPropagation();
+        pressed = performance.now() - this.openedAt >= MOTION.bubbleUsable;
+      };
       btn.onclick = (e) => {
         e.stopPropagation();
-        // Usable within MOTION.bubbleUsable (UX §3), but not by the selecting tap itself.
-        if (performance.now() - this.openedAt < MOTION.bubbleUsable) return;
+        const keyboard = e.detail === 0;
+        if (!pressed && !keyboard) return;
+        pressed = false;
         if (!p.enabled) {
           btn.classList.add('show-label');
           window.setTimeout(() => btn.classList.remove('show-label'), 1400);
