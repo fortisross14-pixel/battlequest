@@ -1,9 +1,8 @@
 import { mapFromRows, isPassable, inBounds } from '../../core/map';
 import type { Scenario, ScenarioUnit } from '../../core/state';
 import type { Pos } from '../../core/types';
-import { eraUnitType } from '../eraUnits';
+import { eraUnitType, guardType } from '../eraUnits';
 import { GENERAL_BY_ID } from '../generals';
-import { unitType } from '../units';
 import type { ArmyChoice, CampaignBattle } from './types';
 
 export const PLAYER_SIDE = 'blue' as const;
@@ -94,7 +93,7 @@ export function buildScenario(
     units.push({
       id: PLAYER_GENERAL_ID,
       side: PLAYER_SIDE,
-      type: unitType('generalGuard'),
+      type: guardType(playerGen.age),
       x: p.x,
       y: p.y,
       facing: 2,
@@ -116,7 +115,7 @@ export function buildScenario(
     units.push({
       id: ENEMY_GENERAL_ID,
       side: ENEMY_SIDE,
-      type: unitType('generalGuard'),
+      type: guardType(enemyGen.age),
       x: enemySquare.x,
       y: enemySquare.y,
       facing: 6,

@@ -273,13 +273,9 @@ for (const size of SIZES) {
   await page.getByRole('button', { name: /Back/ }).tap();
   await page.getByRole('button', { name: 'Shop' }).tap();
   await page.waitForTimeout(300);
-  await page
-    .getByRole('button', { name: /Buy · ● 120/ })
-    .first()
-    .tap();
-  await page.waitForTimeout(900);
-  await shot(page, size, '26-shop-reveal');
-  await page.getByRole('button', { name: 'Show in Army' }).tap();
+  await shot(page, size, '26-shop-age0');
+  await page.getByRole('button', { name: /Back/ }).tap();
+  await page.getByRole('button', { name: /^Army/ }).tap();
   await page.waitForTimeout(300);
   await shot(page, size, '27-troops');
   await page.getByRole('button', { name: 'Generals' }).tap();
@@ -302,12 +298,12 @@ for (const size of SIZES) {
   await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
   await page.waitForTimeout(200);
   await shot(page, size, '32-builder');
-  // Slot picker: put Egyptian chariots in all three slots.
+  // Slot picker: put Bronze Age chariots in all three slots.
   for (let i = 1; i <= 3; i++) {
     await page.getByRole('button', { name: new RegExp(`^Slot ${i}:`) }).tap();
     await page.waitForTimeout(200);
     if (i === 1) await shot(page, size, '32b-slot-picker');
-    await page.getByRole('button', { name: `Put Egyptian chariots in slot ${i}` }).tap();
+    await page.getByRole('button', { name: `Put Bronze Age chariots in slot ${i}` }).tap();
     await page.waitForTimeout(150);
   }
   // Long-press a general card for its details.
@@ -362,6 +358,12 @@ for (const size of SIZES) {
       qarqar: won(2),
       marathon: won(1),
     });
+  });
+  // Opening Antiquity grants its Commons, generic generals and the age-unlock bonus.
+  await page.evaluate(async () => {
+    const mod = await import('/src/meta/campaign.ts');
+    const app = window.__bq.app;
+    mod.syncAgeUnlocks(app.profile);
     app.save();
     app.campaign();
   });
@@ -379,6 +381,47 @@ for (const size of SIZES) {
   }
   const ns = await smallTargets(page);
   if (ns.length) problems.push(`${size.name} (age map): small buttons ${JSON.stringify(ns)}`);
+
+  // The Antiquity shop tab: first Recruit Pack (a Rare guaranteed) and first General Pack.
+  await page.evaluate(() => window.__bq.app.shop());
+  await page.waitForTimeout(400);
+  await shot(page, size, '41-shop-antiquity');
+  await page
+    .getByRole('button', { name: /Buy · ● 120/ })
+    .first()
+    .tap();
+  await page.waitForTimeout(900);
+  await shot(page, size, '42-recruit-reveal');
+  await page
+    .getByRole('button', { name: /Buy · ● 250/ })
+    .first()
+    .tap();
+  await page.waitForTimeout(900);
+  await shot(page, size, '42b-general-reveal');
+  const ss = await smallTargets(page);
+  if (ss.length) problems.push(`${size.name} (shop): small buttons ${JSON.stringify(ss)}`);
+
+  // Army limits in the slot picker: one Legendary per army, two of each Epic.
+  await page.evaluate(async () => {
+    const app = window.__bq.app;
+    app.profile.units.companionCavalry = { level: 1, cards: 0 };
+    app.profile.units.thebanSacredBand = { level: 1, cards: 0 };
+    app.profile.lastArmy.thermopylae = {
+      units: [
+        { type: 'companionCavalry' },
+        { type: 'thebanSacredBand' },
+        { type: 'thebanSacredBand' },
+      ],
+    };
+    app.save();
+    const mod = await import('/src/content/campaign/battles.ts');
+    app.briefing(mod.BATTLE_BY_ID.thermopylae);
+  });
+  await page.waitForTimeout(400);
+  await page.getByRole('button', { name: /^Slot 2:/ }).tap();
+  await page.waitForTimeout(300);
+  await shot(page, size, '43-picker-limits');
+  await page.locator('.picker').getByRole('button', { name: 'Close' }).tap();
 
   // New Antiquity battlefields: scythed chariots at Gaugamela, elephants at Hydaspes.
   for (const id of ['gaugamela', 'hydaspes']) {

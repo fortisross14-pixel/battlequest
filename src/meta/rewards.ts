@@ -2,11 +2,17 @@ import { PLAYER_SIDE } from '../content/campaign/build';
 import type { CampaignBattle } from '../content/campaign/types';
 import { isRouted, lostCost, armyCost } from '../core/state';
 import type { BattleState } from '../core/types';
-import { drawTroop, giveTroop, type TroopCard } from './cards';
-import { grantFirstWinUnlocks, syncAgeUnlocks } from './campaign';
+import { drawRewardTroop, giveTroop, type TroopCard } from './cards';
+import {
+  grantFirstWinUnlocks,
+  grantLegendaryRoad,
+  syncAgeUnlocks,
+  type AgeGrant,
+} from './campaign';
 import { rankForXp, type Profile } from './profile';
 
 export const REWARDS = {
+  /** First win: winBasePerAge × (age + 1) + perStar × stars (GAME_DESIGN 8). */
   winBasePerAge: 100,
   perStar: 50,
   replayFactor: 0.3,
@@ -76,6 +82,10 @@ export interface Rewards {
   rankAfter: number;
   newStars: number;
   unlockedAge: number | null;
+  /** What the newly opened age granted (Commons, generic generals, bonus coins). */
+  ageGrant: AgeGrant | null;
+  /** The age's Legendary troop, when this result completed its road (GAME_DESIGN 8). */
+  legendary: string | null;
   firstWin: boolean;
   /** Troop cards earned. */
   cards: TroopCard[];
@@ -102,7 +112,7 @@ export function applyOutcome(
   const firstWin = o.won && rec.wins === 0;
   let coins: number;
   if (o.won) {
-    const full = REWARDS.winBasePerAge * Math.max(1, b.age) + REWARDS.perStar * o.stars;
+    const full = REWARDS.winBasePerAge * (b.age + 1) + REWARDS.perStar * o.stars;
     coins = firstWin ? full : Math.round(full * REWARDS.replayFactor);
   } else {
     coins = REWARDS.loss;
@@ -116,12 +126,14 @@ export function applyOutcome(
   // First-win unlocks come before XP, so a general who joins after this battle earns it too.
   const unlocks = firstWin ? grantFirstWinUnlocks(p, b) : { units: [], generals: [] };
   // A win can complete an age, which opens the next one and grants its starter troops.
-  const unlockedAge = o.won ? (syncAgeUnlocks(p)[0] ?? null) : null;
+  const ageGrant = o.won ? (syncAgeUnlocks(p)[0] ?? null) : null;
+  const unlockedAge = ageGrant?.age ?? null;
+  const legendary = grantLegendaryRoad(p)[0] ?? null;
   const cards: TroopCard[] = [];
   const n = !o.won ? 0 : firstWin ? REWARDS.cardsFirstWin : REWARDS.cardsReplayWin;
   const rng = { rng: (ctx.seed ^ 0x5eed) >>> 0 };
   for (let i = 0; i < n; i++) {
-    cards.push(giveTroop(p, drawTroop(p, rng, { fielded: ctx.fielded }).id));
+    cards.push(giveTroop(p, drawRewardTroop(p, rng, b.age, { fielded: ctx.fielded }).id));
   }
 
   // Generals who rested this battle are available again; the one who fell rests next time.
@@ -148,6 +160,8 @@ export function applyOutcome(
     rankAfter,
     newStars,
     unlockedAge,
+    ageGrant,
+    legendary,
     firstWin,
     cards,
     unlocks,

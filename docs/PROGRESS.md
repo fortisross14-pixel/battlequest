@@ -45,6 +45,11 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Phase C — Age 0 tutorial battles (Megiddo, Kadesh): event-driven tutorial scripts, skip, builder tips, headless script tests
 - [x] Phase D — Antiquity: 10 battles (6 new), elephants (ScaresHorses, Stampede) and scythed chariots, 9 new troops, 6 new generals, difficulty bands and star route
 
+## Ages 0–2 from the history briefs (docs/prompts/06-build-ages-0-2.md)
+- [x] Phase A — card ladders for Ages 0–2 (power tiers by rarity and age), general ladders, army limits, per-age shop tabs and packs, first-pack guarantees, General Pack price, age-unlock bonus, Legendary road, profile v4 migration, `balance-sim progression`
+- [ ] Phase B — Age 0 tutorial rework (Megiddo, Kadesh)
+- [ ] Phase C — Antiquity and Classical Empires: 22 main and 13 optional battles
+
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
 - [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills

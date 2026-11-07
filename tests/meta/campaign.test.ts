@@ -10,7 +10,7 @@ import {
   newlyUnlocked,
   starsMissing,
 } from '../../src/meta/campaign';
-import { cloneProfile, migrateProfile, newProfile, type Profile } from '../../src/meta/profile';
+import { cloneProfile, newProfile, type Profile } from '../../src/meta/profile';
 import { applyOutcome, type BattleOutcome } from '../../src/meta/rewards';
 
 /** GAME_DESIGN 7.3: star-gated battles, ages that open on all wins. */
@@ -121,53 +121,6 @@ describe('newlyUnlocked', () => {
     const before = cloneProfile(p);
     applyOutcome(p, BATTLE_BY_ID.marathon!, win(2), null, { seed: 9 });
     expect(newlyUnlocked(before, p).battles).toEqual(['thermopylae', 'plataea']);
-  });
-});
-
-describe('profile v2 → v3', () => {
-  const V2 = {
-    version: 2,
-    coins: 520,
-    units: {
-      egyptianSpearmen: { level: 2, cards: 1 },
-      egyptianChariots: { level: 1, cards: 0 },
-      egyptianArchers: { level: 1, cards: 2 },
-    },
-    generals: { captain: { xp: 300, resting: false }, centurion: { xp: 0, resting: false } },
-    battles: {
-      megiddo: { stars: 3, wins: 2, plays: 2 },
-      kadesh: { stars: 2, wins: 1, plays: 1 },
-      marathon: { stars: 1, wins: 1, plays: 3 },
-    },
-    unlockedAge: 2,
-    generalPity: 1,
-    rng: 42,
-    dailyBought: null,
-    lastArmy: {},
-  };
-
-  it('keeps every battle record and star, and moves battles into the new ages', () => {
-    const p = migrateProfile(structuredClone(V2))!;
-    expect(p.version).toBe(3);
-    expect(p.battles).toEqual(V2.battles);
-    expect(ageStars(p, 0)).toBe(5);
-    expect(ageStars(p, 1)).toBe(1);
-    expect(p.coins).toBe(520);
-    expect(p.units.egyptianSpearmen).toEqual({ level: 2, cards: 1 });
-  });
-
-  it('opens Antiquity for a player who won both Age 0 battles and grants its starters', () => {
-    const p = migrateProfile(structuredClone(V2))!;
-    expect(isAgeUnlocked(p, 1)).toBe(true);
-    expect(p.unlockedAge).toBe(1);
-    expect(p.units.hoplites).toBeDefined();
-    expect(p.units.peltasts).toBeDefined();
-  });
-
-  it('a v2 player who only won Megiddo stays in Age 0', () => {
-    const p = migrateProfile({ ...structuredClone(V2), battles: { megiddo: V2.battles.megiddo } })!;
-    expect(isAgeUnlocked(p, 1)).toBe(false);
-    expect(p.unlockedAge).toBe(0);
   });
 });
 

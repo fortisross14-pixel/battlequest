@@ -1165,6 +1165,9 @@ button.mini-card {
 .mini-card.common {
   border-color: #9a9a9a;
 }
+.mini-card.uncommon {
+  border-color: #4f8a4a;
+}
 .mini-card.rare {
   border-color: #3f7cc2;
 }
@@ -1187,6 +1190,9 @@ button.mini-card {
 }
 .rarity-pill.common {
   background: #8a8a8a;
+}
+.rarity-pill.uncommon {
+  background: #4f8a4a;
 }
 .rarity-pill.rare {
   background: #3f7cc2;
@@ -1615,6 +1621,27 @@ button.mini-card {
   font-size: 17px;
 }
 
+/* Optional battles (GAME_DESIGN 7.3): a diamond-cornered square, still a 44 px target. */
+.battle-node.optional .node-dot {
+  border-radius: 10px;
+  border-style: dashed;
+  font-size: 17px;
+}
+
+.battle-node.optional.won .node-dot {
+  border-style: solid;
+}
+
+.battle-node.optional .node-name {
+  font-size: 13px;
+}
+
+.map-overlay .branch {
+  stroke: #8e1f1f;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+
 .battle-node .node-name {
   margin-top: 3px;
   padding: 1px 6px;
@@ -1732,4 +1759,10 @@ button.mini-card {
 
 .builder-tips p {
   margin: 4px 0;
+}
+
+/* A troop the army limits keep out (1 Legendary, 2 of each Epic): dimmed, reason shown. */
+.mini-card.pick[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

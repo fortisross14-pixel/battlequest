@@ -63,8 +63,15 @@ export interface CampaignBattle {
   fixedArmy?: ArmyChoice;
   /** Starting squares for the first units, in army order (a tutorial sets up its lesson). */
   startAt?: { x: number; y: number }[];
-  /** Granted the first time this battle is won. */
+  /** Granted the first time this battle is won (an optional battle's reward). */
   firstWinUnlocks?: { units?: string[]; generals?: string[] };
+  /**
+   * Optional battle (GAME_DESIGN 7.3): the main battle it branches from. It opens when that
+   * battle is won and is never needed to finish the age.
+   */
+  branchesFrom?: string;
+  /** The tactical idea (GAME_DESIGN 7.3), from the history brief. */
+  challengeType?: ChallengeType;
   bonus: BonusCondition;
   bonusText: string;
   /** Army used by tests and balance-sim to stand in for the player. */
@@ -82,6 +89,18 @@ export interface ArmyChoice {
   /** The general leads from their own unit on the map. `unitIndex` is from older saves and ignored. */
   general?: { id: string; rank: number; unitIndex?: number };
 }
+
+export type ChallengeType =
+  | 'lineAndFlank'
+  | 'passBridgeOrFord'
+  | 'riverCrossing'
+  | 'ambushAndVision'
+  | 'hillsAndDefence'
+  | 'cavalryAndPursuit'
+  | 'holdUntilReinforcements'
+  | 'strikeTheCommander'
+  | 'desperateDefence'
+  | 'attrition';
 
 /** What the tutorial waits for before moving to its next step. */
 export type TutorialTrigger =
@@ -145,13 +164,19 @@ export interface Age {
   /** The region its map shows. */
   region: MapBounds;
   emblem: AgeEmblem;
-  /** Playable battles, in historical order. */
+  /** Main-path battles, in historical order. */
   battles: string[];
+  /** Optional battles (each names the main battle it branches from). */
+  optional?: string[];
   /** Battles of an age in preparation: names and places only. */
   planned?: PlannedBattle[];
   /** Stars earned in this age needed to open battle #1, #2, … */
   starThresholds: number[];
-  /** Age 0: the new player's troops. Later ages: free troops granted when the age opens. */
+  /** Age 0: the new player's troops. Later ages: the Commons granted when the age opens. */
   starterUnits: string[];
+  /** The generic generals granted when the age opens. */
+  starterGenerals?: string[];
+  /** The age's Legendary troop, granted at LEGENDARY_ROAD of the main-path stars (GAME_DESIGN 8). */
+  legendary?: string;
   status: 'playable' | 'inPreparation';
 }

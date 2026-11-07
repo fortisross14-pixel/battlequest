@@ -1,8 +1,8 @@
-import { AGES, CAMPAIGN } from '../content/campaign/battles';
+import { AGES } from '../content/campaign/battles';
 import { syncAgeUnlocks } from './campaign';
 import type { ArmyChoice } from '../content/campaign/types';
-import { ERA_UNIT_BY_ID } from '../content/eraUnits';
-import type { Rarity } from '../core/generals';
+import { ERA_UNIT_BY_ID, type TroopRarity } from '../content/eraUnits';
+import { GENERAL_BY_ID } from '../content/generals';
 
 /** An unlocked troop type (GAME_DESIGN 5): its level and the spare cards held for upgrades. */
 export interface OwnedUnit {
@@ -23,7 +23,7 @@ export interface BattleRecord {
   plays: number;
 }
 
-export const PROFILE_VERSION = 3;
+export const PROFILE_VERSION = 4;
 
 export interface Profile {
   version: typeof PROFILE_VERSION;
@@ -31,7 +31,7 @@ export interface Profile {
   units: Record<string, OwnedUnit>;
   generals: Record<string, OwnedGeneral>;
   battles: Record<string, BattleRecord>;
-  /** Highest age the player has unlocked. */
+  /** Highest age the player has unlocked (its Commons and generic generals were granted). */
   unlockedAge: number;
   /** General Packs opened since the last Epic or Legendary. */
   generalPity: number;
@@ -41,22 +41,39 @@ export interface Profile {
   dailyBought: string | null;
   /** Last army used per battle, to prefill the army builder. */
   lastArmy: Record<string, ArmyChoice>;
+  /**
+   * Packs bought per age, keyed "recruit:1", "general:2"…: the first of each kind in an age
+   * carries a guarantee (GAME_DESIGN 7.6).
+   */
+  packsBought: Record<string, number>;
+  /** Ages whose guaranteed Legendary troop was granted (GAME_DESIGN 8). */
+  legendaryGranted: number[];
 }
 
 /** Economy constants (GAME_DESIGN 5 and 8). */
 export const ECONOMY = {
-  startingCoins: 300,
-  startingGenerals: ['captain', 'centurion'],
+  /** With the Age 0 rewards and the Antiquity bonus, enough for its first packs (7.6). */
+  startingCoins: 100,
   /** Spare cards and coins for Lv1→2, 2→3, 3→4, 4→5. */
   upgradeCards: [1, 2, 4, 8],
   upgradeCoins: [15, 40, 100, 250],
   /** Coin cost multiplier by rarity (Legendary is not in §5; it continues the curve). */
-  rarityCoinFactor: { common: 1, rare: 1.5, epic: 2, legendary: 2.5 } as Record<Rarity, number>,
+  rarityCoinFactor: { common: 1, rare: 1.5, epic: 2, legendary: 2.5 } as Record<
+    TroopRarity,
+    number
+  >,
   maxLevel: 5,
   /** A card for a Lv5 troop converts to coins. */
   maxLevelCardCoins: 5,
   medalXp: 500,
   maxRank: 10,
+  /**
+   * Age-unlock bonus (GAME_DESIGN 8): at least this much, and enough to bring the purse up
+   * to the new age's first packs (2 Recruit Packs and 1 General Pack).
+   */
+  ageBonusMin: 100,
+  /** Share of an age's main-path stars that grants its Legendary troop (GAME_DESIGN 8). */
+  legendaryRoad: 0.7,
 };
 
 export function newProfile(seed = 12345): Profile {
@@ -71,9 +88,12 @@ export function newProfile(seed = 12345): Profile {
     rng: seed >>> 0,
     dailyBought: null,
     lastArmy: {},
+    packsBought: {},
+    legendaryGranted: [],
   };
-  for (const id of AGES[0]!.starterUnits) p.units[id] = { level: 1, cards: 0 };
-  for (const id of ECONOMY.startingGenerals) p.generals[id] = { xp: 0, resting: false };
+  const age0 = AGES[0]!;
+  for (const id of age0.starterUnits) p.units[id] = { level: 1, cards: 0 };
+  for (const id of age0.starterGenerals ?? []) p.generals[id] = { xp: 0, resting: false };
   return p;
 }
 
@@ -184,6 +204,46 @@ export function anyUpgradeAvailable(p: Profile): boolean {
 // ---------- Saves ----------
 
 /**
+ * v4 replaced the one-off faction troops and the old general roster with the per-age
+ * ladders (prompt 06). Each removed card maps to its closest ladder card.
+ */
+export const LEGACY_UNITS: Record<string, string> = {
+  egyptianSpearmen: 'bronzeAgeSpearmen',
+  egyptianArchers: 'bronzeAgeArchers',
+  egyptianChariots: 'bronzeAgeChariots',
+  canaaniteWarriors: 'bronzeAgeSpearmen',
+  canaaniteChariots: 'bronzeAgeChariots',
+  hittiteChariots: 'bronzeAgeChariots',
+  hittiteSpearmen: 'bronzeAgeSpearmen',
+  assyrianArchers: 'persianShieldArchers',
+  assyrianCavalry: 'antiquityLightCavalry',
+  assyrianSpearmen: 'antiquitySpearmen',
+  aramaeanInfantry: 'antiquitySkirmishers',
+  hoplites: 'hoplitePhalanx',
+  peltasts: 'antiquitySkirmishers',
+  cretanArchers: 'persianShieldArchers',
+  sparabara: 'persianShieldArchers',
+  immortals: 'persianShieldArchers',
+  persianCavalry: 'antiquityLightCavalry',
+  thessalianCavalry: 'antiquityLightCavalry',
+  sacredBand: 'thebanSacredBand',
+  companions: 'companionCavalry',
+  bactrianCavalry: 'antiquityLightCavalry',
+  indianArchers: 'antiquityArchers',
+  indianInfantry: 'antiquitySpearmen',
+  indianCavalry: 'antiquityLightCavalry',
+};
+
+export const LEGACY_GENERALS: Record<string, string> = {
+  captain: 'bronzeAgeCaptain',
+  centurion: 'antiquityCaptain',
+  thutmose: 'thutmoseIII',
+  philip: 'philipII',
+  // Joan of Arc belongs to a later age with no ladder yet: the closest Epic morale leader.
+  joan: 'ramessesII',
+};
+
+/**
  * Brings a stored profile up to the current version, or returns null if it isn't one.
  * v1 → v2: the duplicates collected towards the next level become spare cards; levels
  * stay. Missing fields take the new-profile defaults.
@@ -193,6 +253,7 @@ export function migrateProfile(raw: unknown): Profile | null {
   let r = raw as Record<string, unknown> & { version?: unknown };
   if (r.version === 1) r = migrateV1toV2(r);
   if (r.version === 2) r = migrateV2toV3(r);
+  if (r.version === 3) r = migrateV3toV4(r) as unknown as typeof r;
   if (r.version === PROFILE_VERSION) return { ...newProfile(), ...(r as object) } as Profile;
   return null;
 }
@@ -202,34 +263,82 @@ function migrateV1toV2(r: Record<string, unknown>): Record<string, unknown> & { 
   const units: Record<string, OwnedUnit> = {};
   const old = (r.units ?? {}) as Record<string, { level?: number; dupes?: number }>;
   for (const [id, u] of Object.entries(old)) {
-    if (!ERA_UNIT_BY_ID[id]) continue;
+    if (!ERA_UNIT_BY_ID[id] && !LEGACY_UNITS[id]) continue;
     units[id] = { level: Math.min(ECONOMY.maxLevel, u.level ?? 1), cards: u.dupes ?? 0 };
   }
-  const p = { ...newProfile(), ...(r as object), units } as unknown as Profile;
-  // Old saves started with only the Captain; v2 players also get the Centurion.
-  for (const id of ECONOMY.startingGenerals) p.generals[id] ??= { xp: 0, resting: false };
-  // Battles already won grant what their first win now unlocks.
-  for (const b of CAMPAIGN) {
-    if (!p.battles[b.id]?.wins) continue;
-    for (const id of b.firstWinUnlocks?.units ?? []) p.units[id] ??= { level: 1, cards: 0 };
-    for (const id of b.firstWinUnlocks?.generals ?? [])
-      p.generals[id] ??= { xp: 0, resting: false };
+  const generals = { ...((r.generals ?? {}) as Record<string, OwnedGeneral>) };
+  // Old saves started with only the Captain; v2 players also got the Centurion.
+  generals.centurion ??= { xp: 0, resting: false };
+  // Battles won granted their v2 first-win unlocks (Megiddo: archers and Thutmose).
+  const battles = (r.battles ?? {}) as Record<string, BattleRecord>;
+  if (battles.megiddo?.wins) {
+    units.egyptianArchers ??= { level: 1, cards: 0 };
+    generals.thutmose ??= { xp: 0, resting: false };
   }
-  return { ...(p as unknown as Record<string, unknown>), version: 2 };
+  return { ...r, units, generals, version: 2 };
 }
 
 /**
  * v2 → v3: the campaign became ages with star-gated battles (GAME_DESIGN 7). Battle ids
- * are unchanged, so every record and star is kept: Megiddo and Kadesh now form Age 0, and
- * Qarqar, Marathon, Thermopylae and Leuctra are in Antiquity. `unlockedAge` now means "the
- * newest age whose starter troops were granted", so it is recomputed from the battles won.
+ * are unchanged, so every record and star is kept. `unlockedAge` is recomputed in v4.
  */
 function migrateV2toV3(r: Record<string, unknown>): Record<string, unknown> & { version: 3 } {
-  const p = { ...newProfile(), ...(r as object), version: PROFILE_VERSION } as Profile;
-  p.battles = { ...((r.battles as Profile['battles']) ?? {}) };
-  p.unlockedAge = 0;
+  return { ...r, version: 3 };
+}
+
+/**
+ * v3 → v4: the per-age card ladders (prompt 06). Each removed troop becomes its closest
+ * ladder card, keeping its level and spare cards; two old troops that become the same card
+ * merge (the higher level, every spare card, and one more card for each extra type).
+ * Removed generals map the same way and keep their XP. Battle records stay; the ages the
+ * player has opened grant their new Commons and generic generals.
+ */
+function migrateV3toV4(r: Record<string, unknown>): Profile {
+  const units: Record<string, OwnedUnit> = {};
+  for (const [oldId, u] of Object.entries((r.units ?? {}) as Record<string, OwnedUnit>)) {
+    const id = ERA_UNIT_BY_ID[oldId] ? oldId : LEGACY_UNITS[oldId];
+    if (!id || !ERA_UNIT_BY_ID[id]) continue;
+    const level = Math.min(ECONOMY.maxLevel, Math.max(1, u.level ?? 1));
+    const have = units[id];
+    units[id] = have
+      ? { level: Math.max(have.level, level), cards: have.cards + (u.cards ?? 0) + 1 }
+      : { level, cards: u.cards ?? 0 };
+  }
+  const generals: Record<string, OwnedGeneral> = {};
+  for (const [oldId, g] of Object.entries((r.generals ?? {}) as Record<string, OwnedGeneral>)) {
+    const id = GENERAL_BY_ID[oldId] ? oldId : LEGACY_GENERALS[oldId];
+    if (!id || !GENERAL_BY_ID[id]?.playable) continue;
+    const xp = Math.max(generals[id]?.xp ?? 0, g.xp ?? 0);
+    generals[id] = { xp, resting: false };
+  }
+  const base = newProfile();
+  const p: Profile = {
+    ...base,
+    ...(r as object),
+    version: PROFILE_VERSION,
+    units: { ...base.units, ...units },
+    generals: { ...base.generals, ...generals },
+    battles: { ...((r.battles as Profile['battles']) ?? {}) },
+    lastArmy: {},
+    packsBought: {},
+    legendaryGranted: [],
+    unlockedAge: 0,
+  };
+  // Ages already won open again with their new Commons and generic generals.
   syncAgeUnlocks(p);
-  return p as unknown as Record<string, unknown> & { version: 3 };
+  // Last armies keep the troops and general the player still has.
+  for (const [battle, a] of Object.entries((r.lastArmy ?? {}) as Record<string, ArmyChoice>)) {
+    const armyUnits = a.units
+      .map((u) => ({ ...u, type: ERA_UNIT_BY_ID[u.type] ? u.type : LEGACY_UNITS[u.type] }))
+      .filter((u): u is { type: string; level?: number } => !!u.type && !!p.units[u.type]);
+    const gid =
+      a.general && (GENERAL_BY_ID[a.general.id] ? a.general.id : LEGACY_GENERALS[a.general.id]);
+    p.lastArmy[battle] = {
+      units: armyUnits,
+      ...(a.general && gid && p.generals[gid] ? { general: { ...a.general, id: gid } } : {}),
+    };
+  }
+  return p;
 }
 
 export function cloneProfile(p: Profile): Profile {

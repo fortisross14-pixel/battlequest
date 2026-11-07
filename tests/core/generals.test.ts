@@ -69,7 +69,7 @@ describe('generals (4.10, 6)', () => {
       U('k', 'blue', 'heavyCavalry', 2, 5),
       U('r', 'red', 'spearmen', 10, 3),
     ]);
-    expect(unit(s, 'g').type.stats.melee).toBeCloseTo(5.75);
+    expect(unit(s, 'g').type.stats.melee).toBeCloseTo(5.5);
     expect(unit(s, 'k').type.stats.melee).toBe(6);
     expect(unit(s, 'r').type.stats.melee).toBe(5);
     // The shared archetype data is untouched.
@@ -77,7 +77,7 @@ describe('generals (4.10, 6)', () => {
   });
 
   it('the command radius lowers cohesion test chances and is lost with the general', () => {
-    const s = withGeneral(G.captain!, 1, [
+    const s = withGeneral(G.antiquityCaptain!, 1, [
       U('g', 'blue', 'spearmen', 2, 3),
       U('a', 'blue', 'spearmen', 4, 3),
       U('far', 'blue', 'spearmen', 9, 7),
@@ -92,7 +92,7 @@ describe('generals (4.10, 6)', () => {
 
   it('a permanent flank trait boosts flank damage, and previews show it', () => {
     const units = [U('g', 'blue', 'spearmen', 4, 3), U('d', 'red', 'spearmen', 5, 3, 0)];
-    const plain = withGeneral(G.captain!, 1, units);
+    const plain = withGeneral(G.antiquityCaptain!, 1, units);
     const hannibal = withGeneral(G.hannibal!, 1, units);
     const base = computeDamage(plain, unit(plain, 'g'), unit(plain, 'd'), 'melee').expected;
     const boosted = computeDamage(
@@ -109,25 +109,27 @@ describe('generals (4.10, 6)', () => {
   });
 
   it('only the general’s unit can use a skill, once per action, with a cooldown', () => {
-    let s = withGeneral(G.joan!, 1, [
+    let s = withGeneral(G.vercingetorix!, 1, [
       U('g', 'blue', 'spearmen', 2, 3),
       U('a', 'blue', 'spearmen', 3, 3, E, { strength: 50 }),
       U('r', 'red', 'spearmen', 11, 0),
     ]);
-    expect(rejected(s, { type: 'UseSkill', unitId: 'a', skillId: 'inspire' })).toBe('NO_GENERAL');
-    const res = run(s, { type: 'UseSkill', unitId: 'g', skillId: 'inspire' });
+    expect(rejected(s, { type: 'UseSkill', unitId: 'a', skillId: 'callTheTribes' })).toBe(
+      'NO_GENERAL',
+    );
+    const res = run(s, { type: 'UseSkill', unitId: 'g', skillId: 'callTheTribes' });
     s = res.state;
     expect(unit(s, 'a').strength).toBe(65);
     expect(unit(s, 'g').hasActed).toBe(true);
     expect(res.events).toContainEqual({ type: 'UnitHealed', unitId: 'a', amount: 15 });
     s = endTurn(endTurn(s).state).state;
-    expect(rejected(s, { type: 'UseSkill', unitId: 'g', skillId: 'inspire' })).toBe(
+    expect(rejected(s, { type: 'UseSkill', unitId: 'g', skillId: 'callTheTribes' })).toBe(
       'SKILL_COOLDOWN',
     );
   });
 
   it('Rally brings a routed unit in radius back to Disrupted', () => {
-    const s = withGeneral(G.captain!, 1, [
+    const s = withGeneral(G.antiquityCaptain!, 1, [
       U('g', 'blue', 'spearmen', 2, 3),
       U('a', 'blue', 'spearmen', 3, 5, E, { cohesion: Cohesion.Routed }),
       U('b', 'blue', 'spearmen', 2, 6),
@@ -146,7 +148,7 @@ describe('generals (4.10, 6)', () => {
   });
 
   it('Hold Fast cuts damage taken until the unit’s next turn', () => {
-    let s = withGeneral(G.centurion!, 1, [
+    let s = withGeneral(G.bronzeAgeCaptain!, 1, [
       U('g', 'blue', 'spearmen', 4, 3),
       U('r', 'red', 'spearmen', 5, 3),
     ]);
@@ -208,7 +210,7 @@ describe('generals (4.10, 6)', () => {
     let lost = 0;
     for (let seed = 0; seed < 60; seed++) {
       const s = withGeneral(
-        G.captain!,
+        G.antiquityCaptain!,
         1,
         [
           U('g', 'blue', 'archers', 4, 3, E, { strength: 28 }),

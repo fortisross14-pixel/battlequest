@@ -77,7 +77,7 @@ describe('generals are units on the map; if one falls, the battle is lost', () =
         blue: {
           name: 'Blue',
           edge: 'west',
-          general: { def: GENERAL_BY_ID.captain!, rank: 1, unitId: 'bg' },
+          general: { def: GENERAL_BY_ID.antiquityCaptain!, rank: 1, unitId: 'bg' },
         },
         red: { name: 'Red', edge: 'east' },
       },

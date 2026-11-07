@@ -28,6 +28,7 @@ export interface AppApi {
 
 export const RARITY_LABEL: Record<Rarity, string> = {
   common: 'Common',
+  uncommon: 'Uncommon',
   rare: 'Rare',
   epic: 'Epic',
   legendary: 'Legendary',

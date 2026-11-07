@@ -1,5 +1,5 @@
 import { ERA_UNITS, eraUnitType, type EraUnitDef } from '../../content/eraUnits';
-import { GENERALS } from '../../content/generals';
+import { GENERALS, generalPackAge } from '../../content/generals';
 import type { UnitStats } from '../../core/types';
 import {
   canUpgrade,
@@ -106,7 +106,9 @@ function troopCard(app: AppApi, def: EraUnitDef): HTMLElement {
 }
 
 function generalCards(p: Profile): HTMLElement[] {
-  return GENERALS.filter((g) => g.inPacks).map((g) => {
+  return GENERALS.filter(
+    (g) => g.playable && (generalPackAge(g) <= p.unlockedAge || p.generals[g.id]),
+  ).map((g) => {
     const owned = p.generals[g.id];
     if (!owned) return lockedCard('General not found yet', 'Find generals in General Packs.');
     const rank = rankForXp(owned.xp);

@@ -36,6 +36,10 @@ function candidates(s: BattleState, unit?: string): Command[] {
   if (general && !unit) {
     for (const sk of general.skills) {
       out.push({ type: 'UseSkill', unitId: general.unitId, skillId: sk.id });
+      // Targeted skills (Hold Fast, Rally): try each of the player's own units.
+      for (const u of s.units.filter((x) => x.side === 'blue' && isOnMap(x))) {
+        out.push({ type: 'UseSkill', unitId: general.unitId, skillId: sk.id, targetId: u.id });
+      }
     }
   }
   for (const u of blueUnits(s)) {

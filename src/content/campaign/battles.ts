@@ -46,8 +46,8 @@ const megiddo: CampaignBattle = {
     '............',
   ],
   enemy: [
-    { type: 'canaaniteWarriors', x: 6, y: 3, facing: W, general: true },
-    { type: 'canaaniteWarriors', x: 6, y: 4, facing: W },
+    { type: 'bronzeAgeSpearmen', x: 6, y: 3, facing: W, general: true },
+    { type: 'bronzeAgeSpearmen', x: 6, y: 4, facing: W },
   ],
   enemyGeneral: { id: 'kingOfKadesh', rank: 1 },
   posture: 'defensive',
@@ -56,18 +56,18 @@ const megiddo: CampaignBattle = {
   playerBreakpoint: 0.75,
   maxUnits: 2,
   fixedArmy: {
-    units: [{ type: 'egyptianSpearmen' }, { type: 'egyptianChariots' }],
-    general: { id: 'thutmose', rank: 1 },
+    units: [{ type: 'bronzeAgeSpearmen' }, { type: 'bronzeAgeChariots' }],
+    general: { id: 'bronzeAgeCaptain', rank: 1 },
   },
   // Spearmen facing the line; chariots on the open northern side, ready to ride round.
   startAt: [
     { x: 3, y: 3 },
     { x: 3, y: 1 },
   ],
-  firstWinUnlocks: { units: ['egyptianArchers'], generals: ['thutmose'] },
+  firstWinUnlocks: { units: ['bronzeAgeArchers'] },
   testArmy: {
-    units: [{ type: 'egyptianSpearmen' }, { type: 'egyptianChariots' }],
-    general: { id: 'thutmose', rank: 1 },
+    units: [{ type: 'bronzeAgeSpearmen' }, { type: 'bronzeAgeChariots' }],
+    general: { id: 'bronzeAgeCaptain', rank: 1 },
   },
   bonus: { kind: 'winByTurn', turn: 6 },
   bonusText: 'Win by turn 6.',
@@ -112,18 +112,22 @@ const kadesh: CampaignBattle = {
     '............',
   ],
   enemy: [
-    { type: 'hittiteChariots', x: 10, y: 2, facing: W, general: true },
-    { type: 'canaaniteChariots', x: 10, y: 6, facing: W },
+    { type: 'bronzeAgeChariots', x: 10, y: 2, facing: W, general: true },
+    { type: 'bronzeAgeChariots', x: 10, y: 6, facing: W },
   ],
-  enemyGeneral: { id: 'muwatalli', rank: 1 },
+  enemyGeneral: { id: 'muwatalliII', rank: 1 },
   posture: 'aggressive',
   turnLimit: 5,
   holdOut: 'player',
   maxUnits: 3,
   // What the builder tips suggest: two archers and a spear line, with Thutmose.
   testArmy: {
-    units: [{ type: 'egyptianArchers' }, { type: 'egyptianArchers' }, { type: 'egyptianSpearmen' }],
-    general: { id: 'thutmose', rank: 1 },
+    units: [
+      { type: 'bronzeAgeArchers' },
+      { type: 'bronzeAgeArchers' },
+      { type: 'bronzeAgeSpearmen' },
+    ],
+    general: { id: 'bronzeAgeCaptain', rank: 1 },
   },
   bonus: { kind: 'noUnitLost' },
   tutorial: KADESH_TUTORIAL,
@@ -137,12 +141,17 @@ export const BATTLE_BY_ID: Record<string, CampaignBattle> = Object.fromEntries(
   CAMPAIGN.map((b) => [b.id, b]),
 );
 
-/** An age's playable battles, in order. */
+/** An age's main-path battles, in order. */
 export function battlesOfAge(age: number): CampaignBattle[] {
   return (AGE_BY_ID[age]?.battles ?? []).map((id) => BATTLE_BY_ID[id]!).filter(Boolean);
 }
 
-/** A battle's position (0-based) in its age. */
+/** An age's optional battles (GAME_DESIGN 7.3). */
+export function optionalBattlesOf(age: number): CampaignBattle[] {
+  return (AGE_BY_ID[age]?.optional ?? []).map((id) => BATTLE_BY_ID[id]!).filter(Boolean);
+}
+
+/** A main battle's position (0-based) in its age; -1 for an optional battle. */
 export function battleIndex(b: CampaignBattle): number {
   return AGE_BY_ID[b.age]?.battles.indexOf(b.id) ?? -1;
 }

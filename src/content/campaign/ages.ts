@@ -20,7 +20,9 @@ export const AGES: Age[] = [
     emblem: 'chariot',
     battles: ['megiddo', 'kadesh'],
     starThresholds: DEFAULT_STAR_THRESHOLDS,
-    starterUnits: ['egyptianSpearmen', 'egyptianChariots'],
+    // The new player's two Common troop types and generic general (GAME_DESIGN 5.2, 7.4).
+    starterUnits: ['bronzeAgeSpearmen', 'bronzeAgeChariots'],
+    starterGenerals: ['bronzeAgeCaptain'],
     status: 'playable',
   },
   {
@@ -46,7 +48,14 @@ export const AGES: Age[] = [
     // Hydaspes needs 16, not 18: the stand-in player reaches about 17 stars over the first
     // nine battles keeping the best of three tries (DECISIONS, Campaign D).
     starThresholds: [0, 0, 1, 2, 4, 6, 8, 10, 14, 16],
-    starterUnits: ['hoplites', 'peltasts'],
+    starterUnits: [
+      'antiquitySpearmen',
+      'antiquityArchers',
+      'antiquitySkirmishers',
+      'antiquityLightCavalry',
+    ],
+    starterGenerals: ['antiquityCaptain', 'antiquityScout'],
+    legendary: 'companionCavalry',
     status: 'playable',
   },
   {
@@ -73,7 +82,14 @@ export const AGES: Age[] = [
       { name: 'Adrianople', year: 'AD 378', lat: 41.68, lon: 26.56 },
     ],
     starThresholds: DEFAULT_STAR_THRESHOLDS,
-    starterUnits: [],
+    starterUnits: [
+      'classicalSpearmen',
+      'classicalArchers',
+      'classicalSkirmishers',
+      'classicalLightCavalry',
+    ],
+    starterGenerals: ['classicalCaptain', 'classicalTribune'],
+    legendary: 'legioX',
     status: 'inPreparation',
   },
   {

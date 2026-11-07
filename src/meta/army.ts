@@ -1,14 +1,20 @@
 import type { ArmyChoice, CampaignBattle } from '../content/campaign/types';
 import { ERA_UNIT_BY_ID, eraUnitType } from '../content/eraUnits';
 import { GENERAL_BY_ID } from '../content/generals';
+import type { Rarity } from '../core/generals';
 import { rankForXp, type Profile } from './profile';
 
 /**
- * Army rules (GAME_DESIGN 5): the battle's unit slots are the only limit. Every slot must
- * be filled, any number of copies of an owned type is allowed, and points are ignored.
+ * Army rules (GAME_DESIGN 5): every slot must be filled with owned troops, points are
+ * ignored, and the army limits keep tactics in play: at most 1 Legendary and 2 copies of
+ * each Epic (5.1). Commons and Rares can fill any number of slots.
  */
+export const ARMY_LIMITS = { legendary: 1, epicCopies: 2 };
+
 export type ArmyProblem =
   | { code: 'slots'; filled: number; slots: number }
+  | { code: 'legendaryLimit'; count: number }
+  | { code: 'epicLimit'; type: string; count: number }
   | { code: 'notOwned'; type: string }
   | { code: 'unknownUnit'; type: string }
   | { code: 'generalNotOwned'; id: string }
@@ -23,6 +29,7 @@ export function armyProblems(p: Profile, b: CampaignBattle, army: ArmyChoice): A
     if (!ERA_UNIT_BY_ID[type]) out.push({ code: 'unknownUnit', type });
     else if (!p.units[type]) out.push({ code: 'notOwned', type });
   }
+  if (!b.fixedArmy) out.push(...limitProblems(army.units.map((u) => u.type)));
   const g = army.general;
   if (g) {
     // The fixed army's general leads this battle only, so the player needn't own them.
@@ -36,8 +43,39 @@ export function armyProblems(p: Profile, b: CampaignBattle, army: ArmyChoice): A
   return out;
 }
 
+/** Army-limit problems for a list of troop types (one entry per slot). */
+export function limitProblems(types: string[]): ArmyProblem[] {
+  const out: ArmyProblem[] = [];
+  const legendary = types.filter((t) => ERA_UNIT_BY_ID[t]?.rarity === 'legendary').length;
+  if (legendary > ARMY_LIMITS.legendary) out.push({ code: 'legendaryLimit', count: legendary });
+  for (const type of new Set(types)) {
+    if (ERA_UNIT_BY_ID[type]?.rarity !== 'epic') continue;
+    const count = types.filter((t) => t === type).length;
+    if (count > ARMY_LIMITS.epicCopies) out.push({ code: 'epicLimit', type, count });
+  }
+  return out;
+}
+
+/** Whether one more copy of `type` (optionally replacing slot `replacing`) keeps the limits. */
+export function withinLimits(army: ArmyChoice, type: string, replacing?: number): boolean {
+  const types = army.units.map((u) => u.type).filter((_, i) => i !== replacing);
+  return limitProblems([...types, type]).length === 0;
+}
+
+/** Why a troop can't go in the army now (for the slot picker), or null. */
+export function limitText(army: ArmyChoice, type: string, replacing?: number): string | null {
+  if (withinLimits(army, type, replacing)) return null;
+  return ERA_UNIT_BY_ID[type]?.rarity === 'legendary'
+    ? `Only ${ARMY_LIMITS.legendary} Legendary per army.`
+    : `At most ${ARMY_LIMITS.epicCopies} of each Epic.`;
+}
+
 export function problemText(p: ArmyProblem): string {
   switch (p.code) {
+    case 'legendaryLimit':
+      return `Only ${ARMY_LIMITS.legendary} Legendary troop per army (you have ${p.count}).`;
+    case 'epicLimit':
+      return `At most ${ARMY_LIMITS.epicCopies} ${ERA_UNIT_BY_ID[p.type]?.name ?? p.type} per army (you have ${p.count}).`;
     case 'slots':
       return p.filled < p.slots
         ? `Fill every slot (${p.filled} of ${p.slots}).`
@@ -67,11 +105,8 @@ export function armyPower(units: { type: string; level?: number }[]): number {
  * A rough power estimate for a general, for the cards: rarity sets the base and each rank
  * adds a little. A hint only, like army power.
  */
-export function generalPower(
-  rarity: 'common' | 'rare' | 'epic' | 'legendary',
-  rank: number,
-): number {
-  const base = { common: 20, rare: 35, epic: 50, legendary: 65 }[rarity];
+export function generalPower(rarity: Rarity, rank: number): number {
+  const base = { common: 20, uncommon: 27, rare: 35, epic: 50, legendary: 65 }[rarity];
   return base + 5 * (Math.max(1, rank) - 1);
 }
 
@@ -89,7 +124,9 @@ export function fixedArmyFor(p: Profile, b: CampaignBattle): ArmyChoice | null {
 
 /** Generals the player can pick for a battle now. */
 export function availableGenerals(p: Profile): string[] {
-  return Object.keys(p.generals).filter((id) => GENERAL_BY_ID[id] && !p.generals[id]!.resting);
+  return Object.keys(p.generals).filter(
+    (id) => GENERAL_BY_ID[id]?.playable && !p.generals[id]!.resting,
+  );
 }
 
 /**
@@ -110,8 +147,10 @@ export function startingArmy(p: Profile, b: CampaignBattle): ArmyChoice {
     .filter((u) => p.units[u.type])
     .slice(0, b.maxUnits)
     .map((u): { type: string; level?: number } => ({ type: u.type }));
-  for (let i = 0; units.length < b.maxUnits && byPower.length; i++) {
-    units.push({ type: byPower[i % byPower.length]! });
+  // Fill the free slots with the strongest troops the army limits allow.
+  for (let i = 0; units.length < b.maxUnits && i < b.maxUnits * byPower.length; i++) {
+    const type = byPower[i % byPower.length]!;
+    if (withinLimits({ units }, type)) units.push({ type });
   }
   for (const u of units) u.level = p.units[u.type]!.level;
 
@@ -128,6 +167,7 @@ export function startingArmy(p: Profile, b: CampaignBattle): ArmyChoice {
 /** Adds one copy of an owned troop if a slot is free. */
 export function addTroop(p: Profile, b: CampaignBattle, army: ArmyChoice, type: string): boolean {
   if (b.fixedArmy || army.units.length >= b.maxUnits || !p.units[type]) return false;
+  if (!withinLimits(army, type)) return false;
   army.units.push({ type, level: p.units[type]!.level });
   return true;
 }
@@ -159,6 +199,7 @@ export function setSlot(
     return true;
   }
   if (!p.units[type]) return false;
+  if (!withinLimits(army, type, index < army.units.length ? index : undefined)) return false;
   const unit = { type, level: p.units[type]!.level };
   if (index < army.units.length) army.units[index] = unit;
   else army.units.push(unit);

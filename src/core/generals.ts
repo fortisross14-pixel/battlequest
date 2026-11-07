@@ -22,7 +22,8 @@ import {
   type UnitStats,
 } from './types';
 
-export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+/** Uncommon is for generic generals only (GAME_DESIGN 5.1); troops never use it. */
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 /** Which units a trait applies to. */
 export type UnitFilter = 'all' | 'infantry' | 'cavalry' | 'lightCavalry' | 'shooters';
@@ -56,6 +57,9 @@ export interface GeneralDef {
   /** Short label for the pennant, e.g. "LEONIDAS". */
   pennant: string;
   rarity: Rarity;
+  /** The age the general belongs to: it sets the power tier of their guard unit. */
+  age: number;
+  /** Faction or homeland, shown on the card. */
   era: string;
   traitText: string;
   traits: GeneralTrait[];

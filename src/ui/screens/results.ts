@@ -65,8 +65,11 @@ export function resultsScreen(
       : null,
     o.generalLost && g ? `${g.name} fell in battle and will rest for the next battle.` : null,
     r.newStars > 0 ? `New stars: +${r.newStars}` : null,
-    r.unlockedAge !== null
-      ? `New age unlocked: ${AGES.find((a) => a.id === r.unlockedAge)?.name}! Free starter troops added.`
+    r.ageGrant
+      ? `New age unlocked: ${AGES.find((a) => a.id === r.ageGrant!.age)?.name}! ${r.ageGrant.units.length} Common troops, ${r.ageGrant.generals.length} generals and +${r.ageGrant.coins} coins for your first packs.`
+      : null,
+    r.legendary
+      ? `Legendary troop earned: ${ERA_UNIT_BY_ID[r.legendary]?.name ?? r.legendary}!`
       : null,
     o.won
       ? `Losses: ${Math.round(o.lostFraction * 100)}% of your army. Bonus (${b.bonusText.replace(/\.$/, '')}): ${o.bonusMet ? 'done' : 'missed'}.`

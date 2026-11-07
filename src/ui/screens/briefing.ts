@@ -2,7 +2,15 @@ import { AGES } from '../../content/campaign/battles';
 import type { ArmyChoice, CampaignBattle } from '../../content/campaign/types';
 import { ERA_UNIT_BY_ID, eraUnitType } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
-import { armyPower, armyProblems, problemText, setSlot, startingArmy } from '../../meta/army';
+import {
+  armyPower,
+  armyProblems,
+  limitText,
+  problemText,
+  setSlot,
+  startingArmy,
+} from '../../meta/army';
+import { RARITY_RANK } from '../../meta/cards';
 import { rankForXp } from '../../meta/profile';
 import { el } from '../hud';
 import { unitIcon } from '../icons';
@@ -64,14 +72,21 @@ function slotPicker(
   const current = army.units[index];
   const owned = Object.entries(p.units)
     .filter(([id]) => ERA_UNIT_BY_ID[id])
-    .sort(
-      ([a], [c]) =>
-        ERA_UNIT_BY_ID[a]!.age - ERA_UNIT_BY_ID[c]!.age ||
-        ERA_UNIT_BY_ID[a]!.name.localeCompare(ERA_UNIT_BY_ID[c]!.name),
-    );
+    // This battle's age first, then newer ages, then by rarity (power tiers, GAME_DESIGN 5.1).
+    .sort(([a], [c]) => {
+      const da = ERA_UNIT_BY_ID[a]!;
+      const dc = ERA_UNIT_BY_ID[c]!;
+      return (
+        Number(dc.age === b.age) - Number(da.age === b.age) ||
+        dc.age - da.age ||
+        RARITY_RANK[dc.rarity] - RARITY_RANK[da.rarity] ||
+        da.name.localeCompare(dc.name)
+      );
+    });
   const cards = owned.map(([id, o]) => {
     const def = ERA_UNIT_BY_ID[id]!;
     const inArmy = army.units.filter((u) => u.type === id).length;
+    const blocked = limitText(army, id, index < army.units.length ? index : undefined);
     const card = el(
       'button',
       {
@@ -81,8 +96,11 @@ function slotPicker(
       },
       troopHeader(def, o.level),
       inArmy ? el('small', { class: 'in-army' }, `${inArmy} in your army`) : '',
+      blocked ? el('small', { class: 'warn' }, blocked) : '',
     );
+    if (blocked) card.setAttribute('aria-disabled', 'true');
     card.onclick = () => {
+      if (blocked) return;
       setSlot(p, b, army, index, id);
       close();
     };

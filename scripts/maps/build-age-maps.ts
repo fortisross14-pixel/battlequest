@@ -200,7 +200,7 @@ ${riverPaths.map((d) => `<path class="river" d="${d}"/>`).join('\n')}
       width: WIDTH,
       height,
       battles: Object.fromEntries(
-        age.battles
+        [...age.battles, ...(age.optional ?? [])]
           .map((id) => BATTLE_BY_ID[id])
           .filter((b) => !!b)
           .map((b) => [b!.id, project(b!.lon, b!.lat)]),

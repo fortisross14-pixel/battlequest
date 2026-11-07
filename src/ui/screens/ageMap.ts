@@ -1,6 +1,17 @@
-import { AGE_BY_ID, BATTLE_BY_ID, battlesOfAge } from '../../content/campaign/battles';
+import {
+  AGE_BY_ID,
+  BATTLE_BY_ID,
+  battlesOfAge,
+  optionalBattlesOf,
+} from '../../content/campaign/battles';
 import type { CampaignBattle } from '../../content/campaign/types';
-import { ageProgress, isBattleUnlocked, starsMissing, type Unlocks } from '../../meta/campaign';
+import {
+  ageProgress,
+  isBattleUnlocked,
+  lockText,
+  starsMissing,
+  type Unlocks,
+} from '../../meta/campaign';
 import { el } from '../hud';
 import { stars } from '../icons';
 import { attachGestures } from '../input';
@@ -86,21 +97,26 @@ function nodeFor(app: AppApi, b: CampaignBattle, x: number, y: number): HTMLElem
   const rec = p.battles[b.id];
   const won = (rec?.wins ?? 0) > 0;
   const missing = starsMissing(p, b);
+  const optional = !!b.branchesFrom;
+  const lock = optional ? '🔒' : `🔒 ${missing} ★`;
+  const lockSay = optional
+    ? `locked: win ${BATTLE_BY_ID[b.branchesFrom!]?.name} first`
+    : `locked: ${missing} more stars needed`;
   const node = el(
     'button',
     {
-      class: `battle-node ${open ? 'open' : 'locked'} ${won ? 'won' : ''}`,
+      class: `battle-node ${open ? 'open' : 'locked'} ${won ? 'won' : ''} ${optional ? 'optional' : ''}`,
       type: 'button',
       'data-battle': b.id,
       style: `left:${x}px;top:${y}px`,
-      'aria-label': `${b.name}, ${b.year}${open ? `, ${rec?.stars ?? 0} of 3 stars` : `, locked: ${missing} more stars needed`}`,
+      'aria-label': `${b.name}, ${b.year}${optional ? ', optional battle' : ''}${open ? `, ${rec?.stars ?? 0} of 3 stars` : `, ${lockSay}`}`,
     },
     el('span', { class: 'node-dot' }, open ? (won ? '★' : '⚔') : '🔒'),
     el('span', { class: 'node-name' }, b.name),
     el('small', { class: 'node-year' }, b.year),
     open
       ? el('span', { class: 'node-stars' }, stars(rec?.stars ?? 0))
-      : el('span', { class: 'node-lock' }, `🔒 ${missing} ★`),
+      : el('span', { class: 'node-lock' }, lock),
   );
   return node;
 }
@@ -127,7 +143,9 @@ export function ageMapScreen(app: AppApi, ageId: number, unlocks?: Unlocks): HTM
     style: `width:${meta.width}px;height:${meta.height}px`,
   });
   world.innerHTML = svg;
-  const battles = battlesOfAge(ageId);
+  // Main battles first (they carry the route), then the optional ones that branch off them.
+  const main = battlesOfAge(ageId);
+  const battles = [...main, ...optionalBattlesOf(ageId)];
   const truePos: [number, number][] = battles.map(
     (b) => meta.battles[b.id] ?? [meta.width / 2, meta.height / 2],
   );
@@ -175,8 +193,21 @@ export function ageMapScreen(app: AppApi, ageId: number, unlocks?: Unlocks): HTM
     // Spread nodes for the fitted scale, so they never overlap at the widest view.
     const spread = spreadNodes(truePos, MIN_GAP / minScale, meta.width, meta.height);
     // The dotted route follows the battles in order; thin leaders point to the true spot.
-    const route = spread.map(([x, y]) => `${x},${y}`).join(' ');
-    overlay.innerHTML = `<polyline class="route" points="${route}" stroke-width="${2.5 / minScale}" stroke-dasharray="${6 / minScale} ${6 / minScale}"/>
+    const route = spread
+      .slice(0, main.length)
+      .map(([x, y]) => `${x},${y}`)
+      .join(' ');
+    // Each optional battle hangs off its main battle by a short dotted branch.
+    const branches = battles
+      .map((b, i) => {
+        const from = b.branchesFrom ? battles.findIndex((m) => m.id === b.branchesFrom) : -1;
+        if (from < 0) return '';
+        const [x1, y1] = spread[from]!;
+        const [x2, y2] = spread[i]!;
+        return `<line class="branch" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${1.8 / minScale}" stroke-dasharray="${3 / minScale} ${4 / minScale}"/>`;
+      })
+      .join('');
+    overlay.innerHTML = `${branches}<polyline class="route" points="${route}" stroke-width="${2.5 / minScale}" stroke-dasharray="${6 / minScale} ${6 / minScale}"/>
 ${spread
   .map(([x, y], i) => {
     const [ox, oy] = truePos[i]!;
@@ -212,7 +243,13 @@ ${spread
       return;
     }
     const n = starsMissing(p, b);
-    say(n > 0 ? `Need ${n} more ★ in ${age.name}` : 'Locked');
+    say(
+      b.branchesFrom
+        ? (lockText(p, b) ?? 'Locked')
+        : n > 0
+          ? `Need ${n} more ★ in ${age.name}`
+          : 'Locked',
+    );
     // Point at the battles that can still earn stars.
     for (const node of nodes) {
       const ob = BATTLE_BY_ID[node.dataset.battle!]!;

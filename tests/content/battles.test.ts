@@ -1,9 +1,10 @@
+import { limitProblems } from '../../src/meta/army';
 import { describe, expect, it } from 'vitest';
 import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
-import { AGES, BATTLE_BY_ID, CAMPAIGN, battlesOfAge } from '../../src/content/campaign/battles';
+import { AGES, BATTLE_BY_ID, CAMPAIGN } from '../../src/content/campaign/battles';
 import { buildScenario, deploymentSquares } from '../../src/content/campaign/build';
 import { ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
-import { GENERAL_BY_ID } from '../../src/content/generals';
+import { GENERAL_BY_ID, generalPackAge } from '../../src/content/generals';
 import {
   BattleSession,
   DIRS,
@@ -127,19 +128,22 @@ describe.each(CAMPAIGN)('battle $id', (b) => {
   });
 });
 
-describe('Antiquity test armies', () => {
-  it('use only troops and generals a player could own by then', () => {
-    const units = new Set<string>([...AGES[0]!.starterUnits, ...AGES[1]!.starterUnits]);
-    const generals = new Set<string>(['captain', 'centurion']);
-    for (const b of battlesOfAge(0)) {
-      for (const u of b.firstWinUnlocks?.units ?? []) units.add(u);
-      for (const g of b.firstWinUnlocks?.generals ?? []) generals.add(g);
-    }
-    for (const b of battlesOfAge(1)) {
-      for (const u of b.testArmy.units) expect(units, `${b.id}: ${u.type}`).toContain(u.type);
-      expect(generals, `${b.id}: general`).toContain(b.testArmy.general!.id);
-      for (const u of b.firstWinUnlocks?.units ?? []) units.add(u);
-      for (const g of b.firstWinUnlocks?.generals ?? []) generals.add(g);
-    }
-  });
+describe('test armies', () => {
+  it.each(CAMPAIGN)(
+    '$id: uses cards a player could collect by then, within the army limits',
+    (b) => {
+      for (const u of b.testArmy.units) {
+        const def = ERA_UNIT_BY_ID[u.type];
+        expect(def, u.type).toBeDefined();
+        expect(def!.enemyOnly, u.type).toBeUndefined();
+        expect(def!.age, u.type).toBeLessThanOrEqual(b.age);
+      }
+      expect(limitProblems(b.testArmy.units.map((u) => u.type))).toEqual([]);
+      const g = b.testArmy.general && GENERAL_BY_ID[b.testArmy.general.id];
+      if (g) {
+        expect(g.playable).toBe(true);
+        expect(generalPackAge(g)).toBeLessThanOrEqual(Math.max(b.age, 0));
+      }
+    },
+  );
 });

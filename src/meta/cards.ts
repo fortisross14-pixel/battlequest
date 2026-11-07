@@ -1,20 +1,27 @@
-import { ERA_UNITS, ERA_UNIT_BY_ID, type EraUnitDef } from '../content/eraUnits';
+import { ERA_UNIT_BY_ID, ladder, type EraUnitDef } from '../content/eraUnits';
 import type { Rarity } from '../core/generals';
 import { nextRandom, type RngHolder } from '../core/rng';
 import { addUnitCard, type CardResult, type Profile } from './profile';
 
 /** Troop card odds for packs and battle rewards (GAME_DESIGN 5 and 8). */
 export const CARDS = {
-  /** Chance that a card is drawn from types the player already owns, so it can upgrade them. */
+  /** Packs: mostly Common, with a chance of Rare or better (a lucky Legendary is rare). */
+  packWeight: { common: 68, rare: 25, epic: 6, legendary: 1 } as Record<string, number>,
+  /** Battle rewards: drawn from types the player owns this often, so they can upgrade. */
   ownedShare: 0.7,
   /** Among owned types, the ones fielded in the battle just fought are this much likelier. */
   fieldedWeight: 3,
-  /** Weight of the newest unlocked age vs older ages, for cards outside the roster. */
-  currentAgeWeight: 3,
-  rarityWeight: { common: 70, rare: 25, epic: 5, legendary: 0 } as Record<Rarity, number>,
+  /** Battle rewards never hand out the Legendary: it has its own road (GAME_DESIGN 8). */
+  rewardWeight: { common: 70, rare: 25, epic: 5, legendary: 0 } as Record<string, number>,
 };
 
-export const RARITY_RANK: Record<Rarity, number> = { common: 0, rare: 1, epic: 2, legendary: 3 };
+export const RARITY_RANK: Record<Rarity, number> = {
+  common: 0,
+  uncommon: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 4,
+};
 
 /** A troop card handed to the player, as shown in a pack reveal or on the results screen. */
 export interface TroopCard extends CardResult {
@@ -34,35 +41,44 @@ export function pickWeighted<T>(rng: RngHolder, items: T[], weight: (t: T) => nu
   return items[items.length - 1]!;
 }
 
-/** Troops the player could get: unlocked ages, not enemy-only. */
-export function troopPool(p: Profile, minRarity: Rarity = 'common'): EraUnitDef[] {
-  return ERA_UNITS.filter(
-    (u) =>
-      !u.enemyOnly && u.age <= p.unlockedAge && RARITY_RANK[u.rarity] >= RARITY_RANK[minRarity],
-  );
+/** One age's collectable troops, optionally from a minimum rarity. */
+export function troopPool(age: number, minRarity: Rarity = 'common'): EraUnitDef[] {
+  return ladder(age).filter((u) => RARITY_RANK[u.rarity] >= RARITY_RANK[minRarity]);
+}
+
+/** Draws one pack card from an age's ladder by rarity weight. */
+export function drawPackTroop(
+  rng: RngHolder,
+  age: number,
+  minRarity: Rarity = 'common',
+): EraUnitDef {
+  const pool = troopPool(age, minRarity);
+  return pickWeighted(rng, pool, (u) => CARDS.packWeight[u.rarity] ?? 1);
 }
 
 export interface DrawOptions {
-  minRarity?: Rarity;
   /** Troop types fielded in the battle that earned the card. */
   fielded?: string[];
 }
 
-/** Draws one troop card: usually an owned type, otherwise any troop from the unlocked ages. */
-export function drawTroop(p: Profile, rng: RngHolder, opts: DrawOptions = {}): EraUnitDef {
-  const pool = troopPool(p, opts.minRarity);
+/**
+ * Draws a battle-reward card from the battle's age: usually a type the player owns there,
+ * otherwise any of the age's troops except its Legendary.
+ */
+export function drawRewardTroop(
+  p: Profile,
+  rng: RngHolder,
+  age: number,
+  opts: DrawOptions = {},
+): EraUnitDef {
+  const pool = troopPool(age).filter((u) => CARDS.rewardWeight[u.rarity]! > 0);
   const owned = pool.filter((u) => p.units[u.id]);
   if (owned.length && nextRandom(rng) < CARDS.ownedShare) {
     return pickWeighted(rng, owned, (u) =>
       opts.fielded?.includes(u.id) ? CARDS.fieldedWeight : 1,
     );
   }
-  return pickWeighted(
-    rng,
-    pool,
-    (u) =>
-      CARDS.rarityWeight[u.rarity] * (u.age === p.unlockedAge ? CARDS.currentAgeWeight : 1) || 1,
-  );
+  return pickWeighted(rng, pool, (u) => CARDS.rewardWeight[u.rarity]!);
 }
 
 /** Gives the player `count` cards of one troop. */
