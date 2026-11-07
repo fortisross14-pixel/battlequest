@@ -380,14 +380,35 @@ Every battle is built around one clear historical "problem" (the terrain or scen
 
 ### 7.4 Age 0: Dawn of War (tutorial)
 
-Two guided battles, each with tutorial steps that advance when the player does the thing asked.
+Two guided battles, both fought with **generic Bronze Age Common troops** and the **generic Bronze Age Captain**. The named generals (Thutmose III, Ramesses II) appear in the briefings and history, not in the player's army.
 
-| # | Battle | Teaches | Army |
+Tutorial steps advance when the player does what is asked. Every step that points at a unit or square highlights **the exact one the step means**.
+
+| # | Battle | How it plays | Teaches |
 |---|---|---|---|
-| 0.1 | **Megiddo, 1457 BC** (very easy) | Select, move, facing; why attacking a **flank** beats attacking the front; **support** (two units on one enemy); how armies break | Fixed: the player's 2 starting troop types plus Thutmose III for this battle |
-| 0.2 | **Kadesh, 1274 BC** (easy) | **Choosing troops** in the army builder (slots; several copies of one type allowed); **ranged attacks** with archers; **using a general skill**; picking a general | Player's choice. The player gets archers and Thutmose for winning Megiddo. |
+| 0.1 | **Megiddo** | **Almost impossible to lose.** The player has 3 units against 2 weak enemies (level 1, low morale) whose flanks already face the player's chariots. Script: select and move; charge a flank twice; End turn; the enemy counter-attacks weakly and breaks. Done in about 2–3 turns. | Select, move, facing, flank versus front, support (two units on one enemy), how an army breaks |
+| 0.2 | **Kadesh** | **Easy, but it can be lost by playing badly** (turning a unit's back to the enemy, never charging with the chariots). The player's army is clearly stronger: about 4 units against 3, the enemy at level 1. Facing the enemy and attacking sensibly wins. Objective: break the enemy army (no hold-out timer). | Army builder (choose cards, copies allowed), shooting with archers, choosing a general, using a general skill |
 
-Winning both battles unlocks **Age 1: Antiquity** and grants its starter troops.
+Winning Megiddo grants a Common Bronze Age archers card for Kadesh. Winning both battles unlocks **Age 1: Antiquity**, grants its Common troops and generic generals, and pays enough coins for the first packs (§7.6).
+
+### 7.6 Difficulty and progression curve (every age)
+
+Each age repeats the same arc:
+
+| Point in the age | Expected collection (from that age's ladder) | Target win rate |
+|---|---|---|
+| **Battle 1** | Commons only, plus the generic general | **About 50–60%.** Doable but not trivial: smart play wins. |
+| | After the first packs (1–2 Rares and a named Rare general) | **About 90%.** Easy even without careful tactics. |
+| **Battles 2–4** | A few Rares, some Lv2 | 75–90% |
+| **Middle battles** | Rares at Lv2–3, maybe one Epic | 60–75%. Good matchups and positioning start to matter. |
+| **Last 2–3 battles** | Epics, upgraded Rares, a strong general | **35–50%.** Real challenges that need top troops and strategy. With the Legendary and good play, 80%+. |
+| **Optional battles** | as for the main battle they branch from | 10–20 points harder than that battle |
+
+**Economy pacing that makes the arc work:**
+- When an age opens, the player can afford roughly **2 Recruit Packs and 1 General Pack** for that age, from the previous age's rewards plus an age-unlock coin bonus.
+- The **first Recruit Pack** bought in each age guarantees a Rare troop. The **first General Pack** in each age guarantees a named Rare general or better.
+- After that, coins from the age's battles fund about one pack per 1–2 wins. Upgrades compete for the same coins, which is a deliberate choice.
+- `balance-sim` gets a **progression** mode: a simulated player clears an age in order, buying packs and upgrades with a simple policy. It checks the affordability points and the win-rate targets in the table above.
 
 ### 7.5 The ages
 
@@ -422,14 +443,16 @@ The main path above is fixed for planning. The full roster of main and optional 
 ## 8. Economy and packs
 
 - **Coins** (one soft currency).
-  - Win, first time: 100 × age number, plus 50 per star.
+  - Win, first time: 100 × (age number + 1), plus 50 per star.
+  - **Age unlock bonus:** enough coins, together with the age's earlier rewards, for the first packs of the new age (§7.6).
   - Replay win: 30% of that.
   - Loss: 20 coins.
 - **Shop:**
   - **Packs are per age.** Each age's shop tab sells packs drawn only from that age's ladder, so you always know what you are chasing.
   - **Recruit Pack** (120 coins): 4 troop cards from the chosen age, mostly Common, with a chance of Rare or better.
   - **Veteran Pack** (400): 3 cards, at least one Rare+.
-  - **General Pack** (600): 1 general, or an XP medal if you get a duplicate.
+  - **General Pack** (about 250 in Age 1, rising by age): 1 general from the chosen age's ladder, or an XP medal if you get a duplicate.
+  - **First pack guarantees** in each age: the first Recruit Pack holds at least one Rare; the first General Pack holds a named Rare general or better.
   - **Age Pack** (special): unlocks when you reach a new age and contains that age's signature units.
   - **Daily offer:** one specific unit or general at a fixed price, with no randomness.
 - **Battle rewards include troop cards:** 2 cards for a first win, 1 for a replay win, none for a loss. Cards are drawn mostly from types you already own, so you can upgrade them.

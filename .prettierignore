@@ -14,3 +14,6 @@ docs
 .claude/skills/level-design
 .claude/skills/save-systems
 .claude/skills/performance-optimization
+
+# History briefs, kept as delivered by the history agent
+docs/history/age-*.md

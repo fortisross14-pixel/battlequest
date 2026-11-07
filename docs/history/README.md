@@ -20,9 +20,9 @@ Age 0 is a tutorial with a mini ladder: 3 Bronze Age Commons (spearmen, archers,
 
 | Age | File | Status |
 |---|---|---|
-| 0 Dawn of War | `age-00-dawn-of-war.md` | to do |
-| 1 Antiquity | `age-01-antiquity.md` | to do (needed first) |
-| 2 Classical Empires | `age-02-classical-empires.md` | to do |
+| 0 Dawn of War | `age-00-dawn-of-war.md` | received 2026-11-07; build with prompt 06 |
+| 1 Antiquity | `age-01-antiquity.md` | received 2026-11-07; build with prompt 06 (ladder fixes listed there) |
+| 2 Classical Empires | `age-02-classical-empires.md` | received 2026-11-07; build with prompt 06 (ladder fixes listed there) |
 | 3 Early Middle Ages | `age-03-early-middle-ages.md` | to do |
 | 4 High and Late Middle Ages | `age-04-high-late-middle-ages.md` | to do |
 | 5 Age of Exploration | `age-05-exploration.md` | to do |
