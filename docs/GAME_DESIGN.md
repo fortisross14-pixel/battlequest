@@ -237,10 +237,46 @@ Utility-based, kept simple:
 
 ## 5. Units and collection
 
-The troop dynamic is **unlock and upgrade**.
+The troop dynamic is **unlock and upgrade**, and every age has its own small **card ladder**: you start each age with plain, generic troops, then collect the famous named troops that make you feel powerful.
 
-- **Troop cards.** A troop type is **unlocked** the first time you get one of its cards. Once a type is unlocked you can field **any number of copies** of it. The battle's unit slots are the only limit.
-- **Starting roster:** a new player owns **2 troop types**: the two units the Prologue battle uses. More types come from packs, battle rewards and age unlocks.
+### 5.1 The card ladder (per age)
+
+| Rarity | How many per age | Named? | Feel | Example (Antiquity) |
+|---|---|---|---|---|
+| **Common** | 4–5, one for each main troop role of the age | **No.** Generic: "Antiquity archers", "Antiquity cavalry" | Honest, plain. You can win the first battles with them, and you struggle later. | Antiquity spearmen · Antiquity archers · Antiquity skirmishers · Antiquity cavalry · Antiquity swordsmen |
+| **Rare** | 3–4 | **Yes**: famous troops | A clear step up, with a specialty | Hoplites · Egyptian archers · Persian chariots · Cretan archers |
+| **Epic** | 2 | Yes | Battle-winners in the right spot | Spartan hoplites · Persian Immortals |
+| **Legendary** | 1, at most 2 | Yes, the age's icon | The power fantasy: battles that were hard become easy | **Myrmidons** (Antiquity) · Napoleon's **Imperial Guard** (Napoleonic Wars) |
+
+That is about 11 troop cards per age and about 110 in the whole game. **Fewer, more meaningful cards.**
+
+**Power.** At the same level, each rarity step is worth about +20–25% overall strength over the Common of its role:
+- **Rare:** about +20%, plus a specialty tag;
+- **Epic:** about +45%;
+- **Legendary:** about +75%, plus one signature ability.
+
+Balance works within an age. `balance-sim` checks the ladder: a full Common army should win the age's first battles about 70% of the time and its last battles about 20%; an army built around the Legendary troop should three-star most of the age.
+
+**The intended feeling:**
+1. You enter an age with generic Commons and struggle.
+2. You open packs, find the Egyptian archers and Hoplites, and push further.
+3. You pull the Myrmidons, go back, and three-star the battles that beat you.
+4. The next age starts again with its own Commons, and the ladder repeats.
+
+**Army limits** keep tactics in play even with strong cards: at most **1 Legendary** and **2 copies of each Epic** per army. Commons and Rares can fill any number of slots.
+
+**Older troops in later ages.** You can always field any troop you own (the cross-era fantasy stays), but each age is a **power tier**. Troop stats scale with their age: a later age's Commons roughly match an earlier age's Epics. Myrmidons are a legend in Antiquity and a curiosity at Waterloo. Upgrades and generals can make an old favourite viable for a while, but every new age's ladder is the main path.
+
+**Generals follow a ladder per age too:**
+- **2 generic generals:** 1 Common and 1 **Uncommon** (for example "Antiquity captain" and "Antiquity veteran commander"). Uncommon is a rarity for generic generals only; troops don't use it, because levels already make a generic troop stronger.
+- **5–8 named generals:** 2–3 Rare (Miltiades, Pericles…), 2–3 Epic (Leonidas, Darius…) and 1–2 Legendary (Alexander in Antiquity, Napoleon in the Napoleonic Wars).
+
+**Enemy armies use the same cards.** A battle defines only the enemy army; the player always picks their own. Enemies use generic Commons by default and a named card only where that real elite troop existed. A strong historical army is shown with **higher levels and a higher general rank**, never with an invented troop: Troy's archers are Antiquity archers at level 3, not "Trojan archers". Meeting a named card as an enemy is also a teaser for collecting it.
+
+### 5.2 Cards, levels and upgrades
+
+- **Troop cards.** A troop type is **unlocked** the first time you get one of its cards. Once it is unlocked you can field copies of it, within the battle's unit slots and the army limits above.
+- **Starting roster:** a new player owns **2 Common troop types**: the two units the Prologue battle uses. Each new age grants its Common troops when it unlocks. Rares, Epics and Legendaries come from packs, optional battles and milestones.
 - **Card count.** Every extra card of a type you already own is kept as a spare card. The Army screen shows how many spare cards you hold for each type.
 - **Upgrading costs cards and coins.** You choose when to upgrade; it is never automatic.
 
@@ -254,7 +290,7 @@ The troop dynamic is **unlock and upgrade**.
   - Coin costs ×1.5 for Rare troops and ×2 for Epic troops.
   - Level 5 is the maximum. Spare cards beyond it convert to 5 coins each.
 - **Level effect:** each level gives +5% to Melee, Impact, Ranged and Morale. The level applies to every copy of that type you field.
-- **Era tag:** every unit belongs to an age. Mixing eras is allowed and encouraged.
+- **Era tag:** every unit belongs to an age, which sets its power tier (§5.1). Mixing eras is allowed.
 
 ### Army builder
 
@@ -276,8 +312,8 @@ The troop dynamic is **unlock and upgrade**.
 
 | Field | Description |
 |---|---|
-| Rarity | Common, Rare, Epic, Legendary |
-| Era | Flavor only. Any general can lead any army. |
+| Rarity | Common, Uncommon (generic generals only), Rare, Epic, Legendary |
+| Era | The age the general belongs to. It sets their power tier, as for troops (§5.1). Any general can lead any army. |
 | Rank | 1–10, from XP earned in battle |
 | Command radius | 3 at rank 1, 4 at rank 4, 5 at rank 8 |
 | Passive traits | 1–2 (for example "+10% cavalry impact") that scale with rank |
@@ -338,26 +374,53 @@ Every battle is built around one clear historical "problem" (the terrain or scen
 
 ### 7.3 Unlock rules
 
-- **Battles unlock by stars earned in that age.** The first two battles are always open. The rest need the age's star total to reach a threshold:
+- **Main and optional battles.** Each age has a **main path** of 10–12 battles (the list in §7.5) plus 5–10 **optional battles** (see `docs/history/ROSTER.md`).
+  - Main battles drive the age: their star gates are below, and winning all of them opens the next age.
+  - Optional battles branch off a specific main battle on the age map. They open when that main battle is won.
+  - Optional battles are never required to finish an age. They pay out rarer rewards (a specific troop card, a general, lore) and harder historical challenges.
+  - Their stars count toward the age's star total, so they are another route to the main-path gates.
+- **Main battles unlock by stars earned in that age.** The first two are always open. The rest need the age's star total to reach a threshold:
 
   | Battle # in age | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
   |---|---|---|---|---|---|---|---|---|---|---|---|---|
   | Stars needed | 0 | 0 | 1 | 2 | 4 | 6 | 8 | 10 | 14 | 18 | 22 | 26 |
 
   The thresholds are data per age, so they can be tuned.
-- **The next age unlocks** when every battle in the current age has been **won** (at least ★). Three stars everywhere is not required.
+- **The next age unlocks** when every **main** battle in the current age has been **won** (at least ★). Three stars everywhere is not required.
+- **One tactical idea per battle.** Every battle has a `challengeType` (line and flank; pass, bridge or ford; river crossing; ambush and vision; hills and defensive ground; cavalry and pursuit; hold until reinforcements; strike the commander; desperate defence; attrition). Each age mixes several types, so that it never becomes ten versions of "break the army". Normally no battle adds a new mechanic, and never more than one.
 - **Stars** (§4.8): ★ win; ★★ win losing under 30%; ★★★ also meet the battle's bonus condition. A battle keeps its best result. Replays can raise stars, and the extra stars count immediately toward unlocks.
 
 ### 7.4 Age 0: Dawn of War (tutorial)
 
-Two guided battles, each with tutorial steps that advance when the player does the thing asked.
+Two guided battles, both fought with **generic Bronze Age Common troops** and the **generic Bronze Age Captain**. The named generals (Thutmose III, Ramesses II) appear in the briefings and history, not in the player's army.
 
-| # | Battle | Teaches | Army |
+Tutorial steps advance when the player does what is asked. Every step that points at a unit or square highlights **the exact one the step means**.
+
+| # | Battle | How it plays | Teaches |
 |---|---|---|---|
-| 0.1 | **Megiddo, 1457 BC** (very easy) | Select, move, facing; why attacking a **flank** beats attacking the front; **support** (two units on one enemy); how armies break | Fixed: the player's 2 starting troop types plus Thutmose III for this battle |
-| 0.2 | **Kadesh, 1274 BC** (easy) | **Choosing troops** in the army builder (slots; several copies of one type allowed); **ranged attacks** with archers; **using a general skill**; picking a general | Player's choice. The player gets archers and Thutmose for winning Megiddo. |
+| 0.1 | **Megiddo** | **Almost impossible to lose.** The player has 3 units against 2 weak enemies (level 1, low morale) whose flanks already face the player's chariots. Script: select and move; charge a flank twice; End turn; the enemy counter-attacks weakly and breaks. Done in about 2–3 turns. | Select, move, facing, flank versus front, support (two units on one enemy), how an army breaks |
+| 0.2 | **Kadesh** | **Easy, but it can be lost by playing badly** (turning a unit's back to the enemy, never charging with the chariots). The player's army is clearly stronger: about 4 units against 3, the enemy at level 1. Facing the enemy and attacking sensibly wins. Objective: break the enemy army (no hold-out timer). | Army builder (choose cards, copies allowed), shooting with archers, choosing a general, using a general skill |
 
-Winning both battles unlocks **Age 1: Antiquity** and grants its starter troops.
+Winning Megiddo grants a Common Bronze Age archers card for Kadesh. Winning both battles unlocks **Age 1: Antiquity**, grants its Common troops and generic generals, and pays enough coins for the first packs (§7.6).
+
+### 7.6 Difficulty and progression curve (every age)
+
+Each age repeats the same arc:
+
+| Point in the age | Expected collection (from that age's ladder) | Target win rate |
+|---|---|---|
+| **Battle 1** | Commons only, plus the generic general | **About 50–60%.** Doable but not trivial: smart play wins. |
+| | After the first packs (1–2 Rares and a named Rare general) | **About 90%.** Easy even without careful tactics. |
+| **Battles 2–4** | A few Rares, some Lv2 | 75–90% |
+| **Middle battles** | Rares at Lv2–3, maybe one Epic | 60–75%. Good matchups and positioning start to matter. |
+| **Last 2–3 battles** | Epics, upgraded Rares, a strong general | **35–50%.** Real challenges that need top troops and strategy. With the Legendary and good play, 80%+. |
+| **Optional battles** | as for the main battle they branch from | 10–20 points harder than that battle |
+
+**Economy pacing that makes the arc work:**
+- When an age opens, the player can afford roughly **2 Recruit Packs and 1 General Pack** for that age, from the previous age's rewards plus an age-unlock coin bonus.
+- The **first Recruit Pack** bought in each age guarantees a Rare troop. The **first General Pack** in each age guarantees a named Rare general or better.
+- After that, coins from the age's battles fund about one pack per 1–2 wins. Upgrades compete for the same coins, which is a deliberate choice.
+- `balance-sim` gets a **progression** mode: a simulated player clears an age in order, buying packs and upgrades with a simple policy. It checks the affordability points and the win-rate targets in the table above.
 
 ### 7.5 The ages
 
@@ -374,7 +437,7 @@ There are 10 ages, each with 10–12 battles. The battle list is a starting poin
 | 6 | Pike and Shot | 1605–1683 | Kircholm · Klushino · White Mountain · Breitenfeld · Lützen · Nördlingen · Rocroi (the last tercios) · Marston Moor · Naseby · Vienna 1683 (hussar charge, reinforcements) |
 | 7 | Linear Warfare | 1704–1781 | Blenheim (village strongpoints) · Poltava · Fontenoy · Plassey · Rossbach · Leuthen (oblique order behind hills) · Quebec · Saratoga · Guilford Courthouse · Cowpens |
 | 8 | Napoleonic Wars | 1800–1815 | Marengo · Austerlitz (fog, Pratzen Heights) · Jena · Eylau · Friedland · Talavera · Wagram · Salamanca · Borodino (redoubts) · Leipzig · **Waterloo** (Hougoumont, La Haye Sainte, Prussians on turn 8) |
-| 9 | Age of Rifles | 1854–1898 | Alma · Balaclava · Solferino · Bull Run · Antietam · Gettysburg · Königgrätz · Sedan · Little Bighorn · Isandlwana · Omdurman |
+| 9 | Age of Rifles | 1854–1898 | Alma · Balaclava · Solferino · Bull Run · Antietam · Gettysburg · Königgrätz · Sedan · Little Bighorn · Isandlwana · Adwa (Ethiopian forces coordinating in the hills) |
 
 Each battle definition includes:
 - map, deployment zones, and the enemy army and its general;
@@ -383,23 +446,31 @@ Each battle definition includes:
 - briefing text (3–4 sentences of history plus the tactical problem);
 - **map coordinates** (latitude/longitude) for its node on the age map.
 
-**MVP content:** Age 0 (2 tutorial battles) plus Age 1 Antiquity (10 battles). Later ages show on the timeline as "In preparation" and are added as content only.
+Age 9 swapped Omdurman (a one-sided massacre that makes a poor puzzle) for Adwa; Omdurman stays in the roster as optional, pending the history brief's sensitivity notes.
+
+The main path above is fixed for planning. The full roster of main and optional battles, about 160 in all, is in `docs/history/ROSTER.md`.
+
+**MVP content:** Age 0 (2 tutorial battles) plus Age 1 Antiquity (10 main battles; its optional battles can follow). Later ages show on the timeline as "In preparation" and are added as content only.
 
 ## 8. Economy and packs
 
 - **Coins** (one soft currency).
-  - Win, first time: 100 × age number, plus 50 per star.
+  - Win, first time: 100 × (age number + 1), plus 50 per star.
+  - **Age unlock bonus:** enough coins, together with the age's earlier rewards, for the first packs of the new age (§7.6).
   - Replay win: 30% of that.
   - Loss: 20 coins.
 - **Shop:**
-  - **Recruit Pack** (120 coins): 4 troop cards from unlocked ages, weighted toward the current age and toward types you already own.
+  - **Packs are per age.** Each age's shop tab sells packs drawn only from that age's ladder, so you always know what you are chasing.
+  - **Recruit Pack** (120 coins): 4 troop cards from the chosen age, mostly Common, with a chance of Rare or better.
   - **Veteran Pack** (400): 3 cards, at least one Rare+.
-  - **General Pack** (600): 1 general, or an XP medal if you get a duplicate.
+  - **General Pack** (about 250 in Age 1, rising by age): 1 general from the chosen age's ladder, or an XP medal if you get a duplicate.
+  - **First pack guarantees** in each age: the first Recruit Pack holds at least one Rare; the first General Pack holds a named Rare general or better.
   - **Age Pack** (special): unlocks when you reach a new age and contains that age's signature units.
   - **Daily offer:** one specific unit or general at a fixed price, with no randomness.
 - **Battle rewards include troop cards:** 2 cards for a first win, 1 for a replay win, none for a loss. Cards are drawn mostly from types you already own, so you can upgrade them.
 - **Duplicates:** a duplicate troop card becomes a spare card for upgrading (see §5). A duplicate general becomes a **Medal** worth 500 XP for that general.
 - **Pity:** a guaranteed Epic+ general in every 5 General Packs.
+- **A guaranteed road to each age's Legendary troop:** one copy is granted by reaching about 70% of the age's main-path stars, or by a final optional battle. A lucky pack can deliver it sooner.
 - **Monetization:** out of scope for the MVP. Design the economy so it is fully playable for free. Keep the shop code isolated so real-money purchases could be added later.
 
 ## 9. Touch controls and UX

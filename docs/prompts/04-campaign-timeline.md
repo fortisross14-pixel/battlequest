@@ -16,13 +16,14 @@ Pull the latest branch first. The next goal is the campaign structure:
 - `CLAUDE.md`, including the new **game-dev skills** section;
 - `docs/GAME_DESIGN.md` **§7, rewritten**: the timeline (7.1), age map (7.2), unlock rules and star thresholds (7.3), the Age 0 tutorial (7.4) and the age and battle list (7.5). It is the spec;
 - the project skills `add-battle`, `add-unit` and `rules-change`;
+- the history briefs in `docs/history/` (`age-00-…` and `age-01-…`), if they exist: they are the source for the tutorial and Antiquity battles, troops and generals. If they aren't there yet, research each battle yourself as `add-battle` describes;
 - the third-party skills `level-design` (gating and pacing), `game-ui-ux` (screen stack, safe areas) and `save-systems` (migration).
 
 **Before you start,** confirm that Review 1's work packages are complete in `docs/PROGRESS.md`. If any are unfinished, finish them first.
 
 ## Phase A — Campaign data and rules (`src/content`, `src/meta`)
 1. **Data model:**
-   - `Age`: id, number, name, years, region bounds for the map, emblem, an ordered battle list, star thresholds per battle (default `[0,0,1,2,4,6,8,10,14,18,22,26]`), starter troops, and `status: 'playable' | 'inPreparation'`;
+   - `Age`: id, number, name, years, region bounds for the map, emblem, an ordered battle list, star thresholds per battle (default `[0,0,1,2,4,6,8,10,14,18,22,26]`), its card ladder (Common, Rare, Epic and Legendary troops and generals), and `status: 'playable' | 'inPreparation'`;
    - each battle gets `lat`/`lon`.
 
    Add all 10 ages from §7.5. Ages 2–9 are `inPreparation`, with their battle names and coordinates listed but no scenarios.
@@ -74,7 +75,7 @@ Pull the latest branch first. The next goal is the campaign structure:
 
    Drop the old hold-out objective if it gets in the way of teaching.
 3. Make the tutorial steps data-driven (one tutorial script per battle). Steps advance on real events. They can be skipped, and they are never shown again once the battle is won.
-4. Rewards: winning Megiddo grants archers and Thutmose (as in Review 1); winning both unlocks Antiquity and grants its starter troops.
+4. Rewards: winning Megiddo grants a Common archers card and Thutmose for use in Kadesh; winning both unlocks Antiquity and grants its Common troops (§5.1).
 5. Tests: each tutorial script can be completed headlessly by following its own steps.
 
 ## Phase D — Age 1: Antiquity (10 battles)
@@ -84,7 +85,7 @@ Pull the latest branch first. The next goal is the campaign structure:
    - scythed chariots for Gaugamela;
    - anything else the scenarios require.
 
-   New troops and generals (for example the Macedonian phalanx, Companions, Persian Immortals, Alexander, Darius, Porus) go through `add-unit`.
+   **Restructure troops and generals into the per-age card ladder (GAME_DESIGN §5.1):** for each age, 4–5 unnamed Commons, 3–4 named Rares, 2 Epics and 1 Legendary (Myrmidons for Antiquity), with the same ladder for generals. Also add the army limits (at most 1 Legendary and 2 copies of each Epic per army), per-age packs, and the guaranteed road to the Legendary troop. Fold the existing era units and generals into the ladder; don't keep one-off troops per faction. Enemy armies use the same cards. Migrate saves: owned cards that disappear map to their closest ladder card. Every change goes through `add-unit`, and `balance-sim` must show the ladder targets in §5.1 (all-Common army about 70% in an age's first battles and about 20% in its last; a Legendary-led army three-stars most of the age).
 3. **Difficulty follows the star gates.** With `balance-sim scenario`, target win rates of about 80% for battles 1–2, falling to about 40% for battles 9–10, using a "reasonable owned army" that matches what a player is likely to own at that point. Check that the full 30-star route is reachable but needs replays or upgrades for the last gates.
 4. Log new mechanics, threshold tweaks and difficulty numbers in `docs/DECISIONS.md`.
 

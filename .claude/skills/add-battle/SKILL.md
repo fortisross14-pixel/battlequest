@@ -9,7 +9,7 @@ Each battle is a short tactical puzzle built around one clear historical "proble
 
 ## Steps
 
-1. **Research.** Write 3–5 bullet points of real history: where it happened, the terrain, the forces, and what decided the battle. If you can't verify a fact, leave it out rather than invent it.
+1. **Research.** If `docs/history/` has a brief for this battle, start from it: copy its facts, coordinates, briefing and sources, and treat its sketch, difficulty and suggestions as starting points. Otherwise: Write 3–5 bullet points of real history: where it happened, the terrain, the forces, and what decided the battle. If you can't verify a fact, leave it out rather than invent it.
 2. **Name the problem in one sentence**, for example "Hold a one-square bridge against a larger army for 6 turns". The map, objectives and bonus star condition all come from this sentence.
 3. **Map:** pick the size class from §4.1. Simplify the terrain so it reads at a glance: a few strong features, not noise. Mark both deployment zones.
 4. **Enemy army:** use archetypes from the right era, the enemy general, the AI posture (§4.11), and any reinforcements with their arrival turn.
