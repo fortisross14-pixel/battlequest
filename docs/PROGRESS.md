@@ -58,3 +58,7 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [ ] More generals' unique skills (Darius, Porus and Philip reuse existing effects)
 - [ ] Age map: the Greek battles crowd together on phones; consider an inset or a zoomed Greece view
 - [ ] Reinforcements, fog of war, weather; marsh, village, fieldworks, road terrain
+
+## Bugs reported by the owner
+- [ ] **A freed unit still counts as "in melee".** An archer whose enemy was pushed away (no longer adjacent) still shows "in melee" and can't shoot. Cause: `pruneEngagements` in `src/core/engine.ts` only runs at turn phases. Fix: prune right after any command or event that moves or removes a unit (push-back, pursuit, rout, evade, breakthrough, destruction), then refresh the status line and the bubble. Add one regression test. See GAME_DESIGN §4.6 "Leaving a melee".
+

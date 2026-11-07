@@ -159,7 +159,12 @@ Situational multipliers (they stack multiplicatively):
 
 **Impact (charge)** happens once, when the charger makes contact. Both sides deal damage: the charger uses Impact; the defender uses Impact if it is AntiCavalry and is charged from the front by cavalry, otherwise Melee × 0.5. A charge that wins clearly can push the defender back 1 square.
 
-**Melee** goes on at the end of each side's turn while units stay in contact. Both sides use Melee. A unit strikes an opponent to its front if it has one; a unit with enemies only on its flank or rear strikes back at **×0.5**, both at impact and in melee.
+**Melee** goes on at the end of each side's turn while units stay in contact. Both sides use Melee.
+
+**Leaving a melee.** A unit is in melee **only while an enemy it is engaged with is still adjacent and still fighting.**
+- The moment that stops being true, the unit is **free**: its opponent may have been pushed back, routed, destroyed, broken off, or broken through.
+- A free unit acts normally for the rest of its turn. It can move, turn, **shoot** (if it hasn't shot this turn), or charge.
+- Engagements are re-checked **after every command and event that moves or removes a unit**, not only at turn phases. The unit's status line and its command bubble update straight away. A unit strikes an opponent to its front if it has one; a unit with enemies only on its flank or rear strikes back at **×0.5**, both at impact and in melee.
 
 The **charge preview** shows the impact plus the expected first melee round, since that round is fought at the end of the same side turn.
 
