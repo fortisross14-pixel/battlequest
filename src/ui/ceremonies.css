@@ -621,3 +621,20 @@
     height: 40px;
   }
 }
+
+/* A real pack (the shop's art): its seal sits where packArt put it. */
+.envelope.real-pack .wax-seal {
+  margin: 0;
+}
+
+/* While sealed, the pack holds the centre: the title waits, the hint sits below. */
+.pack-opening .ceremony-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + 5vh + var(--safe-b));
+  text-align: center;
+}
+.pack-opening:not(.opened) .ceremony-title {
+  opacity: 0;
+}

@@ -13,7 +13,11 @@ import {
   SplitText,
   track,
 } from './motion';
+import { packArt, type PackArtKind } from './packArt';
 import { cardView } from './screens/troopCard';
+
+/** The opening pack's width: smaller on short landscape phones. */
+const packWidth = () => (window.innerHeight < 500 ? 120 : 180);
 
 /**
  * Ceremonies (motion skill recipes): pack openings, hero (general) reveals, victory and
@@ -405,6 +409,11 @@ export interface PackOptions {
   upgradeReady?: (c: PackCard) => boolean;
   /** Label of the closing button. */
   doneLabel?: string;
+  /**
+   * The shop's pack (its art and age seal) instead of the envelope; `from` is where it
+   * stood in the store, so it lifts and slides to the centre.
+   */
+  pack?: { kind: PackArtKind; age: number; from?: DOMRect };
 }
 
 /**
@@ -416,17 +425,24 @@ export function packOpening(cards: PackCard[], opts: PackOptions): Ceremony {
   const o = overlay('pack-opening', opts.title);
   const upgradeReady = opts.upgradeReady ?? (() => false);
   const hero = cards.length === 1 && cards[0]!.kind === 'general';
-  const seal = waxSeal('⚔');
+  const art = opts.pack ? packArt(opts.pack.kind, opts.pack.age, packWidth()) : null;
+  const seal = art ? (art.querySelector('.pack-seal') as HTMLElement) : waxSeal('⚔');
   const flap = el('div', { class: 'env-flap' });
   const envelope = el(
     'button',
-    { class: 'envelope', type: 'button', 'aria-label': 'Sealed pack: tap to open' },
-    el('div', { class: 'env-body' }),
-    flap,
-    seal,
+    {
+      class: art ? 'envelope real-pack' : 'envelope',
+      type: 'button',
+      'aria-label': 'Sealed pack: tap to open',
+    },
+    ...(art ? [art] : [el('div', { class: 'env-body' }), flap, seal]),
   );
   const title = el('h2', { class: 'ceremony-title' }, opts.title);
-  const hint = el('p', { class: 'ceremony-hint' }, 'Tap the seal to open');
+  const hint = el(
+    'p',
+    { class: 'ceremony-hint' },
+    art ? 'Tap the pack to open' : 'Tap the seal to open',
+  );
   const row = el('div', { class: `pcard-row ${hero ? 'hero-row' : ''}` });
   const actions = el('div', { class: 'ceremony-actions' });
   o.root.append(title, envelope, row, hint, actions);
@@ -439,9 +455,30 @@ export function packOpening(cards: PackCard[], opts: PackOptions): Ceremony {
     current = track(tl);
     return tl;
   };
+  const from = opts.pack?.from;
+  // From the store: the pack lifts and slides to the centre (a FLIP from its shelf).
+  if (from && !reducedMotion()) {
+    const r = envelope.getBoundingClientRect();
+    track(
+      gsap.from(envelope, {
+        x: from.left + from.width / 2 - (r.left + r.width / 2),
+        y: from.top + from.height / 2 - (r.top + r.height / 2),
+        scale: from.width / Math.max(1, r.width),
+        duration: sec(MOTION.reveal + 50),
+        ease: EASE.out,
+      }),
+    );
+  }
   const breathe = reducedMotion()
     ? null
-    : gsap.to(envelope, { scale: 1.02, duration: 1.1, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+    : gsap.to(envelope, {
+        scale: 1.02,
+        duration: 1.1,
+        yoyo: true,
+        repeat: -1,
+        ease: 'sine.inOut',
+        delay: from ? sec(MOTION.reveal + 50) : 0,
+      });
 
   const finish = () => {
     if (actions.querySelector('.ceremony-continue')) return;
@@ -464,14 +501,38 @@ export function packOpening(cards: PackCard[], opts: PackOptions): Ceremony {
     if (opened) return;
     opened = true;
     breathe?.kill();
+    o.root.classList.add('opened');
+    if (!instant && !reducedMotion()) {
+      gsap.fromTo(
+        title,
+        { opacity: 0, y: -6 },
+        { opacity: 1, y: 0, duration: sec(MOTION.quick + 60), delay: sec(320) },
+      );
+    }
     const r = envelope.getBoundingClientRect();
     const from = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
     hint.textContent = flips.length > 1 ? 'Tap a card to turn it' : 'Tap the card to turn it';
     const tl = gsap.timeline();
     if (!instant && !reducedMotion()) {
       // The seal cracks, the flap opens, and the cards slide out as the envelope drops away.
+      // A real pack gives a little shake as its seal breaks.
+      gsap.set(envelope, { scale: 1 });
       crackSeal(seal, tl);
-      tl.to(flap, { rotationX: 180, duration: sec(MOTION.impact), ease: EASE.inOut }, sec(90));
+      if (art) {
+        tl.to(
+          envelope,
+          {
+            keyframes: [
+              { rotation: -2, duration: 0.05 },
+              { rotation: 2, duration: 0.06 },
+              { rotation: 0, duration: 0.05 },
+            ],
+          },
+          0,
+        );
+      } else {
+        tl.to(flap, { rotationX: 180, duration: sec(MOTION.impact), ease: EASE.inOut }, sec(90));
+      }
       tl.to(envelope, { y: 30, opacity: 0, duration: sec(MOTION.impact), ease: EASE.in }, sec(300));
       tl.add(() => envelope.classList.add('hidden'));
     } else {

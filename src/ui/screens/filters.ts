@@ -1,6 +1,7 @@
 import { AGE_BY_ID } from '../../content/campaign/ages';
 import { eraUnitType, type EraUnitDef } from '../../content/eraUnits';
 import { badgeShapeOf } from '../../render/pictograms';
+import { ageEmblem } from '../emblems';
 import { el } from '../hud';
 import { EASE, Flip, gsap, MOTION, reducedMotion, sec } from '../motion';
 import { button } from './common';
@@ -54,6 +55,8 @@ export interface ChipOption<T> {
   value: T;
   label: string;
   count?: string;
+  /** The age emblem on age chips. */
+  icon?: HTMLElement;
 }
 
 /** A row of filter chips; one is on. */
@@ -77,7 +80,7 @@ export function chipRow<T>(
     b.className = `filter-chip ${o.value === current ? 'on' : ''}`;
     b.setAttribute('role', 'radio');
     b.setAttribute('aria-checked', String(o.value === current));
-    b.append(el('span', {}, o.label), o.count ? el('small', {}, o.count) : '');
+    b.append(o.icon ?? '', el('span', {}, o.label), o.count ? el('small', {}, o.count) : '');
     row.append(b);
   }
   return row;
@@ -102,6 +105,7 @@ export function ageOptions(
         value: a as AgeFilter,
         label: AGE_BY_ID[a]?.name ?? `Age ${a}`,
         count: `${c.owned}/${c.total}`,
+        icon: ageEmblem(a, 28),
       };
     }),
   ];

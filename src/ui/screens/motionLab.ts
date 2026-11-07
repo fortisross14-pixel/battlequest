@@ -193,11 +193,19 @@ export function motionLabScreen(app: AppApi): HTMLElement {
     `Each ceremony with made-up results; your progress is untouched. Reduce motion is ${reducedMotion() ? 'on' : 'off'} (Settings in the battle menu).`,
   );
   const pack = (r: Rarity) =>
-    button(`Recruit pack · ${r}`, () => void packOpening(labPack(r), { title: 'Recruit Pack' }));
+    button(
+      `Recruit pack · ${r}`,
+      () =>
+        void packOpening(labPack(r), { title: 'Recruit Pack', pack: { kind: 'recruit', age: 1 } }),
+    );
   const hero = (r: Rarity) =>
     button(
       `General pack · ${r}`,
-      () => void packOpening([labGeneral(r)], { title: 'General Pack' }),
+      () =>
+        void packOpening([labGeneral(r)], {
+          title: 'General Pack',
+          pack: { kind: 'general', age: 1 },
+        }),
     );
   const victory = button(
     'Victory',

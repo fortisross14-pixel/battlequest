@@ -1,3 +1,4 @@
+import { ageEmblem } from '../emblems';
 import {
   AGE_BY_ID,
   BATTLE_BY_ID,
@@ -134,6 +135,8 @@ export function ageMapScreen(app: AppApi, ageId: number, unlocks?: Unlocks): HTM
   const viewport = el('div', { class: 'age-map' });
   const screen = shell(app, title, () => app.back(), viewport, toast);
   screen.querySelector('.screen-body')?.classList.add('map-body');
+  // The age emblem in the header.
+  screen.querySelector('.screen-head h1')?.prepend(ageEmblem(ageId, 36));
   if (!meta) {
     viewport.append(el('p', { class: 'hint' }, 'This map is in preparation.'));
     return screen;

@@ -1,4 +1,5 @@
 import { AGES } from '../../content/campaign/battles';
+import { ageEmblem } from '../emblems';
 import type { ArmyChoice, BuilderStep, CampaignBattle } from '../../content/campaign/types';
 import { ERA_UNIT_BY_ID, eraUnitType, ladder } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
@@ -333,10 +334,13 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
     );
   };
   render();
-  return shell(
+  const screen = shell(
     app,
     b.name,
     () => app.back(),
     el('div', { class: 'two-col' }, infoSection(b, enemyPower), builder),
   );
+  // A small age mark next to the battle name.
+  screen.querySelector('.screen-head h1')?.prepend(ageEmblem(b.age, 26));
+  return screen;
 }

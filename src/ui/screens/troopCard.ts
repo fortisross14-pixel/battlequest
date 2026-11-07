@@ -15,12 +15,12 @@ export function cardView(c: PackCard): HTMLElement {
         ? `Max level: +${c.coins} coins`
         : `+${c.spare} spare card${c.spare === 1 ? '' : 's'}`;
     return html(
-      `<div class="reveal ${c.rarity}">${unitIcon(t.symbol, 'blue', 56)}<b>${t.name}${copies}</b><small>${RARITY_LABEL[c.rarity]}</small><span>${note}</span></div>`,
+      `<div class="reveal ${c.rarity}">${unitIcon(t.symbol, 'blue', 56)}<b>${t.name}${copies}</b><span class="rarity-pill ${c.rarity}">${RARITY_LABEL[c.rarity].toUpperCase()}</span><span>${note}</span></div>`,
     );
   }
   const g = GENERAL_BY_ID[c.id]!;
   const note = c.isNew ? 'New general!' : `Duplicate: Medal +${c.medalXp} XP`;
   return html(
-    `<div class="reveal ${c.rarity}"><span class="medallion">${initials(g.name)}</span><b>${g.name}</b><small>${RARITY_LABEL[c.rarity]}</small><span>${note}</span></div>`,
+    `<div class="reveal ${c.rarity}"><span class="medallion">${initials(g.name)}</span><b>${g.name}</b><span class="rarity-pill ${c.rarity}">${RARITY_LABEL[c.rarity].toUpperCase()}</span><span>${note}</span></div>`,
   );
 }

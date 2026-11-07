@@ -2,7 +2,7 @@ import { AGES, AGE_BY_ID } from '../../content/campaign/battles';
 import { ageProgress, isAgeUnlocked, newestUnlockedAge } from '../../meta/campaign';
 import { el } from '../hud';
 import { shell, type AppApi } from './common';
-import { emblemSvg, sealSvg } from './emblems';
+import { ageEmblem } from '../emblems';
 
 /** Space between ages on the strip (px). */
 const STEP = 230;
@@ -40,8 +40,8 @@ export function timelineScreen(app: AppApi): HTMLElement {
       },
       el('span', { class: 'age-num' }, age.id === 0 ? 'Tutorial' : `Age ${age.id}`),
     );
-    const icon = el('span', { class: 'age-emblem' });
-    icon.innerHTML = open ? emblemSvg(age.emblem) : sealSvg();
+    // The owner's age emblem (a numeral seal for ages without one yet); dim while locked.
+    const icon = el('span', { class: 'age-emblem' }, ageEmblem(age.id, 56, open ? '' : 'dim'));
     node.append(
       icon,
       el('b', {}, age.name),
