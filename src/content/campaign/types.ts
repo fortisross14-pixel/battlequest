@@ -1,5 +1,5 @@
 import type { Posture } from '../../ai/utility';
-import type { Dir } from '../../core/types';
+import type { Cohesion, Dir, Pos } from '../../core/types';
 
 /** The ★★★ condition of a battle (GAME_DESIGN 4.8). */
 export type BonusCondition =
@@ -17,6 +17,10 @@ export interface EnemyUnit {
   /** The enemy general rides with this unit. */
   general?: boolean;
   level?: number;
+  /** Starting strength (default 100): a worn or surprised unit. */
+  strength?: number;
+  /** Starting cohesion (default Steady): e.g. caught before it could form up. */
+  cohesion?: Cohesion;
 }
 
 /**
@@ -61,8 +65,11 @@ export interface CampaignBattle {
    * player's roster; the general may be one the player doesn't own (for this battle only).
    */
   fixedArmy?: ArmyChoice;
-  /** Starting squares for the first units, in army order (a tutorial sets up its lesson). */
-  startAt?: { x: number; y: number }[];
+  /**
+   * Starting squares (and facings) for the first units, in army order: a tutorial sets up
+   * its lesson. A battle with a fixed army and starting squares skips deployment.
+   */
+  startAt?: { x: number; y: number; facing?: Dir }[];
   /** Granted the first time this battle is won (an optional battle's reward). */
   firstWinUnlocks?: { units?: string[]; generals?: string[] };
   /**
@@ -80,8 +87,8 @@ export interface CampaignBattle {
   testPosture?: Posture;
   /** Guided steps shown in battle until the battle is first won (GAME_DESIGN 7.4). */
   tutorial?: TutorialStep[];
-  /** Tips shown in the army builder for this battle (tutorial). */
-  builderTips?: string[];
+  /** Guided steps in the army builder until the battle is first won (GAME_DESIGN 7.4). */
+  builderSteps?: BuilderStep[];
 }
 
 export interface ArmyChoice {
@@ -117,11 +124,31 @@ export type TutorialTrigger =
   | 'endTurn'
   | 'never';
 
+/**
+ * What a tutorial step points at (GAME_DESIGN 7.4: every step that points at a unit or
+ * square highlights the exact one it means). Unit ids are the scenario's: p0, p1… for the
+ * player's units in army order, pg for the player's general, e0, e1… for the enemy's.
+ */
+export interface TutorialHighlight {
+  units?: string[];
+  squares?: Pos[];
+  /** The enemies the step's troop can shoot or charge right now (armies the player chose). */
+  targets?: 'shoot' | 'charge';
+}
+
 export interface TutorialStep {
   text: string;
   until: TutorialTrigger;
   /** The troop (era unit id) the step asks the player to use, if one. */
   unit?: string;
+  highlight?: TutorialHighlight;
+}
+
+/** A guided step in the army builder: what it asks, and what on the screen it points at. */
+export interface BuilderStep {
+  text: string;
+  /** 'slots': done when every slot is filled. 'general': done when a general is tapped. */
+  until: 'slots' | 'general';
 }
 
 export type AgeEmblem =

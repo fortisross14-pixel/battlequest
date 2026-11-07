@@ -1761,6 +1761,44 @@ button.mini-card {
   margin: 4px 0;
 }
 
+ol.builder-tips {
+  padding-left: 30px;
+}
+
+ol.builder-tips li {
+  margin: 4px 0;
+  color: var(--ink-soft);
+}
+
+ol.builder-tips li.now {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+ol.builder-tips li.done {
+  text-decoration: line-through;
+  text-decoration-color: rgba(59, 50, 38, 0.4);
+}
+
+/* What the current builder step points at (GAME_DESIGN 7.4): a gold ring that breathes. */
+.tutorial-target {
+  outline: 4px solid #d9a21b;
+  outline-offset: 2px;
+  animation: tutorial-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes tutorial-breathe {
+  50% {
+    outline-color: rgba(217, 162, 27, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-target {
+    animation: none;
+  }
+}
+
 /* A troop the army limits keep out (1 Legendary, 2 of each Epic): dimmed, reason shown. */
 .mini-card.pick[aria-disabled='true'] {
   opacity: 0.6;

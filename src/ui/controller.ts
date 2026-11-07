@@ -33,6 +33,7 @@ import {
   decideCellTap,
   decideSkillTap,
   TutorialGuide,
+  tutorialMarks,
   tutorialTriggers,
   type Mode,
   type Targets,
@@ -676,12 +677,17 @@ export class Controller {
     // Keep the card off the troops the step is about (all of the player's, if none named).
     const side = this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : 'blue';
     const box = this.view.canvas.getBoundingClientRect();
-    const avoid = this.state.units
-      .filter((u) => u.side === side && isOnMap(u) && (!c?.unit || u.type.id === c.unit))
-      .map((u) => {
-        const p = this.view.cellToScreen(u);
-        return { x: box.left + p.x, y: box.top + p.y };
-      });
+    // What the step highlights must stay visible; without highlights, the troop it names.
+    const marks = c ? tutorialMarks(this.state, c.step, side) : [];
+    const cells = marks.length
+      ? marks
+      : this.state.units.filter(
+          (u) => u.side === side && isOnMap(u) && (!c?.unit || u.type.id === c.unit),
+        );
+    const avoid = cells.map((u) => {
+      const p = this.view.cellToScreen(u);
+      return { x: box.left + p.x, y: box.top + p.y };
+    });
     this.hud.setTutorial(
       c ? c.text : null,
       c ? c.progress : '',
@@ -691,15 +697,24 @@ export class Controller {
       },
       avoid,
     );
+    this.updateTutorialMarks();
   }
 
   private advanceTutorial(trigger: TutorialTrigger): void {
     if (this.tutorial.advance(trigger)) this.showTutorial();
   }
 
+  /** Rings on what the current step points at; they follow the units as they move. */
+  private updateTutorialMarks(): void {
+    const c = this.tutorial.current();
+    const side = this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : 'blue';
+    this.view.setTutorialMarks(c ? tutorialMarks(this.state, c.step, side) : []);
+  }
+
   // ---------- HUD ----------
 
   private refresh(): void {
+    this.updateTutorialMarks();
     const s = this.state;
     const lost = {} as Record<Side, number>;
     const breakpoint = {} as Record<Side, number>;

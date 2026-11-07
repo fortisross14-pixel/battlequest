@@ -20,8 +20,11 @@ import {
 } from '../../src/core';
 import { BattleSession } from '../../src/core/session';
 import { startBattle } from '../../src/core/engine';
-import { TutorialGuide, tutorialTriggers } from '../../src/ui/tapDecision';
-import { battle, E, S, W } from '../core/helpers';
+import { TutorialGuide, tutorialMarks, tutorialTriggers } from '../../src/ui/tapDecision';
+import { battle, E, N, S, W } from '../core/helpers';
+
+const unitAtPos = (s: BattleState, p: { x: number; y: number }) =>
+  s.units.find((u) => isOnMap(u) && u.x === p.x && u.y === p.y);
 
 const blueUnits = (s: BattleState) =>
   s.units.filter((u) => u.side === 'blue' && isOnMap(u) && !u.type.tags.includes('Commander'));
@@ -89,10 +92,31 @@ interface Option {
   flank: boolean;
 }
 
+/**
+ * Whether a command does what the step's highlight points at: a move to a marked square, a
+ * marked player unit acting, a marked enemy as the target (GAME_DESIGN 7.4).
+ */
+function followsHighlight(step: TutorialStep, cmd: Command): boolean {
+  const h = step.highlight;
+  if (!h) return true;
+  const ids = h.units ?? [];
+  const mineIds = ids.filter((id) => !id.startsWith('e'));
+  const enemyIds = ids.filter((id) => id.startsWith('e'));
+  if (cmd.type === 'Move' && h.squares?.length) {
+    return h.squares.some((p) => p.x === cmd.to.x && p.y === cmd.to.y);
+  }
+  if (cmd.type === 'UseSkill') return true;
+  if ('unitId' in cmd && mineIds.length && !mineIds.includes(cmd.unitId)) return false;
+  if ((cmd.type === 'Charge' || cmd.type === 'Shoot') && enemyIds.length) {
+    return enemyIds.includes(cmd.targetId);
+  }
+  return true;
+}
+
 /** Ways to do what `step` asks this turn: one command, or a move and then one command. */
 function options(s: BattleState, step: TutorialStep, pairs = true): Option[] {
   const out: Option[] = [];
-  for (const c of candidates(s, step.unit)) {
+  for (const c of candidates(s, step.unit).filter((x) => followsHighlight(step, x))) {
     const r = triggersOf(s, c);
     if (r?.t.includes(step.until)) {
       out.push({ cmds: [c], after: r.state, flank: r.t.includes('flankCharge') });
@@ -102,7 +126,9 @@ function options(s: BattleState, step: TutorialStep, pairs = true): Option[] {
   for (const m of candidates(s, step.unit).filter((c) => c.type === 'Move')) {
     const moved = triggersOf(s, m);
     if (!moved) continue;
-    for (const c of candidates(moved.state, step.unit).filter((x) => x.type !== 'Move')) {
+    for (const c of candidates(moved.state, step.unit).filter(
+      (x) => x.type !== 'Move' && followsHighlight(step, x),
+    )) {
       const r = triggersOf(moved.state, c);
       if (r?.t.includes(step.until)) {
         out.push({ cmds: [m, c], after: r.state, flank: r.t.includes('flankCharge') });
@@ -132,6 +158,8 @@ interface Run {
   done: boolean;
   /** Triggers each player command produced, in order. */
   log: TutorialTrigger[][];
+  /** The player's commands, in order, with the step that was current. */
+  cmds: { cmd: Command; step: number }[];
   state: BattleState;
 }
 
@@ -147,8 +175,10 @@ function playTutorial(b: CampaignBattle): Run {
   const session = new BattleSession(startBattle(buildScenario(b, army, 7)));
   const red = new AiPlayer('red', { posture: b.posture, attackTurn: b.attackTurn });
   const log: TutorialTrigger[][] = [];
+  const cmds: { cmd: Command; step: number }[] = [];
   const stepIndex = () => steps.findIndex((s) => s.text === guide.current()?.text);
   const run = (cmd: Command) => {
+    cmds.push({ cmd, step: stepIndex() });
     const before = session.state;
     const res = session.apply(cmd);
     if (!res.ok) throw new Error(`${cmd.type} rejected: ${res.rejection.message}`);
@@ -202,6 +232,7 @@ function playTutorial(b: CampaignBattle): Run {
   return {
     done: steps[stepIndex()]?.until === 'never',
     log,
+    cmds,
     state: session.state,
   };
 }
@@ -226,6 +257,72 @@ describe('Age 0 tutorial scripts (GAME_DESIGN 7.4)', () => {
     const r = played('megiddo');
     const support = r.log.find((t) => t.includes('support'));
     expect(support).toContain('flankCharge');
+  });
+
+  it('megiddo: each step is done by the unit it highlights, on the enemy it highlights', () => {
+    const b = BATTLE_BY_ID.megiddo!;
+    const r = played('megiddo');
+    b.tutorial!.forEach((step, i) => {
+      const ids = step.highlight?.units ?? [];
+      const attacker = ids.find((id) => id.startsWith('p'));
+      const target = ids.find((id) => id.startsWith('e'));
+      if (!['charge', 'flankCharge'].includes(step.until)) return;
+      const done = r.cmds.filter((c) => c.step === i && c.cmd.type === 'Charge').at(-1);
+      expect(done, `step ${i + 1}`).toBeDefined();
+      expect(done!.cmd).toMatchObject({ unitId: attacker, targetId: target });
+    });
+  });
+
+  it('megiddo is won within about 3 turns by following the script', () => {
+    const r = played('megiddo');
+    expect(r.state.result?.winner).toBe('blue');
+    expect(r.state.result!.turn).toBeLessThanOrEqual(4);
+  });
+});
+
+describe('tutorial highlights match the scenario (owner: steps pointed at the wrong enemies)', () => {
+  for (const id of ['megiddo', 'kadesh']) {
+    const b = BATTLE_BY_ID[id]!;
+    const army = b.fixedArmy ?? b.testArmy;
+    const state = startBattle(buildScenario(b, army, 1));
+    it.each(b.tutorial!.map((step, i) => ({ step, i })))(
+      `${id} step $i: highlighted units and squares exist and fit the step`,
+      ({ step }) => {
+        for (const uid of step.highlight?.units ?? []) {
+          const u = getUnit(state, uid);
+          expect(u, uid).toBeDefined();
+          // Player units: the troop the step names; enemies: an enemy.
+          if (uid.startsWith('p') && uid !== 'pg' && step.unit) expect(u!.type.id).toBe(step.unit);
+          if (uid.startsWith('e')) expect(u!.side).toBe('red');
+          if (uid === 'pg') expect(state.sides.blue.general?.unitId).toBe('pg');
+        }
+        for (const p of step.highlight?.squares ?? []) {
+          expect(p.x).toBeGreaterThanOrEqual(0);
+          expect(p.x).toBeLessThan(state.map.width);
+          expect(p.y).toBeLessThan(state.map.height);
+          expect(unitAtPos(state, p)).toBeUndefined();
+        }
+        // A step that names a troop or highlights something marks at least one square now
+        // or once its condition can be met (a shot needs an enemy in range).
+        const marks = tutorialMarks(state, step, 'blue');
+        if (step.highlight?.units?.length || step.highlight?.squares?.length) {
+          expect(marks.length).toBeGreaterThan(0);
+        }
+      },
+    );
+  }
+
+  it('megiddo: the north enemy and the south enemy are where the text says', () => {
+    const b = BATTLE_BY_ID.megiddo!;
+    const state = startBattle(buildScenario(b, b.fixedArmy!, 1));
+    const [e0, e1] = [getUnit(state, 'e0')!, getUnit(state, 'e1')!];
+    const [p1, p2] = [getUnit(state, 'p1')!, getUnit(state, 'p2')!];
+    expect(e0.y).toBeLessThan(e1.y);
+    expect(p1.y).toBeLessThan(e0.y);
+    expect(p2.y).toBeGreaterThan(e1.y);
+    // Each chariot unit faces the enemy flank it is told to charge.
+    expect(p1.facing).toBe(S);
+    expect(p2.facing).toBe(N);
   });
 });
 

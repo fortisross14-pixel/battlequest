@@ -115,9 +115,9 @@ describe('tutorial guide', () => {
 
   it('advances on the trigger the current step waits for', () => {
     const g = steps();
-    expect(g.current()).toEqual({ text: 'Select', progress: '1/4' });
+    expect(g.current()).toMatchObject({ text: 'Select', progress: '1/4' });
     expect(g.advance('select')).toBe(true);
-    expect(g.current()).toEqual({ text: 'Move', progress: '2/4' });
+    expect(g.current()).toMatchObject({ text: 'Move', progress: '2/4' });
     expect(new TutorialGuide(undefined).current()).toBeNull();
   });
 
@@ -128,7 +128,7 @@ describe('tutorial guide', () => {
     g.advance('select');
     // Charging straight away skips the plain-move step (code review).
     expect(g.advance('charge')).toBe(true);
-    expect(g.current()).toEqual({ text: 'End turn', progress: '4/4' });
+    expect(g.current()).toMatchObject({ text: 'End turn', progress: '4/4' });
     expect(g.advance('select')).toBe(false);
     expect(g.advance('endTurn')).toBe(true);
     expect(g.current()).toBeNull();

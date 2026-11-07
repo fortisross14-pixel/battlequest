@@ -80,10 +80,14 @@ describe('campaign', () => {
     }
   });
 
-  it('battle sizes grow through the campaign', () => {
-    const sizes = CAMPAIGN.map((b) => b.maxUnits);
-    expect(sizes[0]).toBeLessThanOrEqual(3);
-    for (let i = 1; i < sizes.length; i++) expect(sizes[i]).toBeGreaterThanOrEqual(sizes[i - 1]!);
+  it('battle sizes grow through each age (a new age may start small again)', () => {
+    expect(CAMPAIGN[0]!.maxUnits).toBeLessThanOrEqual(3);
+    for (const age of AGES) {
+      const sizes = age.battles.map((id) => BATTLE_BY_ID[id]!.maxUnits);
+      for (let i = 1; i < sizes.length; i++) {
+        expect(sizes[i], `${age.battles[i]}`).toBeGreaterThanOrEqual(sizes[i - 1]!);
+      }
+    }
   });
 });
 

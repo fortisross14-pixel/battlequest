@@ -34,6 +34,9 @@ const shortestAngle = (from: number, to: number) => {
 };
 const ease = (t: number) => 1 - (1 - t) * (1 - t);
 
+/** One breath of the tutorial marker (ms): a slow, calm pulse, like the age map's hint. */
+const TUTORIAL_PULSE_MS = 1200;
+
 /**
  * The Pixi battlefield. It only reads battle state and plays events: it never changes the game.
  */
@@ -46,6 +49,9 @@ export class BattleView {
   private unitsLayer = new Container();
   private ghostLayer = new Container();
   private ringLayer = new Graphics();
+  /** Gold rings on what the current tutorial step points at (GAME_DESIGN 7.4). */
+  private tutorialLayer = new Graphics();
+  private tutorialClock = 0;
   private effects = new Container();
   private views = new Map<string, UnitView>();
   private ring: { at: Pos; handles: RingHandle[] } | null = null;
@@ -100,9 +106,11 @@ export class BattleView {
       this.highlights,
       this.ghostLayer,
       this.unitsLayer,
+      this.tutorialLayer,
       this.ringLayer,
       this.effects,
     );
+    this.tutorialLayer.clear();
     this.mapSize = { w: state.map.width * CELL, h: state.map.height * CELL };
   }
 
@@ -294,6 +302,50 @@ export class BattleView {
         color: THEME.select,
       });
     }
+  }
+
+  /**
+   * Marks the squares the current tutorial step points at with a pulsing gold ring and a
+   * small pointer above it. Reduced motion keeps the ring still.
+   */
+  setTutorialMarks(marks: Pos[]): void {
+    const g = this.tutorialLayer.clear();
+    this.app.ticker.remove(this.pulseTutorial, this);
+    if (!marks.length) return;
+    for (const p of marks) {
+      const x0 = p.x * CELL - 4;
+      const y0 = p.y * CELL - 4;
+      const s = CELL + 8;
+      g.roundRect(x0, y0, s, s, 12).stroke({ width: 5, color: THEME.select, alpha: 0.95 });
+      g.roundRect(x0 - 4, y0 - 4, s + 8, s + 8, 15).stroke({
+        width: 2,
+        color: THEME.ink,
+        alpha: 0.45,
+      });
+      // A small pointer above the square (below it on the top row, so it stays on the map).
+      const cx = (p.x + 0.5) * CELL;
+      const tip =
+        p.y === 0
+          ? [cx - 10, y0 + s + 18, cx + 10, y0 + s + 18, cx, y0 + s + 6]
+          : [cx - 10, y0 - 18, cx + 10, y0 - 18, cx, y0 - 6];
+      g.poly(tip).fill({ color: THEME.select });
+      g.poly(tip).stroke({
+        width: 1.5,
+        color: THEME.ink,
+        alpha: 0.6,
+      });
+    }
+    this.tutorialLayer.alpha = 1;
+    if (!this.reducedMotion) {
+      this.tutorialClock = 0;
+      this.app.ticker.add(this.pulseTutorial, this);
+    }
+  }
+
+  private pulseTutorial(t: { deltaMS: number }): void {
+    this.tutorialClock = (this.tutorialClock + t.deltaMS) % TUTORIAL_PULSE_MS;
+    const phase = (Math.sin((this.tutorialClock / TUTORIAL_PULSE_MS) * Math.PI * 2) + 1) / 2;
+    this.tutorialLayer.alpha = 0.55 + 0.45 * phase;
   }
 
   /** A translucent copy of the unit at its destination, with its path as a battle-map arrow. */

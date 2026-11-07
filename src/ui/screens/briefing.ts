@@ -1,5 +1,5 @@
 import { AGES } from '../../content/campaign/battles';
-import type { ArmyChoice, CampaignBattle } from '../../content/campaign/types';
+import type { ArmyChoice, BuilderStep, CampaignBattle } from '../../content/campaign/types';
 import { ERA_UNIT_BY_ID, eraUnitType } from '../../content/eraUnits';
 import { GENERAL_BY_ID } from '../../content/generals';
 import {
@@ -33,7 +33,7 @@ function infoSection(b: CampaignBattle, enemyPower: number): HTMLElement {
         {},
         b.holdOut
           ? `Objective: hold out until the end of turn ${b.turnLimit}.`
-          : `Objective: break the enemy army, or bring down its general, within ${b.turnLimit} turns.`,
+          : `Objective: break the enemy army${b.enemyGeneral ? ', or bring down its general,' : ''} within ${b.turnLimit} turns.`,
       ),
       el('li', {}, 'If your general falls, the battle is lost.'),
       el('li', {}, `★★★: win losing under 30% of your army, and ${b.bonusText.toLowerCase()}`),
@@ -137,7 +137,13 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
   const p = app.profile;
   const fixed = !!b.fixedArmy;
   const enemyPower = armyPower(b.enemy.map((e) => ({ type: e.type, level: e.level })));
-  const army: ArmyChoice = startingArmy(p, b);
+  // Guided builder steps (GAME_DESIGN 7.4) until the battle is first won: the army starts
+  // empty so the player fills the slots and picks the general themselves.
+  const guided = b.builderSteps && !p.battles[b.id]?.wins ? b.builderSteps : [];
+  const army: ArmyChoice = guided.length ? { units: [] } : startingArmy(p, b);
+  let pickedGeneral = false;
+  const stepDone = (st: BuilderStep) =>
+    st.until === 'slots' ? army.units.length === b.maxUnits : pickedGeneral && !!army.general;
   const builder = el('section', { class: 'builder' });
   const deployBtn = button(
     'Deploy ›',
@@ -153,6 +159,7 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
   );
 
   const render = () => {
+    const current = guided.find((st) => !stepDone(st));
     const power = armyPower(army.units);
     const problems = armyProblems(p, b, army);
 
@@ -185,6 +192,7 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
         );
       }
       tile.disabled = fixed;
+      if (current?.until === 'slots' && !u) tile.classList.add('tutorial-target');
       slots.append(tile);
     }
 
@@ -217,10 +225,14 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
             '',
             () => {
               army.general = { id, rank };
+              pickedGeneral = true;
               render();
             },
             `mini-card pick ${g.rarity} ${on ? 'on' : ''}`,
           );
+          if (current?.until === 'general' && !owned.resting) {
+            card.classList.add('tutorial-target');
+          }
           card.setAttribute('aria-pressed', String(on));
           card.append(generalHeader(g, rank));
           if (owned.resting) card.append(el('small', { class: 'warn' }, 'Resting this battle'));
@@ -239,12 +251,23 @@ export function briefingScreen(app: AppApi, b: CampaignBattle): HTMLElement {
       );
     }
 
-    deployBtn.disabled = problems.length > 0;
-    const tips = b.builderTips && !p.battles[b.id]?.wins ? b.builderTips : [];
+    // A guided builder deploys once its steps are done (the general's skill is used in battle).
+    deployBtn.disabled = problems.length > 0 || !!current;
     builder.replaceChildren(
       el('h2', {}, 'Your army'),
-      tips.length
-        ? el('div', { class: 'builder-tips', role: 'note' }, ...tips.map((t) => el('p', {}, t)))
+      guided.length
+        ? el(
+            'ol',
+            { class: 'builder-tips', role: 'note', 'aria-label': 'Tutorial' },
+            ...guided.map((st) =>
+              el(
+                'li',
+                { class: stepDone(st) ? 'done' : st === current ? 'now' : '' },
+                stepDone(st) ? '✓ ' : '',
+                st.text,
+              ),
+            ),
+          )
         : '',
       el(
         'div',

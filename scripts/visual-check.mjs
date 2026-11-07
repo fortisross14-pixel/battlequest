@@ -238,11 +238,36 @@ for (const size of SIZES) {
   await page.waitForTimeout(300);
   await shot(page, size, '21-briefing');
   await page.getByRole('button', { name: /Deploy/ }).tap();
-  await page.waitForTimeout(500);
-  await shot(page, size, '22-deployment');
-  await page.getByRole('button', { name: 'Start battle' }).tap();
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(900);
   await shot(page, size, '23-battle-tutorial');
+  // Step 1 marks the spearmen; selecting them moves the gold ring to the square to move to.
+  {
+    const p = await screen(page, 3, 3);
+    await page.touchscreen.tap(p.x, p.y);
+    await page.waitForTimeout(400);
+    await shot(page, size, '23e-tutorial-move-square');
+    const q = await screen(page, 4, 3);
+    await page.touchscreen.tap(q.x, q.y);
+    await page.waitForTimeout(300);
+    await page.touchscreen.tap(q.x, q.y);
+    await page.waitForTimeout(700);
+    // Keep the facing (tap elsewhere): the next step marks the spearmen and the north enemy.
+    const r = await screen(page, 1, 7);
+    await page.touchscreen.tap(r.x, r.y);
+    await page.waitForTimeout(400);
+    await shot(page, size, '23f-tutorial-charge-targets');
+    // Charge with the spearmen (select, tap the enemy, confirm): the next step marks the
+    // north chariots, so the card moves off them.
+    const sp = await screen(page, 4, 3);
+    await page.touchscreen.tap(sp.x, sp.y);
+    await page.waitForTimeout(300);
+    const en = await screen(page, 6, 3);
+    await page.touchscreen.tap(en.x, en.y);
+    await page.waitForTimeout(400);
+    await page.getByRole('button', { name: 'Confirm charge' }).tap();
+    await page.waitForTimeout(1500);
+    await shot(page, size, '23g-tutorial-flank-step');
+  }
   const cs = await smallTargets(page);
   if (cs.length) problems.push(`${size.name} (battle): small buttons ${JSON.stringify(cs)}`);
   // Let the enemy AI play a turn, with the speed control visible.
@@ -298,8 +323,8 @@ for (const size of SIZES) {
   await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
   await page.waitForTimeout(200);
   await shot(page, size, '32-builder');
-  // Slot picker: put Bronze Age chariots in all three slots.
-  for (let i = 1; i <= 3; i++) {
+  // Slot picker: put Bronze Age chariots in all four slots (copies are allowed).
+  for (let i = 1; i <= 4; i++) {
     await page.getByRole('button', { name: new RegExp(`^Slot ${i}:`) }).tap();
     await page.waitForTimeout(200);
     if (i === 1) await shot(page, size, '32b-slot-picker');
@@ -314,12 +339,15 @@ for (const size of SIZES) {
     await page.waitForTimeout(400);
     await shot(page, size, '32c-general-details');
     await page.mouse.move(2, 2);
+    // Builder step 2: tap the general.
+    await gen.tap();
+    await page.waitForTimeout(200);
   }
   await page.evaluate(() => document.querySelector('.builder')?.scrollIntoView());
   await page.waitForTimeout(200);
-  await shot(page, size, '33-three-chariots');
+  await shot(page, size, '33-four-chariots');
   if (!(await page.getByRole('button', { name: /Deploy/ }).isEnabled())) {
-    problems.push(`${size.name}: 3 chariots at Kadesh can't deploy`);
+    problems.push(`${size.name}: 4 chariots at Kadesh can't deploy`);
   }
   const bs = await smallTargets(page);
   if (bs.length) problems.push(`${size.name} (builder): small buttons ${JSON.stringify(bs)}`);
@@ -337,13 +365,32 @@ for (const size of SIZES) {
 
   // Kadesh: the second tutorial battle (shooting and a general skill).
   await page.getByRole('button', { name: /Back/ }).tap();
-  await page.getByRole('button', { name: /Continue: Kadesh/ }).tap();
-  await page.waitForTimeout(300);
-  await page.getByRole('button', { name: /Deploy/ }).tap();
+  await page.evaluate(async () => {
+    const mod = await import('/src/content/campaign/battles.ts');
+    const b = mod.BATTLE_BY_ID.kadesh;
+    window.__bq.app.deploy(b, b.testArmy);
+  });
   await page.waitForTimeout(500);
+  await shot(page, size, '35b-kadesh-deployment');
   await page.getByRole('button', { name: 'Start battle' }).tap();
   await page.waitForTimeout(600);
   await shot(page, size, '36-kadesh-tutorial');
+  // Select the archers: the next step marks the enemies in range.
+  {
+    // The test army's third unit is the archers; it starts on its default square.
+    const archer = await page.evaluate(async () => {
+      const battles = await import('/src/content/campaign/battles.ts');
+      const build = await import('/src/content/campaign/build.ts');
+      const k = battles.BATTLE_BY_ID.kadesh;
+      return build.defaultPlacement(k, k.testArmy)[2];
+    });
+    if (archer) {
+      const p = await screen(page, archer.x, archer.y);
+      await page.touchscreen.tap(p.x, p.y);
+      await page.waitForTimeout(400);
+      await shot(page, size, '36b-kadesh-shoot-targets');
+    }
+  }
   await page.getByRole('button', { name: 'Leave battle' }).tap();
   await page.getByRole('button', { name: 'Leave', exact: true }).tap();
   await page.waitForTimeout(1200);

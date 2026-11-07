@@ -156,6 +156,12 @@ export class App implements AppApi {
     const zone = deploymentSquares(b);
     // One square per unit, then the general's own unit behind the line.
     const placement: Pos[] = defaultPlacement(b, army);
+    // A fixed army with set starting squares (the Megiddo tutorial) is already placed for
+    // its lesson: straight into battle.
+    if (b.fixedArmy && b.startAt) {
+      this.fight(b, army, placement, seed);
+      return;
+    }
     let state = startBattle(buildScenario(b, army, seed, placement));
     const hud = this.enterBattleUi(state);
     let selected: number | null = null;

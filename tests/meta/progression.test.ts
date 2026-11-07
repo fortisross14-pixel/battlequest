@@ -129,10 +129,12 @@ describe('army builder rules', () => {
     return p;
   };
 
-  it('allows 3 of the same unit: slots are the only limit, points are ignored', () => {
+  it('allows 4 of the same Common: slots are the only limit, points are ignored', () => {
     const p = withChariots();
     const army = { units: [], general: { id: 'bronzeAgeCaptain', rank: 1 } };
-    for (let i = 0; i < 3; i++) expect(addTroop(p, kadesh, army, 'bronzeAgeChariots')).toBe(true);
+    for (let i = 0; i < kadesh.maxUnits; i++) {
+      expect(addTroop(p, kadesh, army, 'bronzeAgeChariots')).toBe(true);
+    }
     expect(addTroop(p, kadesh, army, 'bronzeAgeChariots')).toBe(false);
     expect(armyProblems(p, kadesh, army)).toEqual([]);
   });
@@ -140,7 +142,7 @@ describe('army builder rules', () => {
   it('every slot must be filled', () => {
     const p = withChariots();
     const army = { units: [{ type: 'bronzeAgeSpearmen' }] };
-    expect(armyProblems(p, kadesh, army)).toEqual([{ code: 'slots', filled: 1, slots: 3 }]);
+    expect(armyProblems(p, kadesh, army)).toEqual([{ code: 'slots', filled: 1, slots: 4 }]);
   });
 
   it('rejects unowned troops, unknown and resting generals', () => {
@@ -150,6 +152,7 @@ describe('army builder rules', () => {
       { type: 'hoplitePhalanx' },
       { type: 'bronzeAgeSpearmen' },
       { type: 'bronzeAgeSpearmen' },
+      { type: 'bronzeAgeArchers' },
     ];
     const codes = (id: string) =>
       armyProblems(p, kadesh, { units, general: { id, rank: 1 } }).map((x) => x.code);
@@ -164,6 +167,7 @@ describe('army builder rules', () => {
     const army = fixedArmyFor(p, b)!;
     expect(army.units).toEqual([
       { type: 'bronzeAgeSpearmen', level: 1 },
+      { type: 'bronzeAgeChariots', level: 3 },
       { type: 'bronzeAgeChariots', level: 3 },
     ]);
     expect(army.general?.id).toBe('bronzeAgeCaptain');

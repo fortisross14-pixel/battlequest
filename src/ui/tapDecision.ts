@@ -125,12 +125,12 @@ export class TutorialGuide {
     this.step = this.steps?.length ?? 0;
   }
 
-  /** The current step's text, "n/m" progress and troop, or null when finished or absent. */
-  current(): { text: string; progress: string; unit?: string } | null {
+  /** The current step, its "n/m" progress, or null when finished or absent. */
+  current(): { text: string; progress: string; unit?: string; step: TutorialStep } | null {
     const steps = this.steps;
     const s = steps?.[this.step];
     if (!s || !steps) return null;
-    return { text: s.text, progress: `${this.step + 1}/${steps.length}`, unit: s.unit };
+    return { text: s.text, progress: `${this.step + 1}/${steps.length}`, unit: s.unit, step: s };
   }
 }
 
@@ -165,5 +165,43 @@ export function tutorialTriggers(
   if (events.some((e) => e.type === 'ShotFired' && mine(e.unitId))) out.push('shoot');
   if (events.some((e) => e.type === 'SkillUsed' && mine(e.unitId))) out.push('skill');
   if (events.some((e) => e.type === 'SideTurnEnded' && e.side === side)) out.push('endTurn');
+  return out;
+}
+
+/**
+ * The squares a tutorial step highlights on the board (GAME_DESIGN 7.4: the exact unit or
+ * square the step means). Named units are found by scenario id; `targets` lists the enemies
+ * the step's troop can shoot or charge now; a step that only names a troop marks every
+ * unit of that troop. Units that left the map are skipped.
+ */
+export function tutorialMarks(state: BattleState, step: TutorialStep, side: Side): Pos[] {
+  const out: Pos[] = [];
+  const add = (p: Pos) => {
+    if (!out.some((q) => samePos(q, p))) out.push({ x: p.x, y: p.y });
+  };
+  const onMap = (u: Unit | undefined): u is Unit => !!u && u.status === 'active';
+  const h = step.highlight;
+  for (const id of h?.units ?? []) {
+    const u = getUnit(state, id);
+    if (onMap(u)) add(u);
+  }
+  for (const p of h?.squares ?? []) add(p);
+  const mine = state.units.filter(
+    (u) => u.side === side && onMap(u) && (!step.unit || u.type.id === step.unit),
+  );
+  if (h?.targets) {
+    for (const e of state.units.filter((u) => u.side !== side && onMap(u))) {
+      const ok = mine.some(
+        (u) =>
+          validateCommand(state, {
+            type: h.targets === 'shoot' ? 'Shoot' : 'Charge',
+            unitId: u.id,
+            targetId: e.id,
+          }) === null,
+      );
+      if (ok) add(e);
+    }
+  }
+  if (!h && step.unit) for (const u of mine) add(u);
   return out;
 }

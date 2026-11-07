@@ -1,6 +1,6 @@
 import { mapFromRows, isPassable, inBounds } from '../../core/map';
 import type { Scenario, ScenarioUnit } from '../../core/state';
-import type { Pos } from '../../core/types';
+import type { Dir, Pos } from '../../core/types';
 import { eraUnitType, guardType } from '../eraUnits';
 import { GENERAL_BY_ID } from '../generals';
 import type { ArmyChoice, CampaignBattle } from './types';
@@ -67,6 +67,12 @@ function enemyGeneralSquare(b: CampaignBattle, taken: Pos[]): Pos | null {
   return null;
 }
 
+/** Facing of player unit `i` at `p`: its suggested start's facing if it stands there, else east. */
+function startFacing(b: CampaignBattle, p: Pos, i: number): Dir {
+  const s = b.startAt?.[i];
+  return s && s.x === p.x && s.y === p.y && s.facing !== undefined ? s.facing : 2;
+}
+
 /**
  * Builds the scenario. Player units get ids p0, p1…, enemy units e0, e1…, and the
  * generals' own units pg and eg. `placement` (from the deployment screen) overrides the
@@ -85,7 +91,8 @@ export function buildScenario(
     type: eraUnitType(u.type, u.level),
     x: where[i]!.x,
     y: where[i]!.y,
-    facing: 2,
+    // A suggested start keeps its facing while the unit stands there (a tutorial's set-up).
+    facing: startFacing(b, where[i]!, i),
   }));
   const playerGen = army.general && GENERAL_BY_ID[army.general.id];
   if (playerGen) {
@@ -107,6 +114,8 @@ export function buildScenario(
       x: e.x,
       y: e.y,
       facing: e.facing,
+      ...(e.strength !== undefined ? { strength: e.strength } : {}),
+      ...(e.cohesion !== undefined ? { cohesion: e.cohesion } : {}),
     }),
   );
   const enemyGen = b.enemyGeneral && GENERAL_BY_ID[b.enemyGeneral.id];
