@@ -48,6 +48,8 @@ export type Command =
   | { type: 'UseSkill'; unitId: string; skillId: string; targetId?: string }
   /** A side gives up the battle (retreat). Allowed on either side's turn. */
   | { type: 'Concede'; side: Side }
+  /** Ends the battle so it can be replayed from deployment (UX §6): no winner, no defeat. */
+  | { type: 'Restart' }
   | { type: 'EndTurn' };
 
 export type CommandResult =
@@ -87,12 +89,16 @@ type Plan =
   | { type: 'Hold'; unit: Unit }
   | { type: 'UseSkill'; unit: Unit; plan: SkillPlan }
   | { type: 'Concede'; side: Side }
+  | { type: 'Restart' }
   | { type: 'EndTurn' };
 
 /** Checks a command against the rules. Never changes state. */
 export function planCommand(state: BattleState, cmd: Command): Plan | Rejection {
   if (cmd.type === 'EndTurn') {
     return state.result ? reject('BATTLE_OVER', 'The battle is over.') : { type: 'EndTurn' };
+  }
+  if (cmd.type === 'Restart') {
+    return state.result ? reject('BATTLE_OVER', 'The battle is over.') : { type: 'Restart' };
   }
   if (cmd.type === 'Concede') {
     return state.result
@@ -204,6 +210,10 @@ export function applyCommand(state: BattleState, cmd: Command): CommandResult {
         turn: draft.turn,
         broken: [checked.side],
       };
+      events.push({ type: 'BattleEnded', result: draft.result });
+      break;
+    case 'Restart':
+      draft.result = { winner: null, reason: 'restarted', turn: draft.turn, broken: [] };
       events.push({ type: 'BattleEnded', result: draft.result });
       break;
     case 'EndTurn':

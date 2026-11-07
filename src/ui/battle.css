@@ -1,0 +1,787 @@
+/*
+ * The battle screen (UX_PRESENTATION §1–2, §6): the HUD lives in reserved zones and the
+ * battlefield in the space left over. Only things attached to a unit (the command bubble)
+ * sit over the map. Flat parchment, ink, wax and brass; motion lives in src/ui/motion.ts.
+ */
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(52px + var(--safe-t));
+  box-sizing: border-box;
+  padding: var(--safe-t) calc(10px + var(--safe-r)) 0 calc(8px + var(--safe-l));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(rgba(248, 242, 226, 0.98), rgba(244, 236, 216, 0.96));
+  border-bottom: 1px solid var(--line);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 2px 6px rgba(59, 50, 38, 0.08);
+}
+
+.top-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn.icon {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  font-size: 15px;
+  flex: none;
+}
+
+.btn.menu-btn {
+  font-size: 20px;
+  padding: 0;
+}
+
+.topbar .title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar .title .name {
+  font: italic 18px var(--serif);
+}
+
+.topbar .turn {
+  color: var(--ink-soft);
+}
+
+.topbar .objective {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  max-width: 38%;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 252, 242, 0.8);
+  color: var(--ink);
+  font: 13.5px var(--sans);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.topbar .objective .obj-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar .objective.met .bonus-mark {
+  color: #2e6b2e;
+}
+.topbar .objective.failed .bonus-mark {
+  color: var(--red);
+}
+
+.meters {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  flex: none;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: auto 64px auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.meter b {
+  font-weight: 700;
+}
+.meter.blue b {
+  color: var(--blue);
+}
+.meter.red b {
+  color: var(--red);
+}
+
+.meter .bar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(59, 50, 38, 0.12);
+  overflow: hidden;
+}
+
+/* The fill grows toward the break point (full = the army breaks). */
+.meter .bar > i {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.meter.blue .bar > i {
+  background: var(--blue);
+}
+.meter.red .bar > i {
+  background: var(--red);
+}
+.meter.danger .bar {
+  box-shadow: 0 0 0 1.5px rgba(178, 58, 58, 0.5);
+}
+
+.meter small {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6em;
+}
+
+.chip-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 252, 242, 0.92);
+  color: var(--ink);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chip-btn:active,
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Guidance strip ---------- */
+
+.guide {
+  position: absolute;
+  top: calc(52px + var(--safe-t));
+  left: calc(8px + var(--safe-l));
+  right: calc(8px + var(--safe-r));
+  height: 44px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px 0 14px;
+  margin-top: 4px;
+  border-radius: 10px;
+  background: rgba(248, 242, 226, 0.9);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.guide.empty {
+  visibility: hidden;
+}
+
+.guide-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide.tutorial {
+  height: auto;
+  min-height: 44px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  background: #fff8e2;
+  border: 1.5px solid var(--gold);
+}
+
+.guide.tutorial .guide-text {
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.guide .step {
+  margin-right: 8px;
+  font-weight: 700;
+  color: #8a6a12;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.guide-extra {
+  flex: none;
+  pointer-events: auto;
+}
+
+/* Ink leader line from the strip to what the step points at. */
+.leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.leaders path {
+  fill: none;
+  stroke: #8a6a12;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+}
+
+.leaders circle {
+  fill: #8a6a12;
+}
+
+/* ---------- Bottom corners ---------- */
+
+.corner.right {
+  position: absolute;
+  right: calc(12px + var(--safe-r));
+  bottom: calc(12px + var(--safe-b));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.end-turn {
+  min-width: 136px;
+  min-height: 52px;
+  font-size: 17px;
+  border-radius: 12px;
+  border-color: #8a6a12;
+  box-shadow:
+    0 0 0 2px rgba(217, 162, 27, 0.35),
+    0 2px 0 rgba(59, 50, 38, 0.3);
+}
+
+.medallion {
+  position: absolute;
+  left: calc(12px + var(--safe-l));
+  bottom: calc(10px + var(--safe-b));
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* The cooldown ring: brass fills clockwise as the skill comes back. */
+.medallion .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(#c99a1e var(--ring, 360deg), rgba(59, 50, 38, 0.18) 0);
+}
+
+.medallion .seal {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #3f6db0, var(--blue) 60%, #1c3a66);
+  color: #f7d36a;
+  font: italic 700 20px var(--serif);
+  box-shadow: 0 2px 6px rgba(28, 58, 102, 0.45);
+}
+
+.medallion .pips {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  color: #b8860b;
+  font-size: 11px;
+  letter-spacing: -1px;
+  text-align: center;
+  line-height: 1;
+}
+
+.medallion .label {
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(248, 242, 226, 0.92);
+  color: var(--ink);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.medallion.ready .seal {
+  box-shadow:
+    0 0 0 3px rgba(217, 162, 27, 0.55),
+    0 2px 6px rgba(28, 58, 102, 0.45);
+}
+
+.medallion:disabled {
+  cursor: default;
+}
+
+.medallion:disabled .seal {
+  filter: saturate(0.6);
+}
+
+/* ---------- Toasts (one stack, above End turn) ---------- */
+
+.toasts {
+  position: absolute;
+  right: calc(12px + var(--safe-r));
+  bottom: calc(76px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: min(420px, 60%);
+  pointer-events: none;
+}
+
+.toast {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  box-shadow: 0 4px 14px rgba(59, 50, 38, 0.3);
+  pointer-events: auto;
+}
+
+.toast > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast b {
+  font: italic 16px var(--serif);
+}
+
+.toast .toast-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast .chip-btn {
+  min-height: 36px;
+  background: var(--paper);
+}
+
+/* ---------- Command bubble ---------- */
+
+.bubble {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.bubble-disc {
+  position: absolute;
+  left: -36px;
+  top: -36px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(217, 162, 27, 0.85);
+  background: radial-gradient(circle, rgba(255, 248, 226, 0) 55%, rgba(255, 248, 226, 0.55) 70%);
+  pointer-events: none;
+}
+
+.petal {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 3px 8px rgba(59, 50, 38, 0.3);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font: 20px var(--sans);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.petal .petal-icon {
+  line-height: 1;
+}
+
+.petal .petal-badge {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 600 10px var(--sans);
+  line-height: 15px;
+}
+
+.petal .petal-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(248, 242, 226, 0.95);
+  font: 600 11.5px var(--sans);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.petal[data-side='right'] .petal-label {
+  left: 52px;
+}
+.petal[data-side='left'] .petal-label {
+  right: 52px;
+}
+.petal[data-side='mid'] .petal-label {
+  top: auto;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.petal.off {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.petal.show-label .petal-label {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.petal.skill {
+  border-color: #8a6a12;
+  color: #8a6a12;
+}
+
+/* ---------- Battle sheet (☰ menu, objectives, settings, how to play) ---------- */
+
+.battle-sheet {
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 50, 38, 0.25);
+  z-index: 5;
+}
+
+.battle-sheet .sheet-body {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(360px, 86%);
+  box-sizing: border-box;
+  padding: calc(16px + var(--safe-t)) 18px 18px calc(18px + var(--safe-l));
+  overflow-y: auto;
+  background: var(--paper);
+  border-right: 1.5px solid var(--ink);
+  box-shadow:
+    2px 0 0 rgba(59, 50, 38, 0.1),
+    8px 0 30px rgba(59, 50, 38, 0.3);
+}
+
+.battle-sheet.page .sheet-body {
+  width: min(480px, 92%);
+}
+
+.battle-sheet h2 {
+  margin: 0 0 12px;
+  font: italic 24px var(--serif);
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-item {
+  min-height: 52px;
+  padding: 8px 14px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 252, 242, 0.9);
+  color: var(--ink);
+  font: 16px var(--sans);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.menu-item small {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.menu-item.danger b {
+  color: var(--red);
+}
+
+.battle-sheet .row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting,
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 252, 242, 0.9);
+  color: var(--ink);
+  font: 15px var(--sans);
+  text-align: left;
+}
+
+.toggle {
+  cursor: pointer;
+}
+
+.toggle b {
+  min-width: 42px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(59, 50, 38, 0.12);
+  text-align: center;
+  font-size: 13px;
+}
+
+.toggle.on b {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.toggle:disabled {
+  opacity: 0.55;
+}
+
+.segmented {
+  display: flex;
+  gap: 4px;
+}
+
+.seg {
+  min-width: 48px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}
+
+.seg.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(120px, 38%) 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.controls dt {
+  font-weight: 700;
+}
+
+.controls dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* ---------- Preview, card and log keep to the sides of the play area ---------- */
+
+.preview {
+  bottom: calc(80px + var(--safe-b));
+}
+
+.card {
+  top: calc(104px + var(--safe-t));
+}
+
+.log-drawer {
+  top: calc(104px + var(--safe-t));
+}
+
+/* ---------- Phone landscape (812×375) ---------- */
+
+@media (max-height: 500px) {
+  .hud {
+    font-size: 13px;
+  }
+  .topbar {
+    height: calc(44px + var(--safe-t));
+    gap: 6px;
+  }
+  .topbar .turn,
+  .meter small {
+    display: none;
+  }
+  .topbar .title .name {
+    font-size: 15px;
+  }
+  .meter {
+    grid-template-columns: auto 40px;
+  }
+  /* The objective becomes an icon: tap it for the full text. */
+  .topbar .objective {
+    max-width: none;
+    padding: 0 10px;
+  }
+  .topbar .objective .obj-text {
+    display: none;
+  }
+  .guide {
+    top: calc(44px + var(--safe-t));
+    height: 36px;
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+  .guide.tutorial {
+    min-height: 36px;
+    left: calc(64px + var(--safe-l));
+    right: calc(64px + var(--safe-r));
+  }
+  .corner.right {
+    bottom: calc(8px + var(--safe-b));
+    right: calc(8px + var(--safe-r));
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .end-turn {
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+  .medallion {
+    width: 52px;
+    height: 52px;
+    bottom: calc(8px + var(--safe-b));
+    left: calc(8px + var(--safe-l));
+  }
+  .medallion .seal {
+    font-size: 16px;
+  }
+  .medallion .label {
+    display: none;
+  }
+  .toasts {
+    bottom: calc(70px + var(--safe-b));
+    right: calc(68px + var(--safe-r));
+  }
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+  .preview {
+    bottom: calc(6px + var(--safe-b));
+    width: min(560px, calc(100% - 150px));
+    padding: 8px 12px;
+  }
+  .preview h2 {
+    font-size: 16px;
+  }
+  .preview .note {
+    margin-bottom: 6px;
+  }
+  .preview .big {
+    font-size: 20px;
+  }
+  .preview .mods {
+    display: none;
+  }
+  .preview .row {
+    margin-top: 6px;
+  }
+  .card,
+  .log-drawer {
+    top: calc(84px + var(--safe-t));
+    max-height: calc(100% - 100px);
+  }
+}
+
+/* The attack preview docks at whichever end of the screen keeps the fight in view. */
+.preview.dock-top {
+  bottom: auto;
+  top: calc(104px + var(--safe-t));
+}
+
+@media (max-height: 500px) {
+  .preview.dock-top {
+    top: calc(84px + var(--safe-t));
+  }
+}
+
+/* Side docks: a narrower preview against the side away from the fight. */
+.preview.dock-left,
+.preview.dock-right {
+  top: calc(104px + var(--safe-t));
+  bottom: auto;
+  width: min(380px, 44%);
+  transform: none;
+}
+.preview.dock-right {
+  left: auto;
+  right: calc(10px + var(--safe-r));
+}
+.preview.dock-left {
+  left: calc(10px + var(--safe-l));
+}
+.preview.dock-left .cols,
+.preview.dock-right .cols {
+  grid-template-columns: 1fr;
+}

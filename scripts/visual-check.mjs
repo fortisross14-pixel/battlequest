@@ -178,19 +178,34 @@ for (const size of SIZES) {
   await tapCell(page, 7, 3);
   await shot(page, size, '03-ghost');
   await tapCell(page, 7, 3);
-  await page.waitForTimeout(700);
-  await shot(page, size, '04-facing-ring');
-  await tapNear(page, 7, 3, 0, -60); // pick a handle (north-ish)
-  await shot(page, size, '05-after-ring');
-  // Archers: the Turn button and the missile range area.
-  await tapCell(page, 4, 5); // b-archers
-  await shot(page, size, '05a-archer-range');
-  await page.getByRole('button', { name: 'Turn the selected unit' }).tap();
+  await page.waitForTimeout(900);
+  // Moved: the bubble reopens (with an Undo petal) and the "Moved · Undo" toast appears.
+  await shot(page, size, '04-moved-undo');
+  // Turn mode from the ↻ petal: arrowheads around the unit.
+  await page.locator('.petal.turn').tap();
   await page.waitForTimeout(400);
-  await shot(page, size, '05a2-turn-ring');
+  await shot(page, size, '05-turn-mode');
+  await tapNear(page, 7, 3, 0, -60); // pick an arrowhead (north-ish)
+  await page.waitForTimeout(500);
+  // Archers: the command bubble and the missile range area.
+  await tapCell(page, 4, 5); // b-archers
+  await page.waitForTimeout(500);
+  await shot(page, size, '05a-archer-range');
   await tapCell(page, 0, 9);
   await longPress(page, 13, 4); // empty hill square: terrain card
   await shot(page, size, '05b-terrain-card');
+  await page.getByRole('button', { name: 'Close' }).tap();
+  await page.getByRole('button', { name: 'Battle menu' }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '05c-battle-menu');
+  await page.getByRole('button', { name: /^Settings/ }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '05d-settings');
+  await page.getByRole('button', { name: 'Close' }).tap();
+  await page.getByRole('button', { name: 'Battle menu' }).tap();
+  await page.getByRole('button', { name: /^How to play/ }).tap();
+  await page.waitForTimeout(400);
+  await shot(page, size, '05e-how-to-play');
   await page.getByRole('button', { name: 'Close' }).tap();
   const small = await smallTargets(page);
   if (small.length) problems.push(`${size.name}: small buttons ${JSON.stringify(small)}`);
@@ -288,7 +303,8 @@ for (const size of SIZES) {
   await page.waitForTimeout(300);
   await shot(page, size, '23d-combat-log');
   await page.locator('.log-drawer').getByRole('button', { name: 'Close' }).tap();
-  await page.getByRole('button', { name: 'Leave battle' }).tap();
+  await page.getByRole('button', { name: 'Battle menu' }).tap();
+  await page.getByRole('button', { name: /^Retreat/ }).tap();
   await page.getByRole('button', { name: 'Leave', exact: true }).tap();
   await page.waitForTimeout(1200);
   await shot(page, size, '24-results');
@@ -395,7 +411,8 @@ for (const size of SIZES) {
       await shot(page, size, '36b-kadesh-shoot-targets');
     }
   }
-  await page.getByRole('button', { name: 'Leave battle' }).tap();
+  await page.getByRole('button', { name: 'Battle menu' }).tap();
+  await page.getByRole('button', { name: /^Retreat/ }).tap();
   await page.getByRole('button', { name: 'Leave', exact: true }).tap();
   await page.waitForTimeout(1200);
 

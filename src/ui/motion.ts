@@ -74,13 +74,18 @@ try {
 }
 
 let osReduced = false;
-const mm = gsap.matchMedia();
-mm.add(
-  { reduce: '(prefers-reduced-motion: reduce)', full: '(prefers-reduced-motion: no-preference)' },
-  (ctx) => {
-    osReduced = !!ctx.conditions?.reduce;
-  },
-);
+// The OS setting, through GSAP's matchMedia (only in a browser; tests run in Node).
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+  gsap.matchMedia().add(
+    {
+      reduce: '(prefers-reduced-motion: reduce)',
+      full: '(prefers-reduced-motion: no-preference)',
+    },
+    (ctx) => {
+      osReduced = !!ctx.conditions?.reduce;
+    },
+  );
+}
 
 export function motionSettings(): Readonly<MotionSettings> {
   return settings;
@@ -131,7 +136,11 @@ export function isAnimating(): boolean {
 /** Waits for a GSAP animation to finish (or be fast-forwarded). */
 export function done(anim: gsap.core.Animation): Promise<void> {
   return new Promise((resolve) => {
-    if (anim.progress() >= 1) return resolve();
+    // Already finished, or nothing to play (an empty timeline completes before we listen).
+    if (anim.progress() >= 1 || anim.totalDuration() === 0) {
+      running.delete(anim);
+      return resolve();
+    }
     const prev = anim.eventCallback('onComplete');
     anim.eventCallback('onComplete', () => {
       running.delete(anim);

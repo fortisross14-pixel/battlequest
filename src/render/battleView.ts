@@ -225,6 +225,22 @@ export class BattleView {
         ? lo + (span - size) / 2
         : Math.min(lo + 40, Math.max(lo + span - size - 40, pos));
     this.world.position.set(fitX(vp.x, w, vp.w, this.world.x), fitX(vp.y, h, vp.h, this.world.y));
+    this.onCamera?.();
+  }
+
+  /** Called whenever the camera moves (HTML overlays attached to units follow it). */
+  onCamera: (() => void) | null = null;
+
+  /** One square's size on screen at the current zoom (px). */
+  cellSizeOnScreen(): number {
+    return CELL * this.zoom;
+  }
+
+  /** A square's centre in client (page) coordinates, for HTML overlays. */
+  cellToClient(p: Pos): Pos {
+    const r = this.app.canvas.getBoundingClientRect();
+    const q = this.cellToScreen(p);
+    return { x: r.left + q.x, y: r.top + q.y };
   }
 
   screenToCell(sx: number, sy: number): Pos | null {

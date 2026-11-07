@@ -57,7 +57,7 @@ async function cell(page, x, y) {
 async function tapCell(page, x, y) {
   const p = await cell(page, x, y);
   await page.touchscreen.tap(p.x, p.y);
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(450);
 }
 
 /** Measures frame rate while `start()` plays, with no screenshots in the way. */

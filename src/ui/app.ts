@@ -211,10 +211,8 @@ export class App implements AppApi {
     hud.setChip(
       'Deployment: tap a unit (your general too), then a shaded square twice to move it there or swap. Then Start battle.',
     );
-    hud.undoBtn.classList.add('hidden');
-    hud.nextBtn.classList.add('hidden');
     hud.endBtn.textContent = 'Start battle';
-    hud.setButtons({ undo: false, next: false, end: true, menu: true });
+    hud.setButtons({ end: true, menu: true });
     hud.menuBtn.onclick = () => this.back();
     hud.endBtn.onclick = () => this.fight(b, army, placement, seed);
     highlight();
@@ -295,6 +293,8 @@ export class App implements AppApi {
         status: bonusStatus(b, s),
       }),
       onEnd: (final, summary) => window.setTimeout(() => finish(final, summary), 900),
+      // Restart (UX §6): back to deployment with the same army and a fresh seed; no defeat.
+      onRestart: () => this.deploy(b, army),
       onExit: (summary) => {
         // Retreating is a defeat, through the rules like any other command.
         if (!session.state.result) session.apply({ type: 'Concede', side: 'blue' });
@@ -318,6 +318,7 @@ export class App implements AppApi {
     const controller = new Controller(session, this.view, hud, {
       title: scenario.name,
       onExit: () => this.menu(),
+      onRestart: () => this.sandbox(id),
     });
     this.controller = controller;
     this.gestures = {

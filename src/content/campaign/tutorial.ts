@@ -27,7 +27,7 @@ export const MEGIDDO_TUTORIAL: TutorialStep[] = [
     highlight: { squares: [{ x: 4, y: 3 }] },
   },
   {
-    text: 'Pick a facing on the ring (any turn costs 1 MP), or tap elsewhere to keep facing the enemy. The thick edge of a block is its front.',
+    text: 'The thick edge of a block is its front: it fights and defends best that way. To turn, use the ↻ petal (1 MP). Your spearmen already face the enemy, so just tap the map to carry on.',
     until: 'facing',
     highlight: { units: ['p0'] },
   },

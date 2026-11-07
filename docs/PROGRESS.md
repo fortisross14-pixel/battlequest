@@ -53,8 +53,8 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 
 ## Premium UX and battle depth (docs/prompts/09-premium-ux-and-battle-depth.md)
 - [x] Phase A — GSAP foundations: motion tokens and settings, board animation on GSAP timelines, tap fast-forwards, layout manager, motion-check tool
-- [ ] Phase B — battle screen zones and battle menu (Restart)
-- [ ] Phase C — command bubble and controls
+- [x] Phase B — battle screen zones (top bar, guidance strip with leader lines, medallion, End turn + waiting chip, toast stack), battle menu with Restart command, settings and How to play
+- [x] Phase C — command bubble with fixed-clock petals, move-by-default, Moved · Undo toast, turn mode via petal, long-press Info, keyboard shortcuts, quick confirm
 - [ ] Phase D — tactical actions
 - [ ] Phase E — battle motion
 - [ ] Phase F — premium menus, ceremonies (owner approval gate), age filters

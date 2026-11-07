@@ -1,5 +1,6 @@
 import { RULES } from '../core/config';
 import { layout } from './layout';
+import { EASE, gsap, MOTION, reducedMotion, sec } from './motion';
 import type { CombatPreview, SidePreview } from '../core/preview';
 import { isEngaged } from '../core/state';
 import { cellAt } from '../core/map';
@@ -91,135 +92,202 @@ export interface TopInfo {
   objective?: { text: string; bonus: string; status: BonusStatus };
 }
 
+/** The general medallion (UX §1): seal, rank pips and the skill's cooldown ring. */
+export interface MedallionInfo {
+  name: string;
+  initials: string;
+  rank: number;
+  /** ready: tap to use; cooldown: turns left shown on the ring; blocked: why not now. */
+  skill: 'ready' | 'cooldown' | 'blocked' | 'none';
+  /** 0–1, how much of the cooldown has passed. */
+  progress: number;
+  label: string;
+}
+
+export interface MenuItem {
+  label: string;
+  run: () => void;
+  danger?: boolean;
+  /** A short line under the label. */
+  note?: string;
+}
+
+/** Names of the reserved HUD zones registered with the layout manager. */
+const ZONES = ['topbar', 'guide', 'medallion', 'corner-right'] as const;
+
 export class Hud {
   readonly root = el('div', { class: 'hud' });
   private top = el('div', { class: 'topbar' });
-  private chip = el('div', { class: 'chip', role: 'status' });
-  private toastEl = el('div', { class: 'toast', role: 'alert' });
+  private topInfo = el('div', { class: 'top-info' });
+  /** Guidance strip (UX §1): tutorial steps and hints dock here, never over the map. */
+  private guide = el('div', { class: 'guide', role: 'status' });
+  private guideText = el('span', { class: 'guide-text' });
+  private guideExtra = el('span', { class: 'guide-extra' });
+  /** Ink leader lines from the strip to what a step points at. */
+  private leaders = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  private leaderTarget: { x: number; y: number } | null = null;
+  private tutorialOn = false;
+  private hint: string | null = null;
+  private toasts = el('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' });
   private panel = el('div', { class: 'panel preview hidden' });
   private card = el('div', { class: 'panel card hidden' });
   private overlay = el('div', { class: 'overlay hidden' });
-  readonly undoBtn = el(
+  private sheet = el('div', { class: 'battle-sheet hidden', role: 'dialog' });
+  readonly endBtn = el('button', { class: 'btn primary end-turn', type: 'button' }, 'End turn');
+  /** "2 waiting": cycles through the units that haven't acted (replaces Next unit). */
+  readonly waitingBtn = el(
     'button',
-    { class: 'btn', type: 'button', 'aria-label': 'Undo last move' },
-    '↶ Undo',
+    { class: 'chip-btn waiting hidden', type: 'button', 'aria-label': 'Next waiting unit' },
+    '',
   );
-  readonly nextBtn = el(
+  /** The general medallion: tap it to use the general's skill. */
+  readonly medallionBtn = el(
     'button',
-    { class: 'btn', type: 'button', 'aria-label': 'Next unit' },
-    'Next unit ›',
-  );
-  readonly endBtn = el('button', { class: 'btn primary', type: 'button' }, 'End turn');
-  readonly skillBtn = el(
-    'button',
-    { class: 'btn gold hidden', type: 'button', 'aria-label': 'General skill' },
-    '★ General',
-  );
-  readonly turnBtn = el(
-    'button',
-    { class: 'btn hidden', type: 'button', 'aria-label': 'Turn the selected unit' },
-    '↻ Turn',
+    { class: 'medallion hidden', type: 'button', 'aria-label': 'General skill' },
+    '',
   );
   readonly speedBtn = el(
     'button',
-    { class: 'btn hidden', type: 'button', 'aria-label': 'Playback speed' },
+    { class: 'chip-btn speed hidden', type: 'button', 'aria-label': 'Playback speed' },
     'Speed 1×',
   );
   readonly menuBtn = el(
     'button',
-    { class: 'btn menu-btn hidden', type: 'button', 'aria-label': 'Leave battle' },
+    { class: 'btn icon menu-btn', type: 'button', 'aria-label': 'Battle menu' },
     '☰',
   );
-  private tutorial = el('div', { class: 'tutorial hidden', role: 'note' });
+  private corner = el('div', { class: 'corner right' }, this.waitingBtn, this.endBtn);
   private skills = el('div', { class: 'panel card skills hidden' });
-  private toastTimer: number | undefined;
+  private menuBtnShown = true;
 
   constructor(host: HTMLElement) {
-    const left = el(
-      'div',
-      { class: 'corner left' },
-      this.undoBtn,
-      this.nextBtn,
-      this.turnBtn,
-      this.skillBtn,
-    );
-    const right = el('div', { class: 'corner right' }, this.speedBtn, this.endBtn);
+    this.leaders.setAttribute('class', 'leaders');
+    this.guide.append(this.guideText, this.guideExtra);
+    this.top.append(this.menuBtn, this.topInfo, this.speedBtn);
     this.root.append(
+      this.leaders,
       this.top,
-      this.menuBtn,
-      this.tutorial,
+      this.guide,
       this.skills,
-      this.chip,
-      left,
-      right,
-      this.toastEl,
+      this.medallionBtn,
+      this.corner,
+      this.toasts,
       this.panel,
       this.card,
       this.overlay,
+      this.sheet,
     );
     host.append(this.root);
     this.mountExtras();
     // Reserved HUD zones (UX §1): the camera fits the map into what is left.
     layout.register('topbar', this.top);
-    layout.register('menu', this.menuBtn);
-    layout.register('corner-left', left);
-    layout.register('corner-right', right);
+    layout.register('guide', this.guide);
+    layout.register('medallion', this.medallionBtn);
+    layout.register('corner-right', this.corner);
+    this.renderGuide();
+    window.addEventListener('resize', this.onResize);
   }
+
+  private onResize = () => this.drawLeader();
 
   setTop(i: TopInfo): void {
     const N = i.names ?? SIDE_NAME;
-    const army = (s: Side) =>
-      el(
+    const meter = (s: Side) => {
+      const fill = Math.min(1, i.lost[s] / Math.max(0.01, i.breakpoint[s]));
+      return el(
         'span',
-        { class: `army ${s}` },
+        {
+          class: `meter ${s} ${fill >= 0.75 ? 'danger' : ''}`,
+          title: `${N[s]} lost ${pct(i.lost[s])}; breaks at ${pct(i.breakpoint[s])}`,
+          'aria-label': `${N[s]} lost ${pct(i.lost[s])} of ${pct(i.breakpoint[s])} before it breaks`,
+        },
         el('b', {}, N[s]),
-        ` lost ${pct(i.lost[s])} `,
-        el('small', {}, `/ breaks at ${pct(i.breakpoint[s])}`),
+        el('i', { class: 'bar' }, el('i', { style: `transform:scaleX(${fill.toFixed(3)})` })),
+        el('small', {}, pct(i.lost[s])),
       );
-    this.top.classList.toggle('has-objective', !!i.objective);
-    this.top.replaceChildren(
-      el('span', { class: 'title' }, i.title),
-      el(
-        'span',
-        { class: `turn ${i.side}` },
-        `Turn ${i.turn} / ${i.turnLimit} · `,
-        el('b', {}, `${N[i.side]} to move`),
-      ),
-      i.objective
-        ? el(
-            'span',
-            { class: `objective ${i.objective.status}` },
-            i.objective.text,
-            ' · ',
+    };
+    const objective = i.objective
+      ? (() => {
+          const o = i.objective;
+          const b = el(
+            'button',
+            {
+              class: `objective ${o.status}`,
+              type: 'button',
+              'aria-label': `Objective: ${o.text}. Bonus: ${o.bonus}, ${o.status}`,
+            },
+            el('span', { class: 'obj-text' }, o.text),
             el(
               'b',
-              { class: 'bonus-mark', 'aria-label': `bonus ${i.objective.status}` },
-              `★${i.objective.status === 'met' ? '✓' : i.objective.status === 'failed' ? '✗' : '…'}`,
+              { class: 'bonus-mark' },
+              `★${o.status === 'met' ? '✓' : o.status === 'failed' ? '✗' : '…'}`,
             ),
-            el('small', { class: 'bonus' }, ` ${i.objective.bonus}`),
-          )
-        : '',
-      el('span', { class: 'armies' }, army('blue'), army('red')),
+          );
+          b.onclick = () =>
+            this.showSheet(
+              'Objective',
+              el(
+                'div',
+                {},
+                el('p', {}, el('b', {}, o.text)),
+                el(
+                  'p',
+                  {},
+                  `★★★: win losing under 30% of your army, and ${o.bonus.toLowerCase()}. `,
+                  el(
+                    'b',
+                    {},
+                    o.status === 'met'
+                      ? 'On track.'
+                      : o.status === 'failed'
+                        ? 'Missed.'
+                        : 'Not yet.',
+                  ),
+                ),
+              ),
+            );
+          return b;
+        })()
+      : '';
+    this.topInfo.replaceChildren(
+      this.logBtn,
+      el(
+        'span',
+        { class: 'title' },
+        el('span', { class: 'name' }, i.title),
+        el('span', { class: `turn ${i.side}` }, ` · Turn ${i.turn}/${i.turnLimit}`),
+      ),
+      objective,
+      el('span', { class: 'meters' }, meter('blue'), meter('red')),
     );
   }
 
-  setButtons(b: {
-    undo: boolean;
-    next: boolean;
-    end: boolean;
-    skill?: 'none' | 'ready' | 'waiting';
-    menu?: boolean;
-    /** The selected unit can turn: show the Turn button. */
-    turn?: boolean;
-  }): void {
-    this.turnBtn.classList.toggle('hidden', !b.turn);
-    this.undoBtn.disabled = !b.undo;
-    this.nextBtn.disabled = !b.next;
+  setButtons(b: { end: boolean; menu?: boolean }): void {
     this.endBtn.disabled = !b.end;
-    const skill = b.skill ?? 'none';
-    this.skillBtn.classList.toggle('hidden', skill === 'none');
-    this.skillBtn.disabled = skill !== 'ready';
-    this.menuBtn.classList.toggle('hidden', !b.menu);
+    this.menuBtnShown = b.menu ?? true;
+    this.menuBtn.classList.toggle('hidden', !this.menuBtnShown);
+  }
+
+  /** The "N waiting" chip next to End turn. */
+  setWaiting(n: number): void {
+    this.waitingBtn.textContent = `${n} waiting`;
+    this.waitingBtn.classList.toggle('hidden', n <= 0);
+  }
+
+  setMedallion(m: MedallionInfo | null): void {
+    this.medallionBtn.classList.toggle('hidden', !m);
+    layout.changed();
+    if (!m) return;
+    const ring = Math.round(Math.max(0, Math.min(1, m.progress)) * 360);
+    this.medallionBtn.className = `medallion ${m.skill}`;
+    this.medallionBtn.setAttribute('aria-label', `${m.name}, rank ${m.rank}. ${m.label}`);
+    this.medallionBtn.disabled = m.skill !== 'ready';
+    this.medallionBtn.replaceChildren(
+      el('span', { class: 'ring', style: `--ring:${ring}deg` }),
+      el('span', { class: 'seal' }, m.initials),
+      el('span', { class: 'pips' }, '•'.repeat(Math.min(10, m.rank))),
+      el('small', { class: 'label' }, m.label),
+    );
   }
 
   showSpeed(on: boolean): void {
@@ -230,41 +298,73 @@ export class Hud {
     this.speedBtn.textContent = label;
   }
 
+  // ---------- Guidance strip ----------
+
   /**
-   * Shows a tutorial step. The card sits at the top of the board, or at the bottom when it
-   * would cover any of `avoid` (client coordinates of the units the step is about).
+   * Shows a tutorial step in the guidance strip, with an ink leader line to `target` (client
+   * coordinates of what the step points at). The strip never covers the map (UX §1).
    */
   setTutorial(
     text: string | null,
     progress: string,
     onSkip?: () => void,
-    avoid: { x: number; y: number }[] = [],
+    target: { x: number; y: number } | null = null,
   ): void {
-    this.tutorial.classList.toggle('hidden', !text);
-    this.tutorial.classList.remove('bottom');
-    if (!text) return;
-    const skip = el(
-      'button',
-      { class: 'btn small skip-tutorial', type: 'button' },
-      'Skip tutorial',
-    );
-    if (onSkip) skip.onclick = onSkip;
-    this.tutorial.replaceChildren(
-      el('small', {}, `Tutorial ${progress}`),
-      text,
-      onSkip ? skip : '',
-    );
-    const r = this.tutorial.getBoundingClientRect();
-    const margin = 36;
-    const covered = avoid.some(
-      (p) =>
-        p.x > r.left - margin &&
-        p.x < r.right + margin &&
-        p.y > r.top - margin &&
-        p.y < r.bottom + margin,
-    );
-    this.tutorial.classList.toggle('bottom', covered);
+    this.tutorialOn = !!text;
+    this.leaderTarget = text ? target : null;
+    if (text) {
+      const skip = el('button', { class: 'chip-btn skip-tutorial', type: 'button' }, 'Skip');
+      if (onSkip) skip.onclick = onSkip;
+      this.guideText.replaceChildren(el('small', { class: 'step' }, `Tutorial ${progress}`), text);
+      this.guideExtra.replaceChildren(onSkip ? skip : '');
+    }
+    this.renderGuide();
   }
+
+  /** A one-line hint (what is selected, what a tap will do). */
+  setChip(text: string | null): void {
+    this.hint = text;
+    this.renderGuide();
+  }
+
+  private renderGuide(): void {
+    this.guide.classList.toggle('tutorial', this.tutorialOn);
+    if (!this.tutorialOn) {
+      this.guideText.replaceChildren(this.hint ?? '');
+      this.guideExtra.replaceChildren();
+    }
+    this.guide.classList.toggle('empty', !this.tutorialOn && !this.hint);
+    this.drawLeader();
+  }
+
+  /** Moves the leader line's end (the target moved or the camera changed). */
+  setLeaderTarget(target: { x: number; y: number } | null): void {
+    this.leaderTarget = this.tutorialOn ? target : null;
+    this.drawLeader();
+  }
+
+  private drawLeader(): void {
+    const t = this.leaderTarget;
+    if (!t || !this.tutorialOn) {
+      this.leaders.replaceChildren();
+      return;
+    }
+    const r = this.guide.getBoundingClientRect();
+    const x0 = Math.min(Math.max(t.x, r.left + 24), r.right - 24);
+    const y0 = r.bottom;
+    // A gentle ink curve from the strip down to just above the target.
+    const y1 = t.y - 26;
+    const mid = (y0 + y1) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M ${x0} ${y0} C ${x0} ${mid}, ${t.x} ${mid}, ${t.x} ${y1}`);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', String(x0));
+    dot.setAttribute('cy', String(y0));
+    dot.setAttribute('r', '3.5');
+    this.leaders.replaceChildren(path, dot);
+  }
+
+  // ---------- Sheets: skills, battle menu, objectives, settings, help ----------
 
   showSkills(
     general: string,
@@ -294,6 +394,60 @@ export class Hud {
     this.skills.classList.add('hidden');
   }
 
+  /** The battle menu (UX §6): a parchment sheet sliding from the left. */
+  showMenu(items: MenuItem[]): void {
+    const list = el(
+      'div',
+      { class: 'menu-list' },
+      ...items.map((it) => {
+        const b = el(
+          'button',
+          { class: `menu-item ${it.danger ? 'danger' : ''}`, type: 'button' },
+          el('b', {}, it.label),
+          it.note ? el('small', {}, it.note) : '',
+        );
+        b.onclick = () => {
+          this.hideSheet();
+          it.run();
+        };
+        return b;
+      }),
+    );
+    this.openSheet('menu', el('h2', {}, 'Battle'), list);
+  }
+
+  /** A titled sheet (objectives, settings, how to play) with a Close button. */
+  showSheet(title: string, body: HTMLElement): void {
+    const close = el('button', { class: 'btn', type: 'button' }, 'Close');
+    close.onclick = () => this.hideSheet();
+    this.openSheet('page', el('h2', {}, title), body, el('div', { class: 'row' }, close));
+  }
+
+  private openSheet(kind: string, ...children: HTMLElement[]): void {
+    this.sheet.className = `battle-sheet ${kind}`;
+    this.sheet.replaceChildren(el('div', { class: 'sheet-body' }, ...children));
+    this.sheet.onclick = (e) => {
+      if (e.target === this.sheet) this.hideSheet();
+    };
+    this.sheet.classList.remove('hidden');
+    const body = this.sheet.firstElementChild as HTMLElement;
+    if (!reducedMotion()) {
+      gsap.fromTo(
+        body,
+        { x: -40, opacity: 0 },
+        { x: 0, opacity: 1, duration: sec(MOTION.quick + 60), ease: EASE.out },
+      );
+    }
+  }
+
+  hideSheet(): void {
+    this.sheet.classList.add('hidden');
+  }
+
+  get sheetOpen(): boolean {
+    return !this.sheet.classList.contains('hidden');
+  }
+
   showConfirm(title: string, body: string, yes: string, onYes: () => void): void {
     const y = el('button', { class: 'btn primary', type: 'button' }, yes);
     const n = el('button', { class: 'btn', type: 'button' }, 'Stay');
@@ -314,13 +468,11 @@ export class Hud {
     this.overlay.classList.remove('hidden');
   }
 
-  // ---------- Readability: objective, melee banner, combat log (review 1 WP6) ----------
+  // ---------- Readability: combat log, results (review 1 WP6) ----------
 
-  private banner = el('div', { class: 'melee-banner hidden', role: 'status' });
-  private bannerTimer: number | undefined;
   readonly logBtn = el(
     'button',
-    { class: 'btn log-btn', type: 'button', 'aria-label': 'Combat log' },
+    { class: 'btn icon log-btn', type: 'button', 'aria-label': 'Combat log' },
     'Log',
   );
   private logPanel = el('div', { class: 'panel log-drawer hidden', role: 'log' });
@@ -336,7 +488,7 @@ export class Hud {
       el('div', { class: 'row' }, close),
     );
     this.logBtn.onclick = () => this.toggleLog(!this.logOpen);
-    this.root.append(this.banner, this.logBtn, this.logPanel);
+    this.root.append(this.logPanel);
   }
 
   toggleLog(open: boolean): void {
@@ -356,30 +508,61 @@ export class Hud {
     if (this.logOpen) this.logList.lastElementChild?.scrollIntoView({ block: 'end' });
   }
 
-  /** A short banner over the map, e.g. the melee results at the end of a turn. */
+  /** Combat results (e.g. the melee phase) as a toast in the stack above End turn. */
   showBanner(title: string, lines: string[], ms: number): void {
-    window.clearTimeout(this.bannerTimer);
-    this.banner.replaceChildren(el('b', {}, title), ...lines.map((l) => el('span', {}, l)));
-    this.banner.classList.remove('hidden');
-    this.bannerTimer = window.setTimeout(() => this.banner.classList.add('hidden'), ms);
+    this.pushToast(el('div', {}, el('b', {}, title), ...lines.map((l) => el('span', {}, l))), ms);
   }
 
   destroy(): void {
-    for (const n of ['topbar', 'menu', 'corner-left', 'corner-right']) layout.unregister(n);
-    window.clearTimeout(this.bannerTimer);
+    for (const n of ZONES) layout.unregister(n);
+    window.removeEventListener('resize', this.onResize);
     this.root.remove();
   }
 
-  setChip(text: string | null): void {
-    this.chip.textContent = text ?? '';
-    this.chip.classList.toggle('hidden', !text);
+  /** A short message in the toast stack; `action` adds a button ("Moved · Undo"). */
+  toast(msg: string, action?: { label: string; run: () => void }, ms = 2200): void {
+    const body = el('div', { class: 'toast-row' }, el('span', {}, msg));
+    if (action) {
+      const b = el('button', { class: 'chip-btn', type: 'button' }, action.label);
+      b.onclick = () => {
+        item.remove();
+        action.run();
+      };
+      body.append(b);
+    }
+    const item = this.pushToast(body, ms);
   }
 
-  toast(msg: string): void {
-    this.toastEl.textContent = msg;
-    this.toastEl.classList.add('show');
-    if (this.toastTimer !== undefined) window.clearTimeout(this.toastTimer);
-    this.toastTimer = window.setTimeout(() => this.toastEl.classList.remove('show'), 2200);
+  private pushToast(content: HTMLElement, ms: number): HTMLElement {
+    const item = el('div', { class: 'toast' }, content);
+    this.toasts.append(item);
+    // At most three at once: the oldest goes.
+    while (this.toasts.children.length > 3) this.toasts.firstElementChild?.remove();
+    if (!reducedMotion()) {
+      gsap.fromTo(
+        item,
+        { y: 10, opacity: 0 },
+        { y: 0, opacity: 1, duration: sec(MOTION.quick), ease: EASE.out },
+      );
+    }
+    window.setTimeout(() => {
+      if (!item.isConnected) return;
+      if (reducedMotion()) item.remove();
+      else
+        gsap.to(item, {
+          opacity: 0,
+          y: -6,
+          duration: sec(MOTION.quick),
+          ease: EASE.in,
+          onComplete: () => item.remove(),
+        });
+    }, ms);
+    return item;
+  }
+
+  /** Removes the toasts whose text starts with `prefix` (e.g. an Undo that no longer applies). */
+  clearToasts(): void {
+    this.toasts.replaceChildren();
   }
 
   // ---------- Combat preview ----------
@@ -389,6 +572,8 @@ export class Hud {
     att: Unit,
     def: Unit,
     actions: { confirm: () => void; cancel: () => void; alt?: { label: string; run: () => void } },
+    /** Client positions of the two units: the panel docks where it covers neither. */
+    units: { x: number; y: number }[] = [],
   ): void {
     const verb = p.kind === 'charge' ? 'Charge' : 'Shoot';
     const col = (u: Unit, s: SidePreview, role: string) =>
@@ -464,7 +649,34 @@ export class Hud {
       ),
       buttons,
     );
+    // Dock away from the attacker and the target, so the fight stays in view: measure the
+    // panel, then pick the end of the screen that covers neither (or fewer) of them.
     this.panel.classList.remove('hidden');
+    const margin = 36;
+    const hits = (dock: string) => {
+      this.panel.classList.remove('dock-top', 'dock-left', 'dock-right');
+      if (dock) this.panel.classList.add(dock);
+      const r = this.panel.getBoundingClientRect();
+      return units.filter(
+        (u) =>
+          u.x + margin > r.left &&
+          u.x - margin < r.right &&
+          u.y + margin > r.top &&
+          u.y - margin < r.bottom,
+      ).length;
+    };
+    const docks = ['', 'dock-top', 'dock-right', 'dock-left'];
+    let best = docks[0]!;
+    let bestHits = Infinity;
+    for (const d of docks) {
+      const h = hits(d);
+      if (h < bestHits) {
+        best = d;
+        bestHits = h;
+      }
+      if (h === 0) break;
+    }
+    hits(best);
   }
 
   hidePreview(): void {

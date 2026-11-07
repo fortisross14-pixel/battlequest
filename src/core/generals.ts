@@ -129,6 +129,7 @@ export function deployGeneral(state: BattleState, side: Side, g: GeneralSetup): 
   const slot: GeneralSlot = {
     generalId: g.def.id,
     name: g.def.pennant,
+    rank: g.rank,
     unitId: g.unitId,
     commandRadius: commandRadiusForRank(g.rank),
     rallyBonus,

@@ -170,6 +170,8 @@ export interface SkillState {
 export interface GeneralSlot {
   generalId: string;
   name: string;
+  /** 1–10 (shown on the general medallion). */
+  rank?: number;
   /** Unit the general is attached to. */
   unitId: string;
   commandRadius: number;
@@ -206,7 +208,9 @@ export type BattleEndReason =
   | 'heldOut'
   | 'conceded'
   /** A side's general was routed or destroyed. */
-  | 'generalFell';
+  | 'generalFell'
+  /** The player restarted the battle from deployment (no winner, no defeat). */
+  | 'restarted';
 
 export interface BattleResult {
   /** null = draw. */

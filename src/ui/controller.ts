@@ -1,6 +1,9 @@
 import type { AiPlayer } from '../ai/utility';
 import type { Command } from '../core/engine';
-import { fastForward } from './motion';
+import { fastForward, haptic, motionSettings } from './motion';
+import { Bubble, type Petal } from './bubble';
+import { howToPlay, settingsPage } from './controls';
+import { el } from './hud';
 import { validateCommand } from '../core/engine';
 import type { GameEvent } from '../core/events';
 import { generalUnit, skillNeedsTarget, validSkillTarget } from '../core/generals';
@@ -57,6 +60,8 @@ export interface ControllerOptions {
   objective?: (state: BattleState) => TopInfo['objective'];
   /** The player retreats to the menu. */
   onExit?: (summary: BattleSummary) => void;
+  /** Restart battle (UX §6): back to deployment with the same army and a new seed. */
+  onRestart?: () => void;
 }
 
 /**
@@ -80,6 +85,9 @@ export class Controller {
   private logNames: Record<Side, string>;
   /** Set when the player leaves: AI playback and pending results stop. */
   private disposed = false;
+  /** The command bubble around the selected unit (UX §2). */
+  private bubble: Bubble;
+  private onKey = (e: KeyboardEvent) => this.key(e);
 
   constructor(
     private session: BattleSession,
@@ -97,16 +105,19 @@ export class Controller {
           string
         >)
       : this.names;
-    hud.undoBtn.onclick = () => this.undo();
-    hud.nextBtn.onclick = () => this.nextUnit();
     hud.endBtn.onclick = () => void this.endTurn();
-    hud.skillBtn.onclick = () => this.openSkills();
+    hud.waitingBtn.onclick = () => this.nextUnit();
+    hud.medallionBtn.onclick = () => this.generalSkill();
     hud.speedBtn.onclick = () => this.cycleSpeed();
-    hud.turnBtn.onclick = () => {
-      const u = 'unitId' in this.mode ? this.unit(this.mode.unitId) : undefined;
-      if (u && this.canTurnSelected()) this.openFacingRing(u);
+    hud.menuBtn.onclick = () => this.openMenu();
+    this.bubble = new Bubble(hud.root);
+    // HTML overlays attached to units follow the camera.
+    view.onCamera = () => {
+      const sel = 'unitId' in this.mode ? this.unit(this.mode.unitId) : undefined;
+      if (sel && this.bubble.isOpen) this.bubble.moveTo(this.view.cellToClient(sel));
+      this.updateLeader();
     };
-    hud.menuBtn.onclick = () => this.confirmExit();
+    window.addEventListener('keydown', this.onKey);
     this.showTutorial();
     this.refresh();
     if (opts.ai && this.state.activeSide === opts.ai.side) void this.runAiTurn();
@@ -116,6 +127,9 @@ export class Controller {
   dispose(): void {
     this.disposed = true;
     this.mode = { kind: 'over' };
+    this.bubble.destroy();
+    this.view.onCamera = null;
+    window.removeEventListener('keydown', this.onKey);
   }
 
   private get state() {
@@ -149,6 +163,10 @@ export class Controller {
       return;
     }
     if (this.mode.kind === 'over' || this.hud.overlayOpen) return;
+    // The facing step completes on the next tap: keeping a facing is a choice too.
+    if (this.tutorial.current()?.step.until === 'facing' && this.mode.kind !== 'facing') {
+      this.advanceTutorial('facing');
+    }
     this.hud.hideUnitCard();
     if (this.mode.kind === 'preview') {
       this.cancelPreview();
@@ -192,6 +210,7 @@ export class Controller {
     const cell = this.view.screenToCell(x, y);
     if (!cell) return;
     const u = unitAt(this.state, cell);
+    this.bubble.close();
     if (u) this.hud.showUnitCard(u, this.state);
     else this.hud.showTerrainCard(cell, this.state);
   }
@@ -241,10 +260,78 @@ export class Controller {
       // Show a missile unit's reach while it can still shoot this turn.
       range: !u.hasActed && !isEngaged(this.state, u.id) ? rangeSquares(this.state, u) : [],
     });
+    this.bubble.open(this.view.cellToClient(u), this.petals(u), this.tutorialRects());
+    haptic('light');
     this.refresh();
   }
 
+  /** Screen rectangles of what the tutorial step points at: petals keep off them. */
+  private tutorialRects(): { x: number; y: number; w: number; h: number }[] {
+    const c = this.tutorial.current();
+    if (!c) return [];
+    const side = this.humanSide();
+    const half = this.view.cellSizeOnScreen() / 2;
+    return tutorialMarks(this.state, c.step, side).map((p) => {
+      const q = this.view.cellToClient(p);
+      return { x: q.x - half, y: q.y - half, w: half * 2, h: half * 2 };
+    });
+  }
+
+  /** The petals for a unit, at their fixed clock positions (UX §2). */
+  private petals(u: Unit): Petal[] {
+    const engaged = isEngaged(this.state, u.id);
+    const canTurn = DIRS.some((d) => d !== u.facing && turnCost(u, u.facing, d) <= u.mpLeft + 1e-9);
+    const out: Petal[] = [
+      { id: 'info', icon: 'ⓘ', label: 'Info', enabled: true, run: () => this.openInfo(u) },
+      {
+        id: 'turn',
+        icon: '↻',
+        label: 'Turn',
+        enabled: canTurn && !engaged,
+        reason: engaged ? 'In melee' : 'No MP left to turn',
+        badge: '1 MP',
+        run: () => this.openFacingRing(u),
+      },
+      {
+        id: 'hold',
+        icon: '⛨',
+        label: 'Hold',
+        enabled: !u.hasActed && !engaged,
+        reason: engaged ? 'In melee' : 'Already acted',
+        run: () => void this.run({ type: 'Hold', unitId: u.id }, null),
+      },
+    ];
+    const g = this.state.sides[u.side].general;
+    if (g && !g.lost && g.unitId === u.id && g.skills.length) {
+      const ready = g.skills.some((sk) => this.state.turn >= sk.readyTurn);
+      const next = Math.min(...g.skills.map((sk) => sk.readyTurn));
+      out.push({
+        id: 'skill',
+        icon: '★',
+        label: 'Skill',
+        enabled: ready,
+        reason: `Ready on turn ${next}`,
+        badge: ready ? undefined : `T${next}`,
+        run: () => this.openSkills(),
+      });
+    }
+    if (this.session.canUndo() && this.lastMovedId === u.id) {
+      out.push({ id: 'undo', icon: '↶', label: 'Undo', enabled: true, run: () => this.undo() });
+    }
+    return out;
+  }
+
+  /** The unit card (Info petal or long-press). */
+  private openInfo(u: Unit): void {
+    this.bubble.close();
+    this.hud.showUnitCard(u, this.state);
+  }
+
+  /** The id of the unit whose move the next Undo would take back. */
+  private lastMovedId: string | null = null;
+
   private deselect(): void {
+    this.bubble.close();
     this.mode = { kind: 'idle' };
     this.targets = null;
     this.view.clearGhost();
@@ -267,34 +354,51 @@ export class Controller {
       this.hud.toast(plan.message);
       return;
     }
+    if (motionSettings().quickConfirm) {
+      void this.confirmMove(u, dest);
+      return;
+    }
     this.mode = { kind: 'ghost', unitId: u.id, dest };
+    this.bubble.close();
     this.view.showGhost(u, plan.path, plan.facing);
     this.hud.setChip(`${u.type.name}: tap again to move here (${+plan.cost.toFixed(1)} MP)`);
   }
 
   private async confirmMove(u: Unit, dest: Pos): Promise<void> {
     this.view.clearGhost();
-    const ok = await this.run({ type: 'Move', unitId: u.id, to: dest }, null);
+    this.bubble.close();
+    haptic('medium');
+    const ok = await this.run({ type: 'Move', unitId: u.id, to: dest }, u.id);
     if (!ok) return;
-    const moved = this.unit(u.id)!;
-    if (isFighting(moved) && !isEngaged(this.state, moved.id) && !this.state.result) {
-      this.openFacingRing(moved);
+    this.lastMovedId = u.id;
+    if (this.session.canUndo()) {
+      this.hud.toast('Moved', { label: 'Undo', run: () => this.undo() }, 3200);
     }
+    const moved = this.unit(u.id);
+    if (moved && 'unitId' in this.mode && this.mode.unitId === u.id) this.select(u.id);
   }
 
   private openFacingRing(u: Unit): void {
     this.select(u.id);
+    this.bubble.close();
     this.mode = { kind: 'facing', unitId: u.id };
     const handles = DIRS.filter((d) => d !== u.facing).map((d) => ({
       dir: d,
       enabled: turnCost(u, u.facing, d) <= u.mpLeft + 1e-9,
     }));
     this.view.showFacingRing(u, handles);
-    this.hud.setChip(`${u.type.name}: tap a handle to turn, or tap elsewhere to keep this facing`);
+    this.hud.setChip(
+      `${u.type.name}: tap an arrowhead to turn (1 MP), or tap elsewhere to keep this facing`,
+    );
   }
 
   private openPreview(att: Unit, def: Unit, type: 'Charge' | 'Shoot'): void {
     const cmd = { type, unitId: att.id, targetId: def.id } as const;
+    if (motionSettings().quickConfirm) {
+      void this.run(cmd, att.id);
+      return;
+    }
+    this.bubble.close();
     const p = previewCombat(this.state, cmd);
     if (isRejection(p)) {
       this.hud.toast(p.message);
@@ -305,16 +409,22 @@ export class Controller {
     const canOther = (other === 'Charge' ? this.targets?.charge : this.targets?.shoot)?.includes(
       def,
     );
-    this.hud.showPreview(p, att, def, {
-      confirm: () => {
-        this.hud.hidePreview();
-        void this.run(cmd, att.id);
+    this.hud.showPreview(
+      p,
+      att,
+      def,
+      {
+        confirm: () => {
+          this.hud.hidePreview();
+          void this.run(cmd, att.id);
+        },
+        cancel: () => this.cancelPreview(),
+        alt: canOther
+          ? { label: `${other} instead`, run: () => this.openPreview(att, def, other) }
+          : undefined,
       },
-      cancel: () => this.cancelPreview(),
-      alt: canOther
-        ? { label: `${other} instead`, run: () => this.openPreview(att, def, other) }
-        : undefined,
-    });
+      [this.view.cellToClient(att), this.view.cellToClient(def)],
+    );
   }
 
   private cancelPreview(): void {
@@ -495,6 +605,8 @@ export class Controller {
     if (!this.session.canUndo() || this.mode.kind === 'busy' || !this.isHumanTurn()) return;
     const keep = 'unitId' in this.mode ? this.mode.unitId : null;
     this.session.undo();
+    this.lastMovedId = null;
+    this.hud.clearToasts();
     this.turnMoves = this.movesHistory.pop() ?? this.turnMoves;
     this.view.sync(this.state);
     this.view.clearFacingRing();
@@ -679,22 +791,9 @@ export class Controller {
 
   // ---------- Tutorial ----------
 
+  /** The tutorial step docks in the guidance strip, with a leader line to its target. */
   private showTutorial(): void {
     const c = this.tutorial.current();
-    // Keep the card off the troops the step is about (all of the player's, if none named).
-    const side = this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : 'blue';
-    const box = this.view.canvas.getBoundingClientRect();
-    // What the step highlights must stay visible; without highlights, the troop it names.
-    const marks = c ? tutorialMarks(this.state, c.step, side) : [];
-    const cells = marks.length
-      ? marks
-      : this.state.units.filter(
-          (u) => u.side === side && isOnMap(u) && (!c?.unit || u.type.id === c.unit),
-        );
-    const avoid = cells.map((u) => {
-      const p = this.view.cellToScreen(u);
-      return { x: box.left + p.x, y: box.top + p.y };
-    });
     this.hud.setTutorial(
       c ? c.text : null,
       c ? c.progress : '',
@@ -702,9 +801,23 @@ export class Controller {
         this.tutorial.skip();
         this.showTutorial();
       },
-      avoid,
+      this.leaderTarget(),
     );
     this.updateTutorialMarks();
+    this.bubble?.setAvoid(this.tutorialRects());
+  }
+
+  /** Where the leader line points: the first square the current step highlights. */
+  private leaderTarget(): { x: number; y: number } | null {
+    const c = this.tutorial.current();
+    if (!c) return null;
+    const side = this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : 'blue';
+    const marks = tutorialMarks(this.state, c.step, side);
+    return marks[0] ? this.view.cellToClient(marks[0]) : null;
+  }
+
+  private updateLeader(): void {
+    this.hud.setLeaderTarget(this.leaderTarget());
   }
 
   private advanceTutorial(trigger: TutorialTrigger): void {
@@ -718,10 +831,149 @@ export class Controller {
     this.view.setTutorialMarks(c ? tutorialMarks(this.state, c.step, side) : []);
   }
 
+  private humanSide(): Side {
+    return this.opts.ai ? (this.opts.ai.side === 'blue' ? 'red' : 'blue') : this.state.activeSide;
+  }
+
+  private generalRank(side: Side): number {
+    const g = this.state.sides[side].general;
+    return g?.rank ?? 1;
+  }
+
+  /** Units the "waiting" chip cycles through: they can still move or attack. */
+  private waiting(): Unit[] {
+    return this.actionable().filter((u) => !u.hasMoved || this.canAttack(u));
+  }
+
+  /** The medallion: one skill is used at once (targeted ones ask for a target), more open a list. */
+  private generalSkill(): void {
+    if (!this.isHumanTurn() || this.mode.kind === 'busy') return;
+    const side = this.state.activeSide;
+    const g = this.state.sides[side].general;
+    const gu = generalUnit(this.state, side);
+    if (!g || !gu) return;
+    const ready = g.skills.filter((k) => this.state.turn >= k.readyTurn);
+    if (ready.length === 1 && g.skills.length === 1) {
+      this.useSkill(gu, ready[0]!.id, skillNeedsTarget(ready[0]!.effect));
+      return;
+    }
+    this.openSkills();
+  }
+
+  /** The battle menu (UX §6). */
+  private openMenu(): void {
+    if (this.disposed) return;
+    this.bubble.close();
+    const items = [
+      { label: 'Resume', run: () => {} },
+      ...(this.opts.onRestart && !this.state.result
+        ? [
+            {
+              label: 'Restart battle',
+              note: 'Back to deployment, same army. Not a defeat.',
+              run: () =>
+                this.hud.showConfirm(
+                  'Restart from deployment?',
+                  "This battle's progress will be lost. It doesn't count as a defeat.",
+                  'Restart',
+                  () => this.restart(),
+                ),
+            },
+          ]
+        : []),
+      {
+        label: 'Battle objectives',
+        run: () => this.showObjectives(),
+      },
+      { label: 'Settings', run: () => this.hud.showSheet('Settings', settingsPage()) },
+      { label: 'How to play', run: () => this.hud.showSheet('How to play', howToPlay()) },
+      ...(this.opts.onExit
+        ? [
+            {
+              label: 'Retreat',
+              note: 'Counts as a defeat.',
+              danger: true,
+              run: () => this.confirmExit(),
+            },
+          ]
+        : []),
+    ];
+    this.hud.showMenu(items);
+  }
+
+  private showObjectives(): void {
+    const o = this.opts.objective?.(this.state);
+    const s = this.state;
+    const body = el(
+      'div',
+      {},
+      el(
+        'p',
+        {},
+        el('b', {}, o?.text ?? 'Break the enemy army: units worth half of it must rout or fall.'),
+      ),
+      el('p', {}, `Turn ${s.turn} of ${s.turnLimit}. If your general falls, the battle is lost.`),
+      o
+        ? el(
+            'p',
+            {},
+            `★★★: win losing under 30% of your army, and ${o.bonus.toLowerCase()} (${o.status === 'met' ? 'on track' : o.status === 'failed' ? 'missed' : 'not yet'}).`,
+          )
+        : '',
+    );
+    this.hud.showSheet('Battle objectives', body);
+  }
+
+  /** Restart goes through the rules like any other command; the app redeploys. */
+  private restart(): void {
+    if (!this.opts.onRestart || this.state.result) return;
+    const res = this.session.apply({ type: 'Restart' });
+    if (!res.ok) return;
+    this.dispose();
+    this.opts.onRestart();
+  }
+
+  /** Desktop shortcuts (touch-controls skill). */
+  private key(e: KeyboardEvent): void {
+    if (this.disposed || e.metaKey || e.altKey) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    const sel = 'unitId' in this.mode ? this.unit(this.mode.unitId) : undefined;
+    const k = e.key.toLowerCase();
+    if (k === 'escape') {
+      this.hud.hideUnitCard();
+      this.hud.hidePreview();
+      this.hud.hideSheet();
+      this.view.clearFacingRing();
+      this.deselect();
+    } else if (k === 'enter' && this.mode.kind === 'ghost' && sel) {
+      void this.confirmMove(sel, this.mode.dest);
+    } else if (k === 'e') {
+      void this.endTurn();
+    } else if (k === 'u' || (k === 'z' && e.ctrlKey)) {
+      this.undo();
+    } else if (k === 'n' || k === 'tab') {
+      e.preventDefault();
+      this.nextUnit();
+    } else if (k === 't' && sel && this.canTurnSelected()) {
+      this.openFacingRing(sel);
+    } else if (k === 'h' && sel && !sel.hasActed) {
+      void this.run({ type: 'Hold', unitId: sel.id }, null);
+    } else if (k === 'i' && sel) {
+      this.openInfo(sel);
+    } else if (k === 'g') {
+      this.generalSkill();
+    } else {
+      return;
+    }
+    e.preventDefault();
+  }
+
   // ---------- HUD ----------
 
   private refresh(): void {
     this.updateTutorialMarks();
+    this.updateLeader();
     const s = this.state;
     const lost = {} as Record<Side, number>;
     const breakpoint = {} as Record<Side, number>;
@@ -749,15 +1001,32 @@ export class Controller {
       g.skills.some(
         (k) => s.turn >= k.readyTurn && (!gu.hasActed || k.effect.kind === 'chargeAgain'),
       );
-    this.hud.setButtons({
-      undo: !busy && this.session.canUndo(),
-      next: !busy && this.actionable().length > 0,
-      end: !busy && !s.result,
-      skill:
-        !!g && !!gu && g.skills.length > 0 ? (!busy && skillReady ? 'ready' : 'waiting') : 'none',
-      menu: !!this.opts.onExit,
-      turn: !busy && this.canTurnSelected(),
-    });
+    this.hud.setButtons({ end: !busy && !s.result, menu: true });
+    this.hud.setWaiting(busy ? 0 : this.waiting().length);
+    // The general medallion (UX §1): the human side's general, its rank and skill state.
+    const mine = this.isHumanTurn() ? s.activeSide : this.opts.ai ? this.humanSide() : s.activeSide;
+    const mg = s.sides[mine].general;
+    const mgu = generalUnit(s, mine);
+    if (mg && !mg.lost && mgu && mg.skills.length) {
+      const next = Math.min(...mg.skills.map((k) => k.readyTurn));
+      const cd = Math.max(1, ...mg.skills.map((k) => k.cooldown));
+      const left = Math.max(0, next - s.turn);
+      this.hud.setMedallion({
+        name: mg.name,
+        initials: mg.name
+          .split(/\s+/)
+          .map((w) => w[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase(),
+        rank: this.generalRank(mine),
+        skill: busy ? 'blocked' : skillReady ? 'ready' : left > 0 ? 'cooldown' : 'blocked',
+        progress: left > 0 ? 1 - left / cd : 1,
+        label: skillReady ? mg.skills[0]!.name : left > 0 ? `Ready turn ${next}` : 'Not now',
+      });
+    } else {
+      this.hud.setMedallion(null);
+    }
     if (this.mode.kind === 'selected' || this.mode.kind === 'preview') {
       const u = this.unit(this.mode.unitId)!;
       const t = this.targets;
