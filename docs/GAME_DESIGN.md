@@ -198,9 +198,25 @@ p clamped to [0, 0.9]
 
 ### 4.8 Army breakpoint and victory
 
-- **An army breaks** when the cost of its routed and destroyed units reaches **50%** of its total army cost. Some scenarios change this threshold, for example 40% for Teutoburg ambushes.
-- The battle ends when one army breaks, when a scenario objective is met (hold the bridge for 6 turns, kill the enemy general, escape with N units), or when the turn limit is reached. At the turn limit, objectives decide the result; otherwise it is a draw, which counts as a loss for stars.
-- **Stars:** ★ win. ★★ win having lost under 30% of your army. ★★★ win having lost under 30% **and** completed the battle's bonus condition, such as "win by turn 10" or "keep your general alive".
+Victory must be readable from what the player sees on the map, so it is counted in **units**, not hidden point costs. "Troops" below means every unit except the General and guard.
+
+**An army breaks, and loses, when either of these happens:**
+1. **Its general falls:** the General and guard unit routs, flees or is destroyed (§4.10).
+2. **Too few troops are still fighting.** An army keeps fighting while its general plus at least **2 troops** stand; it breaks when **1 troop or none** is still fighting. For armies of 7 or more troops, it breaks at **2** still fighting.
+   - "Still fighting" means not routed, not fled and not destroyed. A routed unit that rallies counts as fighting again.
+   - A battle may override this number (`breakAt`): for example 3 for a fragile ambushed army at Teutoburg, or 0 to fight to the last unit at Thermopylae.
+
+- The HUD's breakpoint meters show both conditions directly, for example "3 troops fighting · breaks at 1", plus the general's state (UX §1).
+- The battle also ends when a scenario objective is met (hold the bridge for 6 turns, kill the enemy general, escape with N units), or when the turn limit is reached. At the turn limit, objectives decide the result; otherwise it is a draw, which counts as a loss for stars.
+- If both armies break on the same action, the result is a draw.
+- **Stars**, also counted in units:
+  - ★ win;
+  - ★★ win with **at most 1 troop lost** (routed at the end, fled or destroyed);
+  - ★★★ also meet the battle's bonus condition, such as "win by turn 10" or "lose no troop".
+
+  Strength lost by units that are still fighting doesn't count against stars. The results screen shows it separately, as damage.
+
+> This replaces the earlier cost-share breakpoint (50% of army cost, with per-battle `enemyBreakpoint` and `playerBreakpoint`). Owner's reasoning: a general plus 2 troops still standing should be able to keep fighting. Battles will last a little longer and end more often by killing the general, so re-run `balance-sim scenario` and `progression` for every built battle after this change.
 
 ### 4.9 Terrain
 

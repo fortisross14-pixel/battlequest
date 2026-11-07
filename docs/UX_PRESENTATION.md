@@ -173,11 +173,25 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - Removing a card lets the remaining slots close the gap with Flip.
 - The army power meter eases to its new value.
 
-**Results** also show the **reason in large type** under VICTORY or DEFEAT, with one line on what caused it (for example "Xerxes' guard was routed by your Companions on turn 6").
-
 **General markers in battle:** both generals' units carry a gold ring. A long press or the Info card says "If this unit falls, the battle is lost". When your general's unit is in reach of an enemy charge, its ring pulses red.
 
-**Results:** the victory sequence from the `motion` skill: the battle redrawn as arrows, the VICTORY seal, then stars, coins, XP and cards in sequence, all skippable with a tap.
+**Results: two steps, never one crowded page.**
+1. **Step 1: the result.**
+   - The battle-ending banner (§3) hands over to the outcome screen: the **VICTORY** (or DEFEAT) seal stamps in, with the **reason in large type** beneath it ("The enemy general has fallen", "The enemy army breaks", "You held the line").
+   - **Stars**, one per line, each with its condition: "★ Victory", "★ At most 1 troop lost", "★ Kill Mardonius". Earned stars stamp in one by one; a missed star shows its condition greyed out with what happened ("missed: Mardonius escaped").
+   - **The two armies side by side.** Each unit shows its pictogram, a strength bar that animates down to what is left, and a clear status word: **Standing**, **Routed**, **Fled** or **Destroyed**. "Held" is no longer used. The general's unit is marked.
+   - **Turning point:** one plain line ("Turn 2: the enemy light cavalry broke and fled").
+   - The optional battle diagram replay (the battle redrawn as arrows) sits behind a "Replay" button.
+   - Button: **Collect rewards ›**
+2. **Step 2: the rewards.** A new sheet slides up over the result:
+   - the **coin** counter rolls up with a brass glint;
+   - each **general's XP bar** fills, with a rank-up flourish if one was earned;
+   - **new cards** flip in with the card recipe (NEW ribbon, "Upgrade ready" badge);
+   - **unlocks** ("Battle 4 unlocked", "Age complete") stamp in last.
+   - Buttons: **Retry** · **Back to map ›**. Back to the map then plays the unlock moment there.
+- Each step's sequence can be skipped with a tap. Reduce motion gives the same two steps with short fades.
+- Defeat uses the same two steps, but muted: step 1 shows what went wrong plus one tip, and step 2 shows only the consolation coins and XP.
+
 
 ## 5. Age map: make the path obvious
 
