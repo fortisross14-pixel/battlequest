@@ -57,11 +57,12 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Phase C — command bubble with fixed-clock petals, move-by-default, Moved · Undo toast, turn mode via petal, long-press Info, keyboard shortcuts, quick confirm
 - [x] Phase D — tactical actions: Volley, Fortify, Full charge, Testudo, Pila volley, Othismos, Parthian shot, Feigned retreat, Trample, Last stand, Unbreakable; cards, petals, attack-mode tabs, AI use
 - [x] Phase E — battle motion: bubble bloom, ghost footprints, turn ring, Info FLIP, attack bracket, charge wind-up and hit-stop, Volley ink rain, Fortify/Testudo shield lock, breakthrough, rout, turn banner; reduced-motion fades
-- [ ] Phase F — premium menus, ceremonies (owner approval gate), age filters
+- [x] Phase F — premium menus, ceremonies (owner approval gate), age filters
   - [x] materials (paper grain, two-layer shadows, brass buttons, press feedback, coin ticker) and screen transitions (crossfade + slide, age zoom, battle-seal flip)
   - [x] age and role filter chips with counts on the Army screen and in the army builder; rarity sort; Flip
   - [x] ceremonies built and the motion lab at ?debug=motion-lab (intro, packs with each rarity, hero reveal, victory, defeat, unlock moments)
-  - [ ] owner approval, then wire the ceremonies into the shop, results and age map; card tilt and Epic/Legendary foil
+  - [x] owner approved; ceremonies wired into the shop (pack store with the owner's art), deployment (intro) and results (victory, defeat); card tilt and Epic/Legendary foil
+  - [x] owner extras: age emblems everywhere, Move / Attack petal, 1 s hover details panel, campaigns on the age map
 - [ ] Phase G — age map and extras
 
 ## Next

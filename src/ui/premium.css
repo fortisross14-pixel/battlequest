@@ -474,3 +474,56 @@ button.mini-card:not(:disabled):active {
     height: 150px;
   }
 }
+
+/* ---------- Age map campaigns ---------- */
+
+.map-body .campaign-row {
+  flex: none;
+  margin: 0;
+  padding: 8px calc(12px + var(--safe-r)) 2px calc(12px + var(--safe-l));
+}
+
+.campaign-chip small {
+  font-variant-numeric: tabular-nums;
+}
+
+.campaign-teaser {
+  border-style: dashed;
+  color: var(--ink-soft);
+  cursor: default;
+  font-weight: 500;
+}
+
+.campaign-blurb {
+  flex: none;
+  margin: 0 0 6px;
+  padding: 0 calc(14px + var(--safe-r)) 0 calc(14px + var(--safe-l));
+  min-height: 18px;
+  color: var(--ink-soft);
+  font: italic 14px var(--serif);
+}
+
+.campaign-chip {
+  position: relative;
+  overflow: hidden;
+}
+
+.battle-node .node-dot {
+  position: relative;
+  font-family: var(--serif);
+  font-weight: 700;
+}
+
+.appear-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 3px solid #b8860b;
+  pointer-events: none;
+}
+
+@media (max-height: 500px) {
+  .campaign-blurb {
+    display: none;
+  }
+}

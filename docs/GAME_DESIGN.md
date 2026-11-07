@@ -451,6 +451,12 @@ Every battle is built around one clear historical "problem" (the terrain or scen
 - A dotted route line links battles in historical order.
 - The header shows the age name and its progress: "Antiquity · 3/10 battles · 7/30 ★".
 - Tapping an open node opens the briefing and army builder. Tapping a locked node says how many more stars are needed.
+- **Campaigns (owner, 2026-11-07).** Each age's battles are grouped by topic into 3–4 themed campaigns (for example, in Antiquity: The Persian Wars, Greek against Greek, Philip and Alexander). The data lives in `src/content/campaign/campaigns.ts`.
+  - A row of campaign chips sits above the map; the map shows one campaign at a time and frames its battles.
+  - **Only open battles are shown.** Locked battles stay hidden until they open, and a campaign appears once one of its battles does. A teaser chip counts the campaigns still to discover.
+  - Unlocking is unchanged (§7.3).
+  - When a result opens a battle, the map switches to its campaign, the ink route draws on to it and its seal stamps down. A new campaign's chip stamps in with a glint.
+  - This replaces the lock icons above: there are no locked nodes on the map any more.
 
 ### 7.3 Unlock rules
 
