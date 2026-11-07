@@ -227,10 +227,42 @@ Utility-based, kept simple:
 
 ## 5. Units and collection
 
-The troop dynamic is **unlock and upgrade**.
+The troop dynamic is **unlock and upgrade**, and every age has its own small **card ladder**: you start each age with plain, generic troops, then collect the famous named troops that make you feel powerful.
 
-- **Troop cards.** A troop type is **unlocked** the first time you get one of its cards. Once a type is unlocked you can field **any number of copies** of it. The battle's unit slots are the only limit.
-- **Starting roster:** a new player owns **2 troop types**: the two units the Prologue battle uses. More types come from packs, battle rewards and age unlocks.
+### 5.1 The card ladder (per age)
+
+| Rarity | How many per age | Named? | Feel | Example (Antiquity) |
+|---|---|---|---|---|
+| **Common** | 4–5, one for each main troop role of the age | **No.** Generic: "Antiquity archers", "Antiquity cavalry" | Honest, plain. You can win the first battles with them, and you struggle later. | Antiquity spearmen · Antiquity archers · Antiquity skirmishers · Antiquity cavalry · Antiquity swordsmen |
+| **Rare** | 3–4 | **Yes**: famous troops | A clear step up, with a specialty | Hoplites · Egyptian archers · Persian chariots · Cretan archers |
+| **Epic** | 2 | Yes | Battle-winners in the right spot | Spartan hoplites · Persian Immortals |
+| **Legendary** | 1, at most 2 | Yes, the age's icon | The power fantasy: battles that were hard become easy | **Myrmidons** (Antiquity) · Napoleon's **Imperial Guard** (Napoleonic Wars) |
+
+That is about 11 troop cards per age and about 110 in the whole game. **Fewer, more meaningful cards.**
+
+**Power.** At the same level, each rarity step is worth about +20–25% overall strength over the Common of its role:
+- **Rare:** about +20%, plus a specialty tag;
+- **Epic:** about +45%;
+- **Legendary:** about +75%, plus one signature ability.
+
+Balance works within an age. `balance-sim` checks the ladder: a full Common army should win the age's first battles about 70% of the time and its last battles about 20%; an army built around the Legendary troop should three-star most of the age.
+
+**The intended feeling:**
+1. You enter an age with generic Commons and struggle.
+2. You open packs, find the Egyptian archers and Hoplites, and push further.
+3. You pull the Myrmidons, go back, and three-star the battles that beat you.
+4. The next age starts again with its own Commons, and the ladder repeats.
+
+**Army limits** keep tactics in play even with strong cards: at most **1 Legendary** and **2 copies of each Epic** per army. Commons and Rares can fill any number of slots.
+
+**Older troops in later ages.** You can always field any troop you own (the cross-era fantasy stays), but each age is a **power tier**. Troop stats scale with their age: a later age's Commons roughly match an earlier age's Epics. Myrmidons are a legend in Antiquity and a curiosity at Waterloo. Upgrades and generals can make an old favourite viable for a while, but every new age's ladder is the main path.
+
+**Generals follow the same ladder per age:** 1–2 generic Commons ("Antiquity captain"); 2–3 named Rares and Epics (Leonidas, Miltiades, Pericles…); and **one Legendary** (Alexander in Antiquity, Napoleon in the Napoleonic Wars).
+
+### 5.2 Cards, levels and upgrades
+
+- **Troop cards.** A troop type is **unlocked** the first time you get one of its cards. Once it is unlocked you can field copies of it, within the battle's unit slots and the army limits above.
+- **Starting roster:** a new player owns **2 Common troop types**: the two units the Prologue battle uses. Each new age grants its Common troops when it unlocks. Rares, Epics and Legendaries come from packs, optional battles and milestones.
 - **Card count.** Every extra card of a type you already own is kept as a spare card. The Army screen shows how many spare cards you hold for each type.
 - **Upgrading costs cards and coins.** You choose when to upgrade; it is never automatic.
 
@@ -244,7 +276,7 @@ The troop dynamic is **unlock and upgrade**.
   - Coin costs ×1.5 for Rare troops and ×2 for Epic troops.
   - Level 5 is the maximum. Spare cards beyond it convert to 5 coins each.
 - **Level effect:** each level gives +5% to Melee, Impact, Ranged and Morale. The level applies to every copy of that type you field.
-- **Era tag:** every unit belongs to an age. Mixing eras is allowed and encouraged.
+- **Era tag:** every unit belongs to an age, which sets its power tier (§5.1). Mixing eras is allowed.
 
 ### Army builder
 
@@ -265,7 +297,7 @@ The troop dynamic is **unlock and upgrade**.
 | Field | Description |
 |---|---|
 | Rarity | Common, Rare, Epic, Legendary |
-| Era | Flavor only. Any general can lead any army. |
+| Era | The age the general belongs to. It sets their power tier, as for troops (§5.1). Any general can lead any army. |
 | Rank | 1–10, from XP earned in battle |
 | Command radius | 3 at rank 1, 4 at rank 4, 5 at rank 8 |
 | Passive traits | 1–2 (for example "+10% cavalry impact") that scale with rank |
@@ -390,7 +422,8 @@ The main path above is fixed for planning. The full roster of main and optional 
   - Replay win: 30% of that.
   - Loss: 20 coins.
 - **Shop:**
-  - **Recruit Pack** (120 coins): 4 troop cards from unlocked ages, weighted toward the current age and toward types you already own.
+  - **Packs are per age.** Each age's shop tab sells packs drawn only from that age's ladder, so you always know what you are chasing.
+  - **Recruit Pack** (120 coins): 4 troop cards from the chosen age, mostly Common, with a chance of Rare or better.
   - **Veteran Pack** (400): 3 cards, at least one Rare+.
   - **General Pack** (600): 1 general, or an XP medal if you get a duplicate.
   - **Age Pack** (special): unlocks when you reach a new age and contains that age's signature units.
@@ -398,6 +431,7 @@ The main path above is fixed for planning. The full roster of main and optional 
 - **Battle rewards include troop cards:** 2 cards for a first win, 1 for a replay win, none for a loss. Cards are drawn mostly from types you already own, so you can upgrade them.
 - **Duplicates:** a duplicate troop card becomes a spare card for upgrading (see §5). A duplicate general becomes a **Medal** worth 500 XP for that general.
 - **Pity:** a guaranteed Epic+ general in every 5 General Packs.
+- **A guaranteed road to each age's Legendary troop:** one copy is granted by reaching about 70% of the age's main-path stars, or by a final optional battle. A lucky pack can deliver it sooner.
 - **Monetization:** out of scope for the MVP. Design the economy so it is fully playable for free. Keep the shop code isolated so real-money purchases could be added later.
 
 ## 9. Touch controls and UX

@@ -11,6 +11,12 @@ Every entity is a fenced `yaml` block, so the build agent can convert it straigh
 
 **Write the content in English** (the game's language).
 
+**The card ladder (GAME_DESIGN §5.1). Every age has exactly this set of playable cards:**
+- **Troops:** 4–5 **Common** troops that are unnamed and generic ("Antiquity archers"), one per main role; 3–4 **Rare** famous named troops; 2 **Epic**; and **1 Legendary**, the age's icon (at most 2).
+- **Generals:** 1–2 generic Commons ("Antiquity captain"), 2–3 named Rares or Epics, and **1 Legendary**.
+
+Enemy armies are built from the same ladder (enemy-only names are fine for flavour: set `playable: false` and use the archetype). Don't create a separate troop for every faction. If a battle's history needs a troop the ladder doesn't have, use the closest card and explain it in the battle's notes.
+
 **Accuracy rules**
 - Don't invent facts. If something is disputed (numbers, exact location, who commanded), give the most accepted value and explain the dispute in `uncertainty`.
 - Every battle and general lists at least 2 reliable `sources`: academic works, reputable encyclopedias, or primary sources in translation.
@@ -35,8 +41,12 @@ age:
   emblem: "Laurel wreath around a hoplite helmet"   # idea for a small flat icon
   intro: >                        # 2–3 sentences shown on the timeline
     ...
-  starterTroops: [hoplites, peltasts, cretanArchers]   # 3 basic troops granted when the age unlocks (ids from part 2)
-  signatureTroops: [macedonianPhalanx, companions]     # the troops that define the age
+  ladder:                         # the age's playable cards (see the card ladder rules above)
+    common: [antiquitySpearmen, antiquityArchers, antiquitySkirmishers, antiquityCavalry, antiquitySwordsmen]
+    rare: [hoplites, egyptianArchers, persianChariots, cretanArchers]
+    epic: [spartanHoplites, persianImmortals]
+    legendary: [myrmidons]
+    generals: { common: [antiquityCaptain], rareEpic: [leonidas, miltiades, darius1], legendary: [alexander] }
   newMechanics:                   # anything the current rules can't express (see the vocabulary below)
     - name: Elephants frighten horses
       needed_for: [hydaspes]
