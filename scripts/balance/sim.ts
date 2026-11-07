@@ -149,6 +149,26 @@ export function costBattle(
 }
 
 /** One campaign battle: AI with the battle's test army vs the enemy AI with its posture. */
+/** Plays a campaign battle AI against AI and returns the final state. */
+export function playCampaignBattle(b: CampaignBattle, seed: number, army: ArmyChoice): BattleState {
+  const session = new BattleSession(startBattle(buildScenario(b, army, seed)));
+  const ais = {
+    // A sensible player holds when the objective is to hold out.
+    blue: new AiPlayer('blue', {
+      posture: b.testPosture ?? (b.holdOut === 'player' ? 'defensive' : 'aggressive'),
+    }),
+    red: new AiPlayer('red', { posture: b.posture, attackTurn: b.attackTurn }),
+  };
+  for (let i = 0; i < 80 && !session.state.result; i++) {
+    playAiSideTurn(
+      ais[session.state.activeSide],
+      (c) => session.apply(c),
+      () => session.state,
+    );
+  }
+  return session.state;
+}
+
 export function scenarioBattle(
   b: CampaignBattle,
   seed: number,

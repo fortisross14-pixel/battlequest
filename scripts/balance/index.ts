@@ -1,7 +1,8 @@
 /**
- * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P[,P2]] [--out dir]
- * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit
- * level; by default the test army's own levels, or 1).
+ * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|ageN|all]|progression|aivsai> [--seeds N] [--points P[,P2]] [--out dir]
+ * Scenario options: --army test|identical (best N copies of one troop type)|commons (the age's
+ * Commons and generic general), --level L (player unit level; by default the test army's own
+ * levels, or 1). Progression options: --age A (last age to play), --tries T.
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
 import { fork } from 'node:child_process';
@@ -16,7 +17,8 @@ import { buildScenario } from '../../src/content/campaign/build';
 import { sandboxScenario } from '../../src/content/battles/sandbox';
 import type { Posture } from '../../src/ai/utility';
 import type { Scenario, Side } from '../../src/core';
-import { ERA_UNITS, ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
+import { ERA_UNITS, ERA_UNIT_BY_ID, ladder } from '../../src/content/eraUnits';
+import { progressionOrder, runProgression, type ProgressionRun } from './progression';
 
 const args = process.argv.slice(2);
 const mode = args[0];
@@ -223,8 +225,11 @@ async function runCost(seeds: number[], points: number[], jobs: number): Promise
 }
 
 interface ScenarioOptions {
-  /** 'test': the battle's test army. 'identical': the best army of N copies of one troop type. */
-  army: 'test' | 'identical';
+  /**
+   * 'test': the battle's test army (the expected collection at that point). 'identical': the
+   * best army of N copies of one troop type. 'commons': the best army of the age's Commons.
+   */
+  army: 'test' | 'identical' | 'commons';
   level?: number;
 }
 
@@ -264,20 +269,63 @@ function identicalArmies(b: CampaignBattle, level: number): ArmyChoice[] {
 }
 
 /**
- * Target win rate for a battle's place in its age (prompt 04): tutorial battles 75–100%;
- * in a full age, about 80% for battles 1–2 falling to about 40% for the last two, ±10%.
+ * Armies of the age's Commons led by its generic Common general: N copies of each Common,
+ * and every half-and-half mix of two Commons (the stand-in tries each and keeps the best).
  */
-function targetBand(b: CampaignBattle): [number, number] {
-  if (b.tutorial) return [0.75, 1];
+function commonsArmies(b: CampaignBattle, level: number): ArmyChoice[] {
+  const commons = ladder(b.age).filter((u) => u.rarity === 'common');
+  const gen = AGE_BY_ID[b.age]?.starterGenerals?.[0];
+  const general = gen ? { id: gen, rank: 1 } : undefined;
+  const out: ArmyChoice[] = [];
+  const half = Math.ceil(b.maxUnits / 2);
+  for (const a of commons) {
+    for (const c of commons) {
+      if (c.id < a.id) continue;
+      out.push({
+        units: Array.from({ length: b.maxUnits }, (_, i) => ({
+          type: i < half ? a.id : c.id,
+          level,
+        })),
+        general,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Target win rate with the expected collection (GAME_DESIGN 7.6). Tutorials: Megiddo is
+ * almost impossible to lose, Kadesh about 95%. In an age: battle 1 about 90% (after the
+ * first packs), battles 2–4 75–90%, the last 3 battles 35–50%, the middle 60–75%.
+ * Optional battles: 10–20 points harder than the main battle they branch from.
+ */
+export function targetBand(b: CampaignBattle): [number, number] {
+  if (b.age === 0) return b.id === 'megiddo' ? [0.95, 1] : [0.85, 1];
+  if (b.branchesFrom) {
+    const [lo, hi] = targetBand(BATTLE_BY_ID[b.branchesFrom]!);
+    return [Math.max(0, lo - 0.2), Math.max(0, hi - 0.1)];
+  }
   const n = AGE_BY_ID[b.age]?.battles.length ?? 1;
-  // Battles 1–2 (indexes 0–1) sit at 80%, the last two at 40%, linear in between.
-  const span = Math.max(1, n - 3);
-  const t = 0.8 - (0.4 * Math.min(Math.max(0, battleIndex(b) - 1), span)) / span;
-  return [Math.max(0, t - 0.1), Math.min(1, t + 0.1)];
+  const i = battleIndex(b);
+  if (i === 0) return [0.8, 1];
+  if (i >= n - 3) return [0.35, 0.5];
+  if (i <= 3) return [0.75, 0.9];
+  return [0.6, 0.75];
+}
+
+/** Commons-only target (GAME_DESIGN 7.6): battle 1 of an age about 50–60%; none after. */
+function commonsBand(b: CampaignBattle): [number, number] | null {
+  if (b.age === 0) return targetBand(b);
+  return battleIndex(b) === 0 ? [0.45, 0.65] : null;
 }
 
 function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string {
-  const battles = id === 'all' ? CAMPAIGN : [BATTLE_BY_ID[id]!].filter(Boolean);
+  const battles =
+    id === 'all'
+      ? progressionOrder(99)
+      : /^age\d+$/.test(id)
+        ? progressionOrder(Number(id.slice(3))).filter((x) => x.age === Number(id.slice(3)))
+        : [BATTLE_BY_ID[id]!].filter(Boolean);
   const rows: string[][] = [];
   const outliers: string[] = [];
   const route: { b: CampaignBattle; odds: number[] }[] = [];
@@ -285,12 +333,14 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
     const candidates =
       opts.army === 'identical'
         ? identicalArmies(b, opts.level ?? 1)
-        : [
-            {
-              ...b.testArmy,
-              units: b.testArmy.units.map((u) => ({ ...u, level: opts.level ?? u.level ?? 1 })),
-            },
-          ];
+        : opts.army === 'commons' && !b.fixedArmy
+          ? commonsArmies(b, opts.level ?? 1)
+          : [
+              {
+                ...b.testArmy,
+                units: b.testArmy.units.map((u) => ({ ...u, level: opts.level ?? u.level ?? 1 })),
+              },
+            ];
     let best = { rate: -1, turns: 0, lost: 0, starOdds: [0, 0, 0] };
     let bestArmy = candidates[0]!;
     for (const army of candidates) {
@@ -301,16 +351,15 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
       }
     }
     const rate = best.rate;
-    const band = targetBand(b);
-    const ok = rate >= band[0] && rate <= band[1];
-    const target = `${pct(band[0])}–${pct(band[1])}`;
+    const band = opts.army === 'commons' ? commonsBand(b) : targetBand(b);
+    const ok = !band || (rate >= band[0] && rate <= band[1]);
+    const target = band ? `${pct(band[0])}–${pct(band[1])}` : '—';
     if (!ok) outliers.push(`- **${b.name}**: ${pct(rate)} (target ${target})`);
+    const names = [...new Set(bestArmy.units.map((u) => ERA_UNIT_BY_ID[u.type]?.name))];
     const armyText =
-      opts.army === 'identical'
-        ? `${b.maxUnits}× ${ERA_UNIT_BY_ID[bestArmy.units[0]!.type]?.name}`
-        : `${bestArmy.units.length} test units`;
+      opts.army === 'test' ? `${bestArmy.units.length} test units` : names.join(' + ');
     rows.push([
-      b.name,
+      b.branchesFrom ? `${b.name} (optional)` : b.name,
       String(b.age),
       `${armyText} v ${b.enemy.length}`,
       pct(rate),
@@ -325,12 +374,14 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
   const armyDesc =
     opts.army === 'identical'
       ? 'the best army of N identical units (every troop type a player could own by that age is tried; the best one is shown)'
-      : "the battle's test army (a reasonable owned army for that point in the campaign)";
+      : opts.army === 'commons'
+        ? "the best army of the age's Commons (every one-type and two-type mix is tried) with its generic Common general"
+        : "the battle's test army (the collection the progression run expects at that point)";
   return (
     [
       `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level ?? 'per test army'})`,
       '',
-      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level ?? 'set per unit'}, and the enemy AI plays its scenario posture. Targets: tutorial battles 75–100%; in an age, about 80% for battles 1–2 falling to about 40% for the last two (±10%).`,
+      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level ?? 'set per unit'}, and the enemy AI plays its scenario posture. Targets (GAME_DESIGN 7.6): ${opts.army === 'commons' ? 'Commons only, battle 1 of an age 45–65%; the tutorials as for the test army' : 'Megiddo 95–100%, Kadesh 85–100%; in an age, battle 1 80–100%, battles 2–4 75–90%, the middle 60–75%, the last 3 35–50%; optional battles 10–20 points below the battle they branch from'}.`,
       '',
       table(
         [
@@ -483,6 +534,113 @@ function runAiVsAi(seeds: number[]): string {
   );
 }
 
+/** The progression report: coins at each age start, collection and win rates per battle. */
+function progressionReport(runs: ProgressionRun[], lastAge: number): string {
+  const n = runs.length;
+  const ageRows: string[][] = [];
+  for (const age of Object.values(AGE_BY_ID)) {
+    if (age.id === 0 || age.id > lastAge) continue;
+    const starts = runs.flatMap((r) => r.ageStarts.filter((s) => s.age === age.id));
+    if (!starts.length) continue;
+    const coins = starts.map((s) => s.coins).sort((a, c) => a - c);
+    const afford = starts.filter((s) => s.affordable).length;
+    ageRows.push([
+      age.name,
+      `${starts.length}/${n}`,
+      String(Math.round(coins.reduce((a, c) => a + c, 0) / coins.length)),
+      `${coins[0]}–${coins.at(-1)}`,
+      `${afford}/${starts.length}`,
+    ]);
+  }
+  const rows: string[][] = [];
+  const outliers: string[] = [];
+  for (const b of progressionOrder(lastAge)) {
+    const visits = runs.flatMap((r) => r.visits.filter((v) => v.id === b.id));
+    if (!visits.length) continue;
+    const rate = visits.filter((v) => v.firstTryWon).length / visits.length;
+    const avg = (f: (v: (typeof visits)[number]) => number) =>
+      visits.reduce((a, v) => a + f(v), 0) / visits.length;
+    const band = targetBand(b);
+    const ok = rate >= band[0] && rate <= band[1];
+    if (!ok) {
+      outliers.push(`- **${b.name}**: ${pct(rate)} (target ${pct(band[0])}–${pct(band[1])})`);
+    }
+    const gens = visits.map((v) => v.general);
+    const topGen =
+      ['legendary', 'epic', 'rare', 'generic'].find(
+        (g) => gens.filter((x) => x === g).length * 2 >= gens.length,
+      ) ?? 'mixed';
+    rows.push([
+      b.branchesFrom ? `${b.name} (opt.)` : b.name,
+      String(visits.length),
+      pct(rate),
+      `${pct(band[0])}–${pct(band[1])}`,
+      ok ? 'pass' : '**out**',
+      avg((v) => v.attempts).toFixed(1),
+      avg((v) => v.stars).toFixed(1),
+      [
+        avg((v) => v.owned.common!),
+        avg((v) => v.owned.rare!),
+        avg((v) => v.owned.epic!),
+        avg((v) => v.owned.legendary!),
+      ]
+        .map((x) => x.toFixed(1))
+        .join(' / '),
+      avg((v) => v.avgLevel).toFixed(1),
+      topGen,
+    ]);
+  }
+  const stuck = runs.filter((r) => r.stuckAt);
+  return (
+    [
+      `# Balance: progression (${today}, ${n} runs, ages 0–${lastAge})`,
+      '',
+      'A simulated player starts a new profile and clears the campaign in order with a simple policy: buy the first packs when an age opens (2 Recruit, 1 General), then after every battle upgrade the troops it fielded and buy a pack whenever it can (General Packs until it holds 3 of the age, then Recruit Packs); field the strongest army the slots and army limits allow; replay the weakest open battle when a star gate blocks it; play every optional battle once it opens. Win rates are the **first try** at each battle, with the collection it had then. Real meta code (shop, rewards, unlocks) and real battle rules.',
+      '',
+      '## Coins when each age opens (after the age-unlock bonus)',
+      '',
+      table(
+        [
+          'Age',
+          'Runs that reached it',
+          'Average coins',
+          'Range',
+          'Could afford 2 Recruit + 1 General',
+        ],
+        ageRows,
+      ),
+      '',
+      '## Each battle',
+      '',
+      'Collection = owned troop cards of that age: Common / Rare / Epic / Legendary. General = the rarest named general of that age most runs held (generic = only the generic ones).',
+      '',
+      table(
+        [
+          'Battle',
+          'Runs',
+          'First-try wins',
+          'Target',
+          'Result',
+          'Avg tries',
+          'Best stars',
+          'Collection C/R/E/L',
+          'Avg level',
+          'General',
+        ],
+        rows,
+      ),
+      '',
+      stuck.length
+        ? `**Stuck runs** (a main battle lost every try): ${stuck.map((r) => BATTLE_BY_ID[r.stuckAt!]?.name).join(', ')}.`
+        : 'No run got stuck.',
+      '',
+      '## Outliers',
+      '',
+      outliers.length ? outliers.join('\n') : 'None.',
+    ].join('\n') + '\n'
+  );
+}
+
 function write(name: string, body: string): void {
   mkdirSync(outDir, { recursive: true });
   const file = join(outDir, `${today}-${name}.md`);
@@ -494,9 +652,22 @@ function write(name: string, body: string): void {
 const started = Date.now();
 if (mode === 'duel') write('duel', runDuel(seedList(opt('seeds', 40))));
 else if (mode === 'aivsai') write('aivsai', runAiVsAi(seedList(opt('seeds', 100))));
-else if (mode === 'scenario') {
+else if (mode === 'progression') {
+  write(
+    'progression',
+    progressionReport(
+      runProgression({
+        seeds: seedList(opt('seeds', 20)),
+        tries: opt('tries', 3),
+        lastAge: opt('age', 2),
+      }),
+      opt('age', 2),
+    ),
+  );
+} else if (mode === 'scenario') {
   const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
-  const army = optStr('army', 'test') === 'identical' ? 'identical' : 'test';
+  const armyArg = optStr('army', 'test');
+  const army = armyArg === 'identical' || armyArg === 'commons' ? armyArg : 'test';
   const level = args.includes('--level') ? opt('level', NaN) : undefined;
   if (level !== undefined && !(level >= 1)) throw new Error('--level needs a number of 1 or more');
   const suffix = army === 'test' && level === undefined ? '' : `-${army}-lv${level ?? 1}`;
@@ -512,7 +683,7 @@ else if (mode === 'scenario') {
   );
 else {
   console.error(
-    'Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P[,P2]] [--out dir]',
+    'Usage: npm run balance -- <duel|cost|scenario [battleId|ageN|all]|progression|aivsai> [--seeds N] [--points P[,P2]] [--out dir]',
   );
   process.exit(1);
 }
