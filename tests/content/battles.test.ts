@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AiPlayer, playAiSideTurn } from '../../src/ai/utility';
-import { AGES, BATTLE_BY_ID, CAMPAIGN } from '../../src/content/campaign/battles';
+import { AGES, BATTLE_BY_ID, CAMPAIGN, battlesOfAge } from '../../src/content/campaign/battles';
 import { buildScenario, deploymentSquares } from '../../src/content/campaign/build';
 import { ERA_UNIT_BY_ID } from '../../src/content/eraUnits';
 import { GENERAL_BY_ID } from '../../src/content/generals';
@@ -124,5 +124,22 @@ describe.each(CAMPAIGN)('battle $id', (b) => {
     const s = playAi(b, 1);
     expect(s.result).not.toBeNull();
     expect(s.result!.turn).toBeLessThanOrEqual(b.turnLimit);
+  });
+});
+
+describe('Antiquity test armies', () => {
+  it('use only troops and generals a player could own by then', () => {
+    const units = new Set<string>([...AGES[0]!.starterUnits, ...AGES[1]!.starterUnits]);
+    const generals = new Set<string>(['captain', 'centurion']);
+    for (const b of battlesOfAge(0)) {
+      for (const u of b.firstWinUnlocks?.units ?? []) units.add(u);
+      for (const g of b.firstWinUnlocks?.generals ?? []) generals.add(g);
+    }
+    for (const b of battlesOfAge(1)) {
+      for (const u of b.testArmy.units) expect(units, `${b.id}: ${u.type}`).toContain(u.type);
+      expect(generals, `${b.id}: general`).toContain(b.testArmy.general!.id);
+      for (const u of b.firstWinUnlocks?.units ?? []) units.add(u);
+      for (const g of b.firstWinUnlocks?.generals ?? []) generals.add(g);
+    }
   });
 });

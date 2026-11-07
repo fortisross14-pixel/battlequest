@@ -1,6 +1,7 @@
 /**
  * Balance simulator. Usage: npm run balance -- <duel|cost|scenario [battleId|all]|aivsai> [--seeds N] [--points P[,P2]] [--out dir]
- * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit level).
+ * Scenario options: --army test|identical (best N copies of one troop type), --level L (player unit
+ * level; by default the test army's own levels, or 1).
  * Uses the real src/core rules and a fixed seed list, so runs are reproducible.
  */
 import { fork } from 'node:child_process';
@@ -224,20 +225,34 @@ async function runCost(seeds: number[], points: number[], jobs: number): Promise
 interface ScenarioOptions {
   /** 'test': the battle's test army. 'identical': the best army of N copies of one troop type. */
   army: 'test' | 'identical';
-  level: number;
+  level?: number;
 }
 
 function playScenario(b: CampaignBattle, seeds: number[], army: ArmyChoice) {
   let wins = 0;
   let turns = 0;
   let lost = 0;
+  /** How many runs reached at least 1, 2 and 3 stars. */
+  const atLeast = [0, 0, 0];
   for (const seed of seeds) {
     const r = scenarioBattle(b, seed, army);
     wins += r.won ? 1 : 0;
     turns += r.turns;
     lost += r.lostPct;
+    for (let k = 0; k < r.stars; k++) atLeast[k]! += 1;
   }
-  return { rate: wins / seeds.length, turns: turns / seeds.length, lost: lost / seeds.length };
+  const n = seeds.length;
+  return {
+    rate: wins / n,
+    turns: turns / n,
+    lost: lost / n,
+    starOdds: atLeast.map((c) => c / n),
+  };
+}
+
+/** Expected best stars over `tries` attempts, from the odds of reaching 1, 2 and 3 stars. */
+function expectedStars(starOdds: number[], tries: number): number {
+  return starOdds.reduce((sum, p) => sum + 1 - (1 - p) ** tries, 0);
 }
 
 /** Armies of N identical units, one per troop type a player could own by this battle's age. */
@@ -255,8 +270,9 @@ function identicalArmies(b: CampaignBattle, level: number): ArmyChoice[] {
 function targetBand(b: CampaignBattle): [number, number] {
   if (b.tutorial) return [0.75, 1];
   const n = AGE_BY_ID[b.age]?.battles.length ?? 1;
-  const i = Math.max(0, battleIndex(b) - 1);
-  const t = 0.8 - (0.4 * Math.min(i, n - 2)) / Math.max(1, n - 2);
+  // Battles 1–2 (indexes 0–1) sit at 80%, the last two at 40%, linear in between.
+  const span = Math.max(1, n - 3);
+  const t = 0.8 - (0.4 * Math.min(Math.max(0, battleIndex(b) - 1), span)) / span;
   return [Math.max(0, t - 0.1), Math.min(1, t + 0.1)];
 }
 
@@ -264,17 +280,18 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
   const battles = id === 'all' ? CAMPAIGN : [BATTLE_BY_ID[id]!].filter(Boolean);
   const rows: string[][] = [];
   const outliers: string[] = [];
+  const route: { b: CampaignBattle; odds: number[] }[] = [];
   for (const b of battles) {
     const candidates =
       opts.army === 'identical'
-        ? identicalArmies(b, opts.level)
+        ? identicalArmies(b, opts.level ?? 1)
         : [
             {
               ...b.testArmy,
-              units: b.testArmy.units.map((u) => ({ ...u, level: opts.level })),
+              units: b.testArmy.units.map((u) => ({ ...u, level: opts.level ?? u.level ?? 1 })),
             },
           ];
-    let best = { rate: -1, turns: 0, lost: 0 };
+    let best = { rate: -1, turns: 0, lost: 0, starOdds: [0, 0, 0] };
     let bestArmy = candidates[0]!;
     for (const army of candidates) {
       const r = playScenario(b, seeds, army);
@@ -301,17 +318,19 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
       ok ? 'pass' : '**out**',
       best.turns.toFixed(1),
       pct(best.lost),
+      expectedStars(best.starOdds, 1).toFixed(1),
     ]);
+    route.push({ b, odds: best.starOdds });
   }
   const armyDesc =
     opts.army === 'identical'
       ? 'the best army of N identical units (every troop type a player could own by that age is tried; the best one is shown)'
-      : "the battle's test army";
+      : "the battle's test army (a reasonable owned army for that point in the campaign)";
   return (
     [
-      `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level})`,
+      `# Balance: scenario (${today}, army: ${opts.army}, level ${opts.level ?? 'per test army'})`,
       '',
-      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level}, and the enemy AI plays its scenario posture. Targets: tutorial battles 75–100%; in an age, about 80% for battles 1–2 falling to about 40% for the last two (±10%).`,
+      `Each battle played ${seeds.length} times per army: the utility AI plays the player with ${armyDesc} at level ${opts.level ?? 'set per unit'}, and the enemy AI plays its scenario posture. Targets: tutorial battles 75–100%; in an age, about 80% for battles 1–2 falling to about 40% for the last two (±10%).`,
       '',
       table(
         [
@@ -323,15 +342,55 @@ function runScenario(id: string, seeds: number[], opts: ScenarioOptions): string
           'Result',
           'Avg turns',
           'Avg player losses',
+          'Avg stars',
         ],
         rows,
       ),
+      ...starRoute(route),
       '',
       '## Outliers',
       '',
       outliers.length ? outliers.join('\n') : 'None.',
     ].join('\n') + '\n'
   );
+}
+
+/**
+ * Checks each age's star gates (prompt 04): the stars a player can expect before each
+ * battle on a first pass, and with the best of 3 tries per battle (replays).
+ */
+function starRoute(route: { b: CampaignBattle; odds: number[] }[]): string[] {
+  const out: string[] = [];
+  for (const age of Object.values(AGE_BY_ID)) {
+    const rows = age.battles.map((id) => route.find((r) => r.b.id === id));
+    if (!rows.length || rows.some((r) => !r) || age.battles.length < 3) continue;
+    let once = 0;
+    let thrice = 0;
+    const table_: string[][] = [];
+    rows.forEach((r, i) => {
+      const need = age.starThresholds[i] ?? 0;
+      table_.push([
+        String(i + 1),
+        r!.b.name,
+        String(need),
+        once.toFixed(1) + (once >= need ? '' : ' ✗'),
+        thrice.toFixed(1) + (thrice >= need ? '' : ' ✗'),
+      ]);
+      once += expectedStars(r!.odds, 1);
+      thrice += expectedStars(r!.odds, 3);
+    });
+    out.push(
+      '',
+      `## Star route: ${age.name}`,
+      '',
+      'Expected stars earned in this age before each battle, playing the earlier battles once, or keeping the best of 3 tries. ✗ marks a gate not met on average.',
+      '',
+      table(['#', 'Battle', 'Stars needed', 'First pass', 'Best of 3'], table_),
+      '',
+      `Age total: ${once.toFixed(1)} ★ first pass, ${thrice.toFixed(1)} ★ best of 3 (max ${rows.length * 3}).`,
+    );
+  }
+  return out;
 }
 
 function runAiVsAi(seeds: number[]): string {
@@ -438,8 +497,9 @@ else if (mode === 'aivsai') write('aivsai', runAiVsAi(seedList(opt('seeds', 100)
 else if (mode === 'scenario') {
   const id = args[1] && !args[1].startsWith('--') ? args[1] : 'all';
   const army = optStr('army', 'test') === 'identical' ? 'identical' : 'test';
-  const level = opt('level', 1);
-  const suffix = army === 'test' && level === 1 ? '' : `-${army}-lv${level}`;
+  const level = args.includes('--level') ? opt('level', NaN) : undefined;
+  if (level !== undefined && !(level >= 1)) throw new Error('--level needs a number of 1 or more');
+  const suffix = army === 'test' && level === undefined ? '' : `-${army}-lv${level ?? 1}`;
   write(`scenario-${id}${suffix}`, runScenario(id, seedList(opt('seeds', 30)), { army, level }));
 } else if (mode === 'cost')
   write(

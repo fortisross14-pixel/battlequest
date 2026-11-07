@@ -54,11 +54,11 @@ describe('star thresholds', () => {
     const p = antiquityOpen();
     applyOutcome(p, BATTLE_BY_ID.qarqar!, win(1), null, { seed: 3 });
     expect(isBattleUnlocked(p, BATTLE_BY_ID.thermopylae!)).toBe(true); // needs 1
-    expect(isBattleUnlocked(p, BATTLE_BY_ID.leuctra!)).toBe(false); // battle #4 needs 2
+    expect(isBattleUnlocked(p, BATTLE_BY_ID.plataea!)).toBe(false); // battle #4 needs 2
     // Replaying Qarqar for ★★ raises the age total to 2.
     applyOutcome(p, BATTLE_BY_ID.qarqar!, win(2), null, { seed: 4 });
     expect(ageStars(p, 1)).toBe(2);
-    expect(isBattleUnlocked(p, BATTLE_BY_ID.leuctra!)).toBe(true);
+    expect(isBattleUnlocked(p, BATTLE_BY_ID.plataea!)).toBe(true);
     // A worse replay never lowers the best result.
     applyOutcome(p, BATTLE_BY_ID.qarqar!, win(1), null, { seed: 5 });
     expect(ageStars(p, 1)).toBe(2);
@@ -120,7 +120,7 @@ describe('newlyUnlocked', () => {
     const p = antiquityOpen();
     const before = cloneProfile(p);
     applyOutcome(p, BATTLE_BY_ID.marathon!, win(2), null, { seed: 9 });
-    expect(newlyUnlocked(before, p).battles).toEqual(['thermopylae', 'leuctra']);
+    expect(newlyUnlocked(before, p).battles).toEqual(['thermopylae', 'plataea']);
   });
 });
 
@@ -168,5 +168,20 @@ describe('profile v2 → v3', () => {
     const p = migrateProfile({ ...structuredClone(V2), battles: { megiddo: V2.battles.megiddo } })!;
     expect(isAgeUnlocked(p, 1)).toBe(false);
     expect(p.unlockedAge).toBe(0);
+  });
+});
+
+describe('Antiquity gates (GAME_DESIGN 7.3)', () => {
+  it('has ten battles and the last needs 16 stars from the first nine', () => {
+    const p = antiquityOpen();
+    const age = AGES[1]!;
+    expect(age.battles).toHaveLength(10);
+    // Seven wins at ★★ and two at ★ are exactly enough for Hydaspes; one star less is not.
+    for (const id of age.battles.slice(0, 9)) p.battles[id] = { stars: 2, wins: 1, plays: 1 };
+    p.battles.qarqar!.stars = 1;
+    p.battles.marathon!.stars = 1;
+    expect(isBattleUnlocked(p, BATTLE_BY_ID.hydaspes!)).toBe(true);
+    p.battles.thermopylae!.stars = 1;
+    expect(isBattleUnlocked(p, BATTLE_BY_ID.hydaspes!)).toBe(false);
   });
 });

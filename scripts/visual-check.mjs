@@ -379,6 +379,22 @@ for (const size of SIZES) {
   }
   const ns = await smallTargets(page);
   if (ns.length) problems.push(`${size.name} (age map): small buttons ${JSON.stringify(ns)}`);
+
+  // New Antiquity battlefields: scythed chariots at Gaugamela, elephants at Hydaspes.
+  for (const id of ['gaugamela', 'hydaspes']) {
+    await page.evaluate(async (battleId) => {
+      const mod = await import('/src/content/campaign/battles.ts');
+      const b = mod.BATTLE_BY_ID[battleId];
+      window.__bq.app.deploy(b, b.testArmy);
+    }, id);
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Start battle' }).tap();
+    await page.waitForTimeout(600);
+    await shot(page, size, `40-${id}`);
+    await page.getByRole('button', { name: 'Leave battle' }).tap();
+    await page.getByRole('button', { name: 'Leave', exact: true }).tap();
+    await page.waitForTimeout(1200);
+  }
   await ctx.close();
 }
 await browser.close();

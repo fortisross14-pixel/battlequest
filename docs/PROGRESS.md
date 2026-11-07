@@ -43,12 +43,13 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 - [x] Phase A — ages data (10 ages, 2 playable), star-gated unlocks, age unlocks on all wins, newlyUnlocked, profile v3 migration, tests
 - [x] Phase B — timeline and age map screens, build-time Natural Earth maps, screen stack, results return to the age map
 - [x] Phase C — Age 0 tutorial battles (Megiddo, Kadesh): event-driven tutorial scripts, skip, builder tips, headless script tests
-- [ ] Phase D — Antiquity: 10 battles, new troops, generals and rules
+- [x] Phase D — Antiquity: 10 battles (6 new), elephants (ScaresHorses, Stampede) and scythed chariots, 9 new troops, 6 new generals, difficulty bands and star route
 
 ## Next
 - [ ] Human playtest of Megiddo (slightly easy) and Leuctra (slightly hard), and of cost outliers (elephants, heavy swordsmen, light cavalry, skirmishers, line infantry)
 - [ ] Hannibal’s Ambush (pre-battle redeploy) and other unique general skills
-- [ ] Human playtest of the six battles; retune with `balance-sim scenario` (current stand-in results are mostly too easy)
-- [ ] Re-run `balance-sim cost` with the AI and retune unit costs
-- [ ] Remaining Age 2 battles (Gaugamela, Hydaspes) and more generals' unique skills
+- [ ] Human playtest of the twelve battles; retune with `balance-sim scenario` (stand-in results are close to all-or-nothing)
+- [ ] Re-run `balance-sim cost` and retune unit costs; war elephants are +51% per point after ScaresHorses
+- [ ] More generals' unique skills (Darius, Porus and Philip reuse existing effects)
+- [ ] Age map: the Greek battles crowd together on phones; consider an inset or a zoomed Greece view
 - [ ] Reinforcements, fog of war, weather; marsh, village, fieldworks, road terrain

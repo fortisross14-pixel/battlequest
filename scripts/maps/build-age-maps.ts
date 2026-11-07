@@ -117,7 +117,7 @@ const RIVERS: { name: string; label: [number, number]; points: [number, number][
   },
   {
     name: 'Hydaspes',
-    label: [72.9, 33.6],
+    label: [72.6, 30.9],
     points: [
       [73.9, 34.4],
       [73.5, 33.3],

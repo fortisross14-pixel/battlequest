@@ -2,6 +2,7 @@ import { playGreedyBattle } from '../../src/ai/greedy';
 import { LegacyAiPlayer } from '../../src/ai/legacy';
 import { AiPlayer, playAiSideTurn, type CommandSource, type Posture } from '../../src/ai/utility';
 import { buildScenario } from '../../src/content/campaign/build';
+import { evaluate } from '../../src/meta/rewards';
 import type { ArmyChoice, CampaignBattle } from '../../src/content/campaign/types';
 import { ARCHETYPES, unitType, type ArchetypeId } from '../../src/content/units';
 import {
@@ -152,7 +153,7 @@ export function scenarioBattle(
   b: CampaignBattle,
   seed: number,
   army: ArmyChoice = b.testArmy,
-): { won: boolean; turns: number; lostPct: number } {
+): { won: boolean; turns: number; lostPct: number; stars: number } {
   const session = new BattleSession(startBattle(buildScenario(b, army, seed)));
   const ais = {
     // A sensible player holds when the objective is to hold out.
@@ -177,6 +178,7 @@ export function scenarioBattle(
     won: s.result?.winner === 'blue',
     turns: s.result?.turn ?? s.turn,
     lostPct: lost / total,
+    stars: evaluate(b, s).stars,
   };
 }
 

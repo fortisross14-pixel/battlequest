@@ -31,9 +31,21 @@ export const AGES: Age[] = [
     to: -320,
     region: { west: 12, east: 78, south: 20, north: 48 },
     emblem: 'laurel',
-    // Plataea, Chaeronea, Granicus, Issus, Gaugamela and Hydaspes join in Phase D.
-    battles: ['qarqar', 'marathon', 'thermopylae', 'leuctra'],
-    starThresholds: DEFAULT_STAR_THRESHOLDS,
+    battles: [
+      'qarqar',
+      'marathon',
+      'thermopylae',
+      'plataea',
+      'leuctra',
+      'chaeronea',
+      'granicus',
+      'issus',
+      'gaugamela',
+      'hydaspes',
+    ],
+    // Hydaspes needs 16, not 18: the stand-in player reaches about 17 stars over the first
+    // nine battles keeping the best of three tries (DECISIONS, Campaign D).
+    starThresholds: [0, 0, 1, 2, 4, 6, 8, 10, 14, 16],
     starterUnits: ['hoplites', 'peltasts'],
     status: 'playable',
   },
