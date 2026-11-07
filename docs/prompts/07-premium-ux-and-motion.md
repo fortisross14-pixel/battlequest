@@ -1,5 +1,7 @@
 # Agent prompt: premium UX, command bubble and motion
 
+> **Superseded by `09-premium-ux-and-battle-depth.md`** (07 and 08 merged, lighter testing). Kept for history; don't run it.
+
 Use this **after `06-build-ages-0-2.md` is finished**. It **replaces `03-controls-and-motion.md`**: everything from 03 is folded in here, so don't run 03. Copy everything below the line into a **new** coding-agent session, so it loads the new skills.
 
 ---

@@ -55,5 +55,6 @@ Copied from awesome-gamedev-agent-skills. They give general game-dev guidance; w
 ## Workflow
 
 - Before committing, run `npm run typecheck && npm run lint && npm test`.
-- New rules need unit tests in `tests/`.
+- **Keep tests lean.** Add a unit test only for a new core rule (one focused test per rule is enough) or when fixing a bug. UI, layout and motion are validated **visually** (`visual-check`, `motion-check` screenshots and contact sheets), not with new test suites.
+- Balance is tuned. Don't re-run `balance-sim` unless rule numbers or card stats change, and then run only the affected mode.
 - Small, descriptive commits.

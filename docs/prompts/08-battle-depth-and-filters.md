@@ -1,5 +1,7 @@
 # Agent prompt: tactical actions and age filters
 
+> **Superseded by `09-premium-ux-and-battle-depth.md`** (07 and 08 merged, lighter testing). Kept for history; don't run it.
+
 Use this **after `07-premium-ux-and-motion.md`**, because the action UI plugs into its command bubble and attack preview. If 07 hasn't started yet, Phase A (rules) and Phase D (age filter) can run first, and Phase B waits for the bubble. Copy everything below the line into a **new** coding-agent session.
 
 ---
