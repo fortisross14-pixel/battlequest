@@ -127,6 +127,7 @@ All timings are tokens in `src/ui/motion.ts` (see the `motion` skill), and the A
 | **Full charge: breakthrough** | Longer wind-up, a dash with a strong ink trail, and the defender's block ripples as the cavalry **passes through it**, landing behind already turned (one 180° whip with a small overshoot), with a dust burst. On a failure, a hard stop and recoil on impact. | about 0.9 s |
 | Charge | Wind-up (4% pull-back), a dash with a fading ink-trail arrow, an impact squash and shake on both blocks, ink specks, then floating loss numbers, with a 60 ms hit-stop on the impact frame (`game-feel`). | about 0.6 s |
 | Rout | The block hollows out, wobbles and slides off. The breakpoint meter ticks up with a pulse. | about 0.7 s |
+| **Battle-ending moment** | The moment a battle is decided, a banner names the reason **before** the victory or defeat sequence: "**The enemy general has fallen!**" (or "Your general has fallen"), "The enemy army breaks", "You held the line", "Time is up: draw". The deciding unit is highlighted, with a short slow-motion beat on the general's unit if a general fell. | about 1.2 s, skippable |
 | Turn change | A thin ink banner sweeps across the guidance strip ("Turn 4 · Your move"). | ≤ 0.7 s |
 
 **Reduce motion** (the OS setting or the in-game toggle) turns all of these into short fades of at most 0.16 s, with no shake, flight or hit-stop.
@@ -171,6 +172,10 @@ Shared rules (`emil-design-eng`, `choreograph`):
 - Cards slide into slots with a magnetic snap and a small dust puff.
 - Removing a card lets the remaining slots close the gap with Flip.
 - The army power meter eases to its new value.
+
+**Results** also show the **reason in large type** under VICTORY or DEFEAT, with one line on what caused it (for example "Xerxes' guard was routed by your Companions on turn 6").
+
+**General markers in battle:** both generals' units carry a gold ring. A long press or the Info card says "If this unit falls, the battle is lost". When your general's unit is in reach of an enemy charge, its ring pulses red.
 
 **Results:** the victory sequence from the `motion` skill: the battle redrawn as arrows, the VICTORY seal, then stars, coins, XP and cards in sequence, all skippable with a tap.
 

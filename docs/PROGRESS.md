@@ -61,4 +61,4 @@ Milestone checklist. See section 12 of `GAME_DESIGN.md`.
 
 ## Bugs reported by the owner
 - [ ] **A freed unit still counts as "in melee".** An archer whose enemy was pushed away (no longer adjacent) still shows "in melee" and can't shoot. Cause: `pruneEngagements` in `src/core/engine.ts` only runs at turn phases. Fix: prune right after any command or event that moves or removes a unit (push-back, pursuit, rout, evade, breakthrough, destruction), then refresh the status line and the bubble. Add one regression test. See GAME_DESIGN §4.6 "Leaving a melee".
-
+- [ ] **No message when a battle ends because a general fell.** The battle just ends. Show the battle-ending banner with the reason, state the reason on the results screen, and mark both generals with a gold ring and a "lose this = lose the battle" note. See UX_PRESENTATION §3 "Battle-ending moment" and the Results notes in §4.
