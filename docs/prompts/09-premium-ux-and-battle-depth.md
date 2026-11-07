@@ -4,6 +4,8 @@ This prompt merges and replaces `07-premium-ux-and-motion.md` and `08-battle-dep
 
 ---
 
+**First, ask the owner for this wave's test plan,** proposing the debug-only default from `CLAUDE.md`. Use whatever they choose; with no answer, use the default.
+
 Pull the latest branch. This update is mostly **visual and feel**. It covers:
 - a command bubble instead of the bottom buttons;
 - a battle screen where nothing overlaps the battlefield;

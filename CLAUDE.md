@@ -26,6 +26,15 @@ We are still adding units, tactical actions, generals and battles. **Any balance
 
 **Time budget:** at least 80% of a task is building the requirement; at most 20% is checking.
 
+**The owner decides the test plan for each wave.** At the start of every prompt or wave, before writing code, ask the owner one short question (with AskUserQuestion where available) proposing this default:
+
+- **Default, debug only:** typecheck and build pass; the game loads with no console errors; one click-through of each new feature, with 1–2 screenshots; and any existing tests that break are fixed only if they are core-rule tests (balance tests move to `tests/balance/`).
+- Offer at most two alternatives, for example "+ one unit test per new core rule" or "+ a motion contact sheet".
+
+If the owner doesn't answer, use the default. **Write no new tests beyond what the owner chose.**
+
+**The existing suite isn't sacred.** Tests tied to specific content (a particular battle's layout, unit stats, roster sizes, campaign order) break every time content changes. When one breaks because content changed on purpose, update or delete the assertion. Don't change the content to satisfy it.
+
 ## Key documents
 
 - `docs/GAME_DESIGN.md`: the source of truth for rules, content and UX. Read the relevant section before changing gameplay.

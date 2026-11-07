@@ -4,6 +4,8 @@ Run this after `09-premium-ux-and-battle-depth.md`, in a **new** coding-agent se
 
 ---
 
+**First, ask the owner for this wave's test plan,** proposing the debug-only default from `CLAUDE.md`. Use whatever they choose; with no answer, use the default.
+
 Pull the latest branch. Follow the **PROTOTYPE PHASE** rules in `CLAUDE.md`. For each part, ask: have I completed the requirement, and does the game run? If yes, push and move on. **No balance runs, tuning or win-rate tables in this prompt.**
 
 ## Part 1 — Break rule by unit count (GAME_DESIGN §4.8, rewritten)
